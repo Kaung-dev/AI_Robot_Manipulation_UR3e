@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot name="ur3e_rg2">
+
+  <group name="arm">
+    <chain base_link="base_link" tip_link="tool0"/>
+  </group>
+
+  <group name="gripper">
+    <joint name="finger_width"/>
+  </group>
+
+  <end_effector name="rg2" parent_link="tool0" group="gripper" parent_group="arm"/>
+
+  <group_state name="home" group="arm">
+    <joint name="shoulder_pan_joint"  value="0"/>
+    <joint name="shoulder_lift_joint" value="-1.5708"/>
+    <joint name="elbow_joint"         value="0"/>
+    <joint name="wrist_1_joint"       value="-1.5708"/>
+    <joint name="wrist_2_joint"       value="0"/>
+    <joint name="wrist_3_joint"       value="0"/>
+  </group_state>
+
+  <group_state name="up" group="arm">
+    <joint name="shoulder_pan_joint"  value="0"/>
+    <joint name="shoulder_lift_joint" value="-1.5708"/>
+    <joint name="elbow_joint"         value="0"/>
+    <joint name="wrist_1_joint"       value="0"/>
+    <joint name="wrist_2_joint"       value="0"/>
+    <joint name="wrist_3_joint"       value="0"/>
+  </group_state>
+
+  <group_state name="open"   group="gripper"><joint name="finger_width" value="0.110"/></group_state>
+  <group_state name="closed" group="gripper"><joint name="finger_width" value="0.000"/></group_state>
+
+  <disable_collisions link1="world"            link2="base_link"          reason="Adjacent"/>
+  <disable_collisions link1="base_link"        link2="base_link_inertia"  reason="Adjacent"/>
+  <disable_collisions link1="base_link_inertia" link2="shoulder_link"     reason="Adjacent"/>
+  <disable_collisions link1="shoulder_link"    link2="upper_arm_link"     reason="Adjacent"/>
+  <disable_collisions link1="upper_arm_link"   link2="forearm_link"       reason="Adjacent"/>
+  <disable_collisions link1="forearm_link"     link2="wrist_1_link"       reason="Adjacent"/>
+  <disable_collisions link1="wrist_1_link"     link2="wrist_2_link"       reason="Adjacent"/>
+  <disable_collisions link1="wrist_2_link"     link2="wrist_3_link"       reason="Adjacent"/>
+  <disable_collisions link1="wrist_3_link"     link2="onrobot_base_link"  reason="Adjacent"/>
+
+  <disable_collisions link1="onrobot_base_link" link2="left_outer_knuckle"  reason="Adjacent"/>
+  <disable_collisions link1="onrobot_base_link" link2="left_inner_knuckle"  reason="Adjacent"/>
+  <disable_collisions link1="onrobot_base_link" link2="right_outer_knuckle" reason="Adjacent"/>
+  <disable_collisions link1="onrobot_base_link" link2="right_inner_knuckle" reason="Adjacent"/>
+  <disable_collisions link1="left_outer_knuckle"  link2="left_inner_finger"   reason="Adjacent"/>
+  <disable_collisions link1="right_outer_knuckle" link2="right_inner_finger"  reason="Adjacent"/>
+  <disable_collisions link1="left_inner_finger"   link2="left_finger_tip"     reason="Adjacent"/>
+  <disable_collisions link1="right_inner_finger"  link2="right_finger_tip"    reason="Adjacent"/>
+
+  <disable_collisions link1="onrobot_base_link" link2="left_inner_finger"  reason="Default"/>
+  <disable_collisions link1="onrobot_base_link" link2="right_inner_finger" reason="Default"/>
+  <disable_collisions link1="left_outer_knuckle"  link2="left_inner_knuckle"  reason="Default"/>
+  <disable_collisions link1="right_outer_knuckle" link2="right_inner_knuckle" reason="Default"/>
+
+  <disable_collisions link1="left_outer_knuckle"  link2="right_outer_knuckle"  reason="Never"/>
+  <disable_collisions link1="left_outer_knuckle"  link2="right_inner_knuckle"  reason="Never"/>
+  <disable_collisions link1="left_outer_knuckle"  link2="right_inner_finger"   reason="Never"/>
+  <disable_collisions link1="left_outer_knuckle"  link2="right_finger_tip"     reason="Never"/>
+  <disable_collisions link1="left_inner_knuckle"  link2="right_outer_knuckle"  reason="Never"/>
+  <disable_collisions link1="left_inner_knuckle"  link2="right_inner_knuckle"  reason="Never"/>
+  <disable_collisions link1="left_inner_knuckle"  link2="right_inner_finger"   reason="Never"/>
+  <disable_collisions link1="left_inner_knuckle"  link2="right_finger_tip"     reason="Never"/>
+  <disable_collisions link1="left_inner_finger"   link2="right_outer_knuckle"  reason="Never"/>
+  <disable_collisions link1="left_inner_finger"   link2="right_inner_knuckle"  reason="Never"/>
+  <disable_collisions link1="left_inner_finger"   link2="right_inner_finger"   reason="Never"/>
+  <disable_collisions link1="left_inner_finger"   link2="right_finger_tip"     reason="Never"/>
+  <disable_collisions link1="left_finger_tip"     link2="right_outer_knuckle"  reason="Never"/>
+  <disable_collisions link1="left_finger_tip"     link2="right_inner_knuckle"  reason="Never"/>
+  <disable_collisions link1="left_finger_tip"     link2="right_inner_finger"   reason="Never"/>
+  <disable_collisions link1="left_finger_tip"     link2="right_finger_tip"     reason="Never"/>
+
+  <disable_collisions link1="left_inner_knuckle"  link2="left_inner_finger"    reason="Default"/>
+  <disable_collisions link1="left_inner_knuckle"  link2="left_finger_tip"      reason="Default"/>
+  <disable_collisions link1="left_outer_knuckle"  link2="left_finger_tip"      reason="Default"/>
+  <disable_collisions link1="right_inner_knuckle" link2="right_inner_finger"   reason="Default"/>
+  <disable_collisions link1="right_inner_knuckle" link2="right_finger_tip"     reason="Default"/>
+  <disable_collisions link1="right_outer_knuckle" link2="right_finger_tip"     reason="Default"/>
+
+  <disable_collisions link1="onrobot_base_link"   link2="left_finger_tip"      reason="Default"/>
+  <disable_collisions link1="onrobot_base_link"   link2="right_finger_tip"     reason="Default"/>
+
+</robot>
