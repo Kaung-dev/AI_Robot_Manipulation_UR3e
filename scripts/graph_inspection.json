@@ -1,0 +1,126 @@
+{
+  "graph_path": "/World/RosBridgeGraph",
+  "nodes": [
+    {
+      "path": "/World/RosBridgeGraph/Tick",
+      "name": "Tick",
+      "type": "omni.graph.action.OnPlaybackTick",
+      "version": 2,
+      "inputs": {},
+      "relationships": {},
+      "connections": {}
+    },
+    {
+      "path": "/World/RosBridgeGraph/ReadSimTime",
+      "name": "ReadSimTime",
+      "type": "isaacsim.core.nodes.IsaacReadSimulationTime",
+      "version": 1,
+      "inputs": {
+        "inputs:resetOnStop": null,
+        "inputs:swhFrameNumber": null
+      },
+      "relationships": {},
+      "connections": {}
+    },
+    {
+      "path": "/World/RosBridgeGraph/PubJS",
+      "name": "PubJS",
+      "type": "isaacsim.ros2.bridge.ROS2PublishJointState",
+      "version": 1,
+      "inputs": {
+        "inputs:context": null,
+        "inputs:execIn": null,
+        "inputs:nodeNamespace": null,
+        "inputs:qosProfile": null,
+        "inputs:queueSize": null,
+        "inputs:timeStamp": null,
+        "inputs:topicName": "isaac_joint_states"
+      },
+      "relationships": {
+        "inputs:targetPrim": [
+          "/World/ur3e/root_joint"
+        ]
+      },
+      "connections": {
+        "inputs:context": [
+          "/World/RosBridgeGraph/ros2_context.outputs:context"
+        ],
+        "inputs:execIn": [
+          "/World/RosBridgeGraph/Tick.outputs:tick"
+        ],
+        "inputs:timeStamp": [
+          "/World/RosBridgeGraph/ReadSimTime.outputs:simulationTime"
+        ]
+      }
+    },
+    {
+      "path": "/World/RosBridgeGraph/SubJS",
+      "name": "SubJS",
+      "type": "isaacsim.ros2.bridge.ROS2SubscribeJointState",
+      "version": 2,
+      "inputs": {
+        "inputs:context": null,
+        "inputs:execIn": null,
+        "inputs:nodeNamespace": null,
+        "inputs:qosProfile": null,
+        "inputs:queueSize": null,
+        "inputs:topicName": "isaac_joint_commands"
+      },
+      "relationships": {},
+      "connections": {
+        "inputs:execIn": [
+          "/World/RosBridgeGraph/Tick.outputs:tick"
+        ]
+      }
+    },
+    {
+      "path": "/World/RosBridgeGraph/ArtCtrl",
+      "name": "ArtCtrl",
+      "type": "isaacsim.core.nodes.IsaacArticulationController",
+      "version": 1,
+      "inputs": {
+        "inputs:effortCommand": null,
+        "inputs:execIn": null,
+        "inputs:jointIndices": null,
+        "inputs:jointNames": null,
+        "inputs:positionCommand": null,
+        "inputs:robotPath": "/World/ur3e/root_joint",
+        "inputs:velocityCommand": null
+      },
+      "relationships": {
+        "inputs:targetPrim": [
+          "/World/ur3e/root_joint"
+        ]
+      },
+      "connections": {
+        "inputs:effortCommand": [
+          "/World/RosBridgeGraph/SubJS.outputs:effortCommand"
+        ],
+        "inputs:execIn": [
+          "/World/RosBridgeGraph/SubJS.outputs:execOut"
+        ],
+        "inputs:jointNames": [
+          "/World/RosBridgeGraph/SubJS.outputs:jointNames"
+        ],
+        "inputs:positionCommand": [
+          "/World/RosBridgeGraph/SubJS.outputs:positionCommand"
+        ],
+        "inputs:velocityCommand": [
+          "/World/RosBridgeGraph/SubJS.outputs:velocityCommand"
+        ]
+      }
+    },
+    {
+      "path": "/World/RosBridgeGraph/ros2_context",
+      "name": "ros2_context",
+      "type": "isaacsim.ros2.bridge.ROS2Context",
+      "version": 2,
+      "inputs": {
+        "inputs:domain_id": null,
+        "inputs:useDomainIDEnvVar": null
+      },
+      "relationships": {},
+      "connections": {}
+    }
+  ]
+}

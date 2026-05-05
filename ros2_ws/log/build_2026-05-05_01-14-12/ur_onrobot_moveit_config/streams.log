@@ -1,0 +1,73 @@
+[0.015s] Invoking command in '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config': AMENT_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:/opt/ros/humble LD_LIBRARY_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver/lib:${LD_LIBRARY_PATH} /usr/bin/cmake /home/user/Desktop/ur_pick/ros2_ws/src/UR_OnRobot_ROS2/ur_onrobot_moveit_config -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config
+[0.085s] -- The C compiler identification is GNU 12.3.0
+[0.159s] -- The CXX compiler identification is GNU 12.3.0
+[0.167s] -- Detecting C compiler ABI info
+[0.270s] -- Detecting C compiler ABI info - done
+[0.276s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.277s] -- Detecting C compile features
+[0.277s] -- Detecting C compile features - done
+[0.280s] -- Detecting CXX compiler ABI info
+[0.395s] -- Detecting CXX compiler ABI info - done
+[0.404s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.404s] -- Detecting CXX compile features
+[0.405s] -- Detecting CXX compile features - done
+[0.408s] -- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.557s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.614s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[0.789s] -- Configuring done
+[0.793s] -- Generating done
+[0.795s] -- Build files have been written to: /home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config
+[0.799s] Invoked command in '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config' returned '0': AMENT_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:/opt/ros/humble LD_LIBRARY_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver/lib:${LD_LIBRARY_PATH} /usr/bin/cmake /home/user/Desktop/ur_pick/ros2_ws/src/UR_OnRobot_ROS2/ur_onrobot_moveit_config -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config
+[0.801s] Invoking command in '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config': AMENT_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:/opt/ros/humble LD_LIBRARY_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver/lib:${LD_LIBRARY_PATH} /usr/bin/cmake --build /home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config -- -j15 -l15
+[0.878s] Built target ament_cmake_python_symlink_ur_onrobot_moveit_config
+[1.128s] running egg_info
+[1.128s] creating ur_onrobot_moveit_config.egg-info
+[1.128s] writing ur_onrobot_moveit_config.egg-info/PKG-INFO
+[1.129s] writing dependency_links to ur_onrobot_moveit_config.egg-info/dependency_links.txt
+[1.129s] writing top-level names to ur_onrobot_moveit_config.egg-info/top_level.txt
+[1.129s] writing manifest file 'ur_onrobot_moveit_config.egg-info/SOURCES.txt'
+[1.132s] reading manifest file 'ur_onrobot_moveit_config.egg-info/SOURCES.txt'
+[1.133s] writing manifest file 'ur_onrobot_moveit_config.egg-info/SOURCES.txt'
+[1.156s] Built target ament_cmake_python_build_ur_onrobot_moveit_config_egg
+[1.174s] Invoked command in '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config' returned '0': AMENT_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:/opt/ros/humble LD_LIBRARY_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver/lib:${LD_LIBRARY_PATH} /usr/bin/cmake --build /home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config -- -j15 -l15
+[1.176s] Invoking command in '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config': AMENT_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:/opt/ros/humble LD_LIBRARY_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver/lib:${LD_LIBRARY_PATH} /usr/bin/cmake --install /home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config
+[1.187s] -- Install configuration: ""
+[1.187s] -- Execute custom install script
+[1.188s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/config/controllers.yaml
+[1.202s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/config/joint_limits.yaml
+[1.214s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/config/kinematics.yaml
+[1.228s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/config/ompl_planning.yaml
+[1.240s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/config/ur_onrobot_servo.yaml
+[1.255s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/launch/ur_onrobot_moveit.launch.py
+[1.272s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/rviz/view_robot.rviz
+[1.285s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/srdf/ur_onrobot.srdf.xacro
+[1.300s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/srdf/ur_onrobot_macro.srdf.xacro
+[1.313s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/environment/pythonpath.sh
+[1.323s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/environment/pythonpath.dsv
+[1.338s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/ur_onrobot_moveit_config-0.0.1-py3.10.egg-info/PKG-INFO
+[1.350s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/ur_onrobot_moveit_config-0.0.1-py3.10.egg-info/SOURCES.txt
+[1.363s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/ur_onrobot_moveit_config-0.0.1-py3.10.egg-info/dependency_links.txt
+[1.372s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/ur_onrobot_moveit_config-0.0.1-py3.10.egg-info/top_level.txt
+[1.388s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/ur_onrobot_moveit_config/__init__.py
+[1.400s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/ur_onrobot_moveit_config/launch_common.py
+[1.409s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/launch_common.py
+[1.423s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ament_index/resource_index/package_run_dependencies/ur_onrobot_moveit_config
+[1.436s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ament_index/resource_index/parent_prefix_path/ur_onrobot_moveit_config
+[1.445s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/environment/ament_prefix_path.sh
+[1.458s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/environment/ament_prefix_path.dsv
+[1.469s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/environment/path.sh
+[1.482s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/environment/path.dsv
+[1.491s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/local_setup.bash
+[1.507s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/local_setup.sh
+[1.519s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/local_setup.zsh
+[1.529s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/local_setup.dsv
+[1.543s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/package.dsv
+[1.558s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ament_index/resource_index/packages/ur_onrobot_moveit_config
+[1.573s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/cmake/ur_onrobot_moveit_configConfig.cmake
+[1.587s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/cmake/ur_onrobot_moveit_configConfig-version.cmake
+[1.601s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/share/ur_onrobot_moveit_config/package.xml
+[1.648s] Listing '/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/ur_onrobot_moveit_config'...
+[1.648s] Compiling '/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/ur_onrobot_moveit_config/__init__.py'...
+[1.648s] Compiling '/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/ur_onrobot_moveit_config/launch_common.py'...
+[1.680s] Compiling '/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_moveit_config/local/lib/python3.10/dist-packages/launch_common.py'...
+[1.687s] Invoked command in '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config' returned '0': AMENT_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_control:/home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver:/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:/opt/ros/humble LD_LIBRARY_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_driver/lib:${LD_LIBRARY_PATH} /usr/bin/cmake --install /home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config

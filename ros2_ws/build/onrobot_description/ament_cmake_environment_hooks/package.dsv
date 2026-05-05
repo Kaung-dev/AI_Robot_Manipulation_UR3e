@@ -1,0 +1,4 @@
+source;share/onrobot_description/local_setup.bash
+source;share/onrobot_description/local_setup.dsv
+source;share/onrobot_description/local_setup.sh
+source;share/onrobot_description/local_setup.zsh

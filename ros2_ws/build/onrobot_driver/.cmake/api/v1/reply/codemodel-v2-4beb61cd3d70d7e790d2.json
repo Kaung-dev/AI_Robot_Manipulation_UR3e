@@ -1,0 +1,199 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-03a821d5f3de0d3363e1.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						4,
+						5,
+						6
+					]
+				},
+				{
+					"build" : "include/onrobot_driver/Modbus",
+					"childIndexes" : 
+					[
+						2
+					],
+					"jsonFile" : "directory-include.onrobot_driver.Modbus-d8880410fd46912bf98f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "include/onrobot_driver/Modbus"
+				},
+				{
+					"build" : "include/onrobot_driver/Modbus/src",
+					"childIndexes" : 
+					[
+						3,
+						4
+					],
+					"jsonFile" : "directory-include.onrobot_driver.Modbus.src-88b0fed3a770b58878b7.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "include/onrobot_driver/Modbus/src",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				},
+				{
+					"build" : "include/onrobot_driver/Modbus/src/Serial",
+					"jsonFile" : "directory-include.onrobot_driver.Modbus.src.Serial-cf45e1f5d85f46f4788e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "include/onrobot_driver/Modbus/src/Serial",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "include/onrobot_driver/Modbus/src/TCP",
+					"jsonFile" : "directory-include.onrobot_driver.Modbus.src.TCP-9854ef151a19adbb8719.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "include/onrobot_driver/Modbus/src/TCP",
+					"targetIndexes" : 
+					[
+						3
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "onrobot_driver",
+					"targetIndexes" : 
+					[
+						4,
+						5,
+						6
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4
+					],
+					"name" : "modbus",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "Modbus::@6735033b6161a343cee7",
+					"jsonFile" : "target-Modbus-272da4016485c177e3a4.json",
+					"name" : "Modbus",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "Modbus_Core::@6735033b6161a343cee7",
+					"jsonFile" : "target-Modbus_Core-78d51eae7b1541df5b2c.json",
+					"name" : "Modbus_Core",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "Modbus_Serial::@5e8c7afe8efe512c36be",
+					"jsonFile" : "target-Modbus_Serial-3d15ed0b7d8b08c5c59a.json",
+					"name" : "Modbus_Serial",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "Modbus_TCP::@447f60dffcdb9805f7a4",
+					"jsonFile" : "target-Modbus_TCP-df340045dca78d06c218.json",
+					"name" : "Modbus_TCP",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "onrobot_driver_plugin::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-onrobot_driver_plugin-50627b33e5db9cd35fd6.json",
+					"name" : "onrobot_driver_plugin",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "onrobot_driver_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-onrobot_driver_uninstall-dcc7c41fbb60b238b52a.json",
+					"name" : "onrobot_driver_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-51b726ab94ff16afe35f.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/user/Desktop/ur_pick/ros2_ws/build/onrobot_driver",
+		"source" : "/home/user/Desktop/ur_pick/ros2_ws/src/onrobot_driver"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

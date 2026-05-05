@@ -1,0 +1,2 @@
+/usr/bin/ar qc libModbus.a 
+/usr/bin/ranlib libModbus.a

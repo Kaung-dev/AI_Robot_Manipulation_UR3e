@@ -1,0 +1,11 @@
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/uninstall.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/ur_onrobot_moveit_config_uninstall.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/ament_cmake_python_symlink_ur_onrobot_moveit_config.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/ament_cmake_python_build_ur_onrobot_moveit_config_egg.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/test.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/edit_cache.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/rebuild_cache.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/list_install_components.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/install.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/install/local.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/CMakeFiles/install/strip.dir

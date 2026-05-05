@@ -1,0 +1,4 @@
+source;share/ur_onrobot_mtc/local_setup.bash
+source;share/ur_onrobot_mtc/local_setup.dsv
+source;share/ur_onrobot_mtc/local_setup.sh
+source;share/ur_onrobot_mtc/local_setup.zsh

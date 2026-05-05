@@ -1,0 +1,2 @@
+/usr/bin/ar qc libModbus_Serial.a CMakeFiles/Modbus_Serial.dir/connection.cpp.o
+/usr/bin/ranlib libModbus_Serial.a

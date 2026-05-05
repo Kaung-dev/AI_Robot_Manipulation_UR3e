@@ -1,0 +1,142 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "include/onrobot_driver/Modbus/src/libModbus.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"target_link_libraries"
+		],
+		"files" : 
+		[
+			"include/onrobot_driver/Modbus/src/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 23,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 24,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 29,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 35,
+				"parent" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "Modbus_Core::@6735033b6161a343cee7"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "Modbus_Serial::@5e8c7afe8efe512c36be"
+		},
+		{
+			"backtrace" : 4,
+			"id" : "Modbus_TCP::@447f60dffcdb9805f7a4"
+		}
+	],
+	"id" : "Modbus::@6735033b6161a343cee7",
+	"name" : "Modbus",
+	"nameOnDisk" : "libModbus.a",
+	"paths" : 
+	{
+		"build" : "include/onrobot_driver/Modbus/src",
+		"source" : "include/onrobot_driver/Modbus/src"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Header Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"path" : "include/onrobot_driver/Modbus/include/MB/modbusCell.hpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"path" : "include/onrobot_driver/Modbus/include/MB/modbusException.hpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"path" : "include/onrobot_driver/Modbus/include/MB/modbusRequest.hpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"path" : "include/onrobot_driver/Modbus/include/MB/modbusResponse.hpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"path" : "include/onrobot_driver/Modbus/include/MB/modbusUtils.hpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"path" : "include/onrobot_driver/Modbus/include/MB/crc.hpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 3,
+			"path" : "include/onrobot_driver/Modbus/include/MB/Serial/connection.hpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 4,
+			"path" : "include/onrobot_driver/Modbus/include/MB/TCP/connection.hpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 4,
+			"path" : "include/onrobot_driver/Modbus/include/MB/TCP/server.hpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}
