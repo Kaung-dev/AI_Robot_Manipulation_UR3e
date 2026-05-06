@@ -1,0 +1,48 @@
+[shoulder_pan_joint]
+   path: /World/ur3e/joints/shoulder_pan_joint
+   current state:angular:physics:position = -0.037232525646686554
+   drive target = 196.8000030517578 (deg)
+   drive type   = force
+   stiffness    = 41.254825592041016
+   damping      = 0.016501929610967636
+   maxForce     = 56.0
+[shoulder_lift_joint]
+   path: /World/ur3e/joints/shoulder_lift_joint
+   current state:angular:physics:position = 0.498521625995636
+   drive target = 336.8000183105469 (deg)
+   drive type   = force
+   stiffness    = 47.31093978881836
+   damping      = 0.018924375995993614
+   maxForce     = 56.0
+[elbow_joint]
+   path: /World/ur3e/joints/elbow_joint
+   current state:angular:physics:position = 0.04661277309060097
+   drive target = 118.4000015258789 (deg)
+   drive type   = force
+   stiffness    = 207.18740844726562
+   damping      = 0.08287496119737625
+   maxForce     = 28.0
+[wrist_1_joint]
+   path: /World/ur3e/joints/wrist_1_joint
+   current state:angular:physics:position = 0.001019432209432125
+   drive target = 0.0 (deg)
+   drive type   = force
+   stiffness    = 113.2806625366211
+   damping      = 0.045312266796827316
+   maxForce     = 12.0
+[wrist_2_joint]
+   path: /World/ur3e/joints/wrist_2_joint
+   current state:angular:physics:position = 0.009005396626889706
+   drive target = 0.0 (deg)
+   drive type   = force
+   stiffness    = 10.684537887573242
+   damping      = 0.004273815080523491
+   maxForce     = 12.0
+[wrist_3_joint]
+   path: /World/ur3e/joints/wrist_3_joint
+   current state:angular:physics:position = 0.043407589197158813
+   drive target = 43.5 (deg)
+   drive type   = force
+   stiffness    = 1.7475543022155762
+   damping      = 0.0006990217370912433
+   maxForce     = 12.0

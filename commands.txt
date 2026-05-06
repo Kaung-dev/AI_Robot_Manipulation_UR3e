@@ -1,0 +1,16 @@
+source /opt/ros/humble/setup.bash
+/home/user/isaacsim_env/bin/isaacsim isaacsim.exp.full
+
+
+
+
+
+# in each terminal first:
+source /opt/ros/humble/setup.bash
+source /home/user/Desktop/ur_pick/ros2_ws/install/setup.bash
+
+ros2 launch ur_onrobot_control start_robot.launch.py ur_type:=ur3e onrobot_type:=rg2 use_fake_hardware:=true launch_rviz:=false
+
+ros2 launch ur_onrobot_moveit_config ur_onrobot_moveit.launch.py ur_type:=ur3e onrobot_type:=rg2
+
+python3 /home/user/Desktop/ur_pick/scripts/moveit_to_isaac_bridge.py

@@ -40,26 +40,23 @@ ARM_JOINTS = [
     "wrist_3_joint",
 ]
 
-# RG2 gripper: convert prismatic finger_width (m) to the 6 revolute joints in
-# Isaac (which has no <mimic> support, so we do it here). Coefficients come
-# straight from onrobot_description/urdf/rg2_macro.xacro:
-#   finger_joint(rad) = MULT * finger_width(m) + OFFSET
+# Gripper: MoveIt URDF (tonydle) uses a prismatic 'finger_width' joint in metres.
+# Isaac scene uses the Inria URDF, whose master is 'rg2_gripper_joint' (revolute)
+# with range [0, 1.3] rad. Map linearly:
+#   finger_width = 0.000 m  (closed) -> rg2_gripper_joint = 1.3   (full close)
+#   finger_width = 0.110 m  (open)   -> rg2_gripper_joint = 0.0   (full open)
 GRIPPER_WIDTH_JOINT = "finger_width"
-RG2_FINGER_JOINT_MULT = 0.85 * ((-0.558505 - 0.785398) / 0.110)  # ~ -10.38470
-RG2_FINGER_JOINT_OFFSET = 0.785398
-
-# multipliers of the OTHER 5 joints, relative to finger_joint (from URDF mimic tags)
-RG2_MIMIC = {
-    "right_outer_knuckle_joint": -1.0,
-    "left_inner_knuckle_joint": -1.0,
-    "right_inner_knuckle_joint": -1.0,
-    "left_inner_finger_joint": +1.0,
-    "right_inner_finger_joint": +1.0,
-}
+GRIPPER_OPEN_RAD = 0.05    # ~3 deg, just inside lower limit
+GRIPPER_CLOSED_RAD = 0.85  # ~49 deg, fingertips just touch (verified empirically)
+WIDTH_OPEN_M = 0.110
+WIDTH_CLOSED_M = 0.0
 
 
 def width_to_finger_joint(width_m: float) -> float:
-    return RG2_FINGER_JOINT_MULT * width_m + RG2_FINGER_JOINT_OFFSET
+    """Linear map, clamped, finger_width(m) -> rg2_gripper_joint(rad)."""
+    w = max(WIDTH_CLOSED_M, min(WIDTH_OPEN_M, width_m))
+    frac_open = w / WIDTH_OPEN_M  # 0 = closed, 1 = open
+    return GRIPPER_CLOSED_RAD + frac_open * (GRIPPER_OPEN_RAD - GRIPPER_CLOSED_RAD)
 
 
 class MoveItToIsaacBridge(Node):
@@ -95,16 +92,15 @@ class MoveItToIsaacBridge(Node):
             if i < len(msg.position):
                 out.position.append(msg.position[i])
 
-        # ---- gripper: convert finger_width -> 6 revolute joints ----
+        # ---- gripper: convert finger_width -> rg2_gripper_joint master ----
+        # The 5 follower joints in the gripper are handled by PhysX mimic
+        # constraints, so we only need to command the master here.
         gi = idx.get(GRIPPER_WIDTH_JOINT)
         if gi is not None and gi < len(msg.position):
             width = msg.position[gi]
             fj_rad = width_to_finger_joint(width)
-            out.name.append("finger_joint")
+            out.name.append("rg2_gripper_joint")
             out.position.append(fj_rad)
-            for jname, mult in RG2_MIMIC.items():
-                out.name.append(jname)
-                out.position.append(mult * fj_rad)
         elif GRIPPER_WIDTH_JOINT not in self._missing_logged:
             self.get_logger().warn(
                 f"'{GRIPPER_WIDTH_JOINT}' not in /joint_states yet; "

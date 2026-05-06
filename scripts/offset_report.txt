@@ -1,0 +1,21 @@
+Xformable prims with >1cm translate:
+  |t|=2.841  /onrobot_rg_test/rg2_gripper_finger_2_moment_arm  translate=(1.9999996423721313, -0.05500003695487976, 2.0169992446899414)
+  |t|=2.835  /onrobot_rg_test/rg2_gripper_finger_2_finger_tip  translate=(2.000000238418579, -0.1264481544494629, 2.0050899982452393)
+  |t|=2.835  /onrobot_rg_test/rg2_gripper_finger_2_truss_arm  translate=(2.0, -0.0715000182390213, 2.0074992179870605)
+  |t|=2.829  /onrobot_rg_test/world/rg2_gripper_bracket  translate=(2.0, 0.05000000074505806, 2.0)
+  |t|=2.828  /onrobot_rg_test/rg2_gripper_finger_1_finger_tip  translate=(1.9999998807907104, -0.12644818425178528, 1.9949084520339966)
+  |t|=2.824  /onrobot_rg_test/rg2_gripper_finger_1_truss_arm  translate=(1.999999761581421, -0.0715000331401825, 1.9924992322921753)
+  |t|=2.817  /onrobot_rg_test/rg2_gripper_finger_1_moment_arm  translate=(1.9999998807907104, -0.05500002205371857, 1.982999324798584)
+  |t|=0.140  /onrobot_rg_test/world/rg2_gripper_bracket/rg2_gripper_body/rg2_gripper_grasp_frame  translate=(0.0, 0.0, 0.14000000059604645)
+  |t|=0.050  /onrobot_rg_test/world/rg2_gripper_bracket/rg2_gripper_body  translate=(0.0, 0.0, 0.05000000074505806)
+  |t|=0.035  /onrobot_rg_test/rg2_gripper_finger_2_finger_tip/rg2_gripper_finger_2_flex_finger  translate=(0.03058999963104725, 0.0, 0.01720000058412552)
+  |t|=0.035  /onrobot_rg_test/rg2_gripper_finger_1_finger_tip/rg2_gripper_finger_1_flex_finger  translate=(0.03058999963104725, 0.0, 0.01720000058412552)
+  ZEROED /onrobot_rg_test/rg2_gripper_finger_2_moment_arm  was (1.9999996423721313, -0.05500003695487976, 2.0169992446899414)
+  ZEROED /onrobot_rg_test/rg2_gripper_finger_2_finger_tip  was (2.000000238418579, -0.1264481544494629, 2.0050899982452393)
+  ZEROED /onrobot_rg_test/rg2_gripper_finger_2_truss_arm  was (2.0, -0.0715000182390213, 2.0074992179870605)
+  ZEROED /onrobot_rg_test/world/rg2_gripper_bracket  was (2.0, 0.05000000074505806, 2.0)
+  ZEROED /onrobot_rg_test/rg2_gripper_finger_1_finger_tip  was (1.9999998807907104, -0.12644818425178528, 1.9949084520339966)
+  ZEROED /onrobot_rg_test/rg2_gripper_finger_1_truss_arm  was (1.999999761581421, -0.0715000331401825, 1.9924992322921753)
+  ZEROED /onrobot_rg_test/rg2_gripper_finger_1_moment_arm  was (1.9999998807907104, -0.05500002205371857, 1.982999324798584)
+
+Zeroed 7 prim(s).

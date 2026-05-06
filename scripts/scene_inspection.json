@@ -1,13 +1,23 @@
 {
-  "root_layer": "file:/home/user/Desktop/ur_pick/scene/scene.usd",
-  "default_prim": "/World",
   "articulations": [
-    {
-      "path": "/World/ur3e/root_joint",
-      "name": "root_joint",
-      "type": "PhysicsFixedJoint",
-      "dof_order_guess": []
-    }
+    "/World/ur3e/base_link",
+    "/World/rg2"
+  ],
+  "bodies": [
+    "/World/ur3e/base_link",
+    "/World/ur3e/shoulder_link",
+    "/World/ur3e/upper_arm_link",
+    "/World/ur3e/forearm_link",
+    "/World/ur3e/wrist_1_link",
+    "/World/ur3e/wrist_2_link",
+    "/World/ur3e/wrist_3_link",
+    "/World/rg2/world",
+    "/World/rg2/rg2_gripper_finger_1_truss_arm",
+    "/World/rg2/rg2_gripper_finger_1_finger_tip",
+    "/World/rg2/rg2_gripper_finger_2_truss_arm",
+    "/World/rg2/rg2_gripper_finger_2_finger_tip",
+    "/World/rg2/rg2_gripper_finger_1_moment_arm",
+    "/World/rg2/rg2_gripper_finger_2_moment_arm"
   ],
   "joints": [
     {
@@ -20,21 +30,9 @@
       "body1": [
         "/World/ur3e/shoulder_link"
       ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 0.016501929610967636,
-          "stiffness": 41.254825592041016,
-          "maxForce": 56.0
-        }
-      ],
       "axis": "Z",
-      "lower_deg": -360.0,
-      "upper_deg": 360.0
+      "lower": -360.0,
+      "upper": 360.0
     },
     {
       "path": "/World/ur3e/joints/shoulder_lift_joint",
@@ -46,21 +44,9 @@
       "body1": [
         "/World/ur3e/upper_arm_link"
       ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 0.018924375995993614,
-          "stiffness": 47.31093978881836,
-          "maxForce": 56.0
-        }
-      ],
       "axis": "Z",
-      "lower_deg": -360.0,
-      "upper_deg": 360.0
+      "lower": -360.0,
+      "upper": 360.0
     },
     {
       "path": "/World/ur3e/joints/elbow_joint",
@@ -72,21 +58,9 @@
       "body1": [
         "/World/ur3e/forearm_link"
       ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 0.08287496119737625,
-          "stiffness": 207.18740844726562,
-          "maxForce": 28.0
-        }
-      ],
       "axis": "Z",
-      "lower_deg": -180.0,
-      "upper_deg": 180.0
+      "lower": -180.0,
+      "upper": 180.0
     },
     {
       "path": "/World/ur3e/joints/wrist_1_joint",
@@ -98,21 +72,9 @@
       "body1": [
         "/World/ur3e/wrist_1_link"
       ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 0.045312266796827316,
-          "stiffness": 113.2806625366211,
-          "maxForce": 12.0
-        }
-      ],
       "axis": "Z",
-      "lower_deg": -360.0,
-      "upper_deg": 360.0
+      "lower": -360.0,
+      "upper": 360.0
     },
     {
       "path": "/World/ur3e/joints/wrist_2_joint",
@@ -124,21 +86,9 @@
       "body1": [
         "/World/ur3e/wrist_2_link"
       ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 0.004273815080523491,
-          "stiffness": 10.684537887573242,
-          "maxForce": 12.0
-        }
-      ],
       "axis": "Z",
-      "lower_deg": -360.0,
-      "upper_deg": 360.0
+      "lower": -360.0,
+      "upper": 360.0
     },
     {
       "path": "/World/ur3e/joints/wrist_3_joint",
@@ -150,21 +100,9 @@
       "body1": [
         "/World/ur3e/wrist_3_link"
       ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 0.0006990217370912433,
-          "stiffness": 1.7475543022155762,
-          "maxForce": 12.0
-        }
-      ],
       "axis": "Z",
-      "lower_deg": -360.0,
-      "upper_deg": 360.0
+      "lower": -360.0,
+      "upper": 360.0
     },
     {
       "path": "/World/ur3e/root_joint",
@@ -173,230 +111,101 @@
       "body0": [],
       "body1": [
         "/World/ur3e/base_link"
-      ],
-      "drive_apis": []
+      ]
     },
     {
-      "path": "/World/rg2/onrobot_rg2_base_link/finger_joint",
-      "name": "finger_joint",
+      "path": "/World/rg2/joints/rg2_gripper_finger_1_truss_arm_joint",
+      "name": "rg2_gripper_finger_1_truss_arm_joint",
       "type": "PhysicsRevoluteJoint",
       "body0": [
-        "/World/rg2/onrobot_rg2_base_link"
+        "/World/rg2/world"
       ],
       "body1": [
-        "/World/rg2/left_outer_knuckle"
+        "/World/rg2/rg2_gripper_finger_1_truss_arm"
       ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 100000.0,
-          "stiffness": 10000000.0,
-          "maxForce": 60000.0
-        }
-      ],
-      "axis": "X",
-      "lower_deg": -31.999977111816406,
-      "upper_deg": 44.9999885559082
+      "axis": "Y",
+      "lower": 0.0,
+      "upper": 74.48451232910156
     },
     {
-      "path": "/World/rg2/onrobot_rg2_base_link/gripper_center_joint",
-      "name": "gripper_center_joint",
-      "type": "PhysicsFixedJoint",
-      "body0": [
-        "/World/rg2/onrobot_rg2_base_link"
-      ],
-      "body1": [
-        "/World/rg2/gripper_center"
-      ],
-      "drive_apis": []
-    },
-    {
-      "path": "/World/rg2/onrobot_rg2_base_link/left_inner_knuckle_joint",
-      "name": "left_inner_knuckle_joint",
+      "path": "/World/rg2/joints/rg2_gripper_finger_1_finger_tip_joint",
+      "name": "rg2_gripper_finger_1_finger_tip_joint",
       "type": "PhysicsRevoluteJoint",
       "body0": [
-        "/World/rg2/onrobot_rg2_base_link"
+        "/World/rg2/rg2_gripper_finger_1_truss_arm"
       ],
       "body1": [
-        "/World/rg2/left_inner_knuckle"
+        "/World/rg2/rg2_gripper_finger_1_finger_tip"
       ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 100000.0,
-          "stiffness": 10000000.0,
-          "maxForce": 60000.0
-        }
-      ],
-      "axis": "X",
-      "lower_deg": -31.999977111816406,
-      "upper_deg": 44.9999885559082
+      "axis": "Y",
+      "lower": 0.0,
+      "upper": 74.48451232910156
     },
     {
-      "path": "/World/rg2/onrobot_rg2_base_link/right_inner_knuckle_joint",
-      "name": "right_inner_knuckle_joint",
+      "path": "/World/rg2/joints/rg2_gripper_finger_2_truss_arm_joint",
+      "name": "rg2_gripper_finger_2_truss_arm_joint",
       "type": "PhysicsRevoluteJoint",
       "body0": [
-        "/World/rg2/onrobot_rg2_base_link"
+        "/World/rg2/world"
       ],
       "body1": [
-        "/World/rg2/right_inner_knuckle"
+        "/World/rg2/rg2_gripper_finger_2_truss_arm"
       ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 100000.0,
-          "stiffness": 10000000.0,
-          "maxForce": 60000.0
-        }
-      ],
-      "axis": "X",
-      "lower_deg": -31.999977111816406,
-      "upper_deg": 44.9999885559082
+      "axis": "Y",
+      "lower": 0.0,
+      "upper": 74.48451232910156
     },
     {
-      "path": "/World/rg2/onrobot_rg2_base_link/right_outer_knuckle_joint",
-      "name": "right_outer_knuckle_joint",
+      "path": "/World/rg2/joints/rg2_gripper_finger_2_finger_tip_joint",
+      "name": "rg2_gripper_finger_2_finger_tip_joint",
       "type": "PhysicsRevoluteJoint",
       "body0": [
-        "/World/rg2/onrobot_rg2_base_link"
+        "/World/rg2/rg2_gripper_finger_2_truss_arm"
       ],
       "body1": [
-        "/World/rg2/right_outer_knuckle"
+        "/World/rg2/rg2_gripper_finger_2_finger_tip"
       ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 100000.0,
-          "stiffness": 10000000.0,
-          "maxForce": 60000.0
-        }
-      ],
-      "axis": "X",
-      "lower_deg": -31.999977111816406,
-      "upper_deg": 44.9999885559082
+      "axis": "Y",
+      "lower": 0.0,
+      "upper": 74.48451232910156
     },
     {
-      "path": "/World/rg2/onrobot_rg2_base_link/FixedJointToWrist",
-      "name": "FixedJointToWrist",
+      "path": "/World/rg2/joints/rg2_gripper_joint",
+      "name": "rg2_gripper_joint",
+      "type": "PhysicsRevoluteJoint",
+      "body0": [
+        "/World/rg2/world"
+      ],
+      "body1": [
+        "/World/rg2/rg2_gripper_finger_1_moment_arm"
+      ],
+      "axis": "Y",
+      "lower": 0.0,
+      "upper": 74.48450469970703
+    },
+    {
+      "path": "/World/rg2/joints/rg2_gripper_mirror_joint",
+      "name": "rg2_gripper_mirror_joint",
+      "type": "PhysicsRevoluteJoint",
+      "body0": [
+        "/World/rg2/world"
+      ],
+      "body1": [
+        "/World/rg2/rg2_gripper_finger_2_moment_arm"
+      ],
+      "axis": "Y",
+      "lower": 0.0,
+      "upper": 74.48451232910156
+    },
+    {
+      "path": "/World/wrist_to_rg2",
+      "name": "wrist_to_rg2",
       "type": "PhysicsFixedJoint",
       "body0": [
         "/World/ur3e/wrist_3_link"
       ],
       "body1": [
-        "/World/rg2/onrobot_rg2_base_link"
-      ],
-      "drive_apis": []
-    },
-    {
-      "path": "/World/rg2/left_outer_knuckle/left_inner_finger_joint",
-      "name": "left_inner_finger_joint",
-      "type": "PhysicsRevoluteJoint",
-      "body0": [
-        "/World/rg2/left_outer_knuckle"
-      ],
-      "body1": [
-        "/World/rg2/left_inner_finger"
-      ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 100000.0,
-          "stiffness": 10000000.0,
-          "maxForce": 60000.0
-        }
-      ],
-      "axis": "X",
-      "lower_deg": -50.00001907348633,
-      "upper_deg": 50.00001907348633
-    },
-    {
-      "path": "/World/rg2/right_outer_knuckle/right_inner_finger_joint",
-      "name": "right_inner_finger_joint",
-      "type": "PhysicsRevoluteJoint",
-      "body0": [
-        "/World/rg2/right_outer_knuckle"
-      ],
-      "body1": [
-        "/World/rg2/right_inner_finger"
-      ],
-      "drive_apis": [
-        {
-          "schema": "PhysicsDriveAPI:angular",
-          "axis": "angular",
-          "type": "force",
-          "targetPosition": 0.0,
-          "targetVelocity": 0.0,
-          "damping": 100000.0,
-          "stiffness": 10000000.0,
-          "maxForce": 60000.0
-        }
-      ],
-      "axis": "X",
-      "lower_deg": -50.00001907348633,
-      "upper_deg": 50.00001907348633
-    }
-  ],
-  "omni_graphs": [
-    {
-      "path": "/World/RosBridgeGraph",
-      "nodes": [
-        {
-          "path": "/World/RosBridgeGraph/Tick",
-          "name": "Tick",
-          "node_type": "omni.graph.action.OnPlaybackTick",
-          "version": 2
-        },
-        {
-          "path": "/World/RosBridgeGraph/ReadSimTime",
-          "name": "ReadSimTime",
-          "node_type": "isaacsim.core.nodes.IsaacReadSimulationTime",
-          "version": 1
-        },
-        {
-          "path": "/World/RosBridgeGraph/PubJS",
-          "name": "PubJS",
-          "node_type": "isaacsim.ros2.bridge.ROS2PublishJointState",
-          "version": 1
-        },
-        {
-          "path": "/World/RosBridgeGraph/SubJS",
-          "name": "SubJS",
-          "node_type": "isaacsim.ros2.bridge.ROS2SubscribeJointState",
-          "version": 2
-        },
-        {
-          "path": "/World/RosBridgeGraph/ArtCtrl",
-          "name": "ArtCtrl",
-          "node_type": "isaacsim.core.nodes.IsaacArticulationController",
-          "version": 1
-        },
-        {
-          "path": "/World/RosBridgeGraph/ros2_context",
-          "name": "ros2_context",
-          "node_type": "isaacsim.ros2.bridge.ROS2Context",
-          "version": 2
-        }
+        "/World/rg2/world/rg2_gripper_bracket"
       ]
     }
   ]

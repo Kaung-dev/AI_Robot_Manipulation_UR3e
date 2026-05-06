@@ -1,0 +1,14 @@
+/World/ur3e/joints/shoulder_pan_joint  type=PhysicsRevoluteJoint  name=shoulder_pan_joint
+/World/ur3e/joints/shoulder_lift_joint  type=PhysicsRevoluteJoint  name=shoulder_lift_joint
+/World/ur3e/joints/elbow_joint  type=PhysicsRevoluteJoint  name=elbow_joint
+/World/ur3e/joints/wrist_1_joint  type=PhysicsRevoluteJoint  name=wrist_1_joint
+/World/ur3e/joints/wrist_2_joint  type=PhysicsRevoluteJoint  name=wrist_2_joint
+/World/ur3e/joints/wrist_3_joint  type=PhysicsRevoluteJoint  name=wrist_3_joint
+/World/ur3e/root_joint  type=PhysicsFixedJoint  name=root_joint
+/World/rg2/joints/rg2_gripper_finger_1_truss_arm_joint  type=PhysicsRevoluteJoint  name=rg2_gripper_finger_1_truss_arm_joint
+/World/rg2/joints/rg2_gripper_finger_1_finger_tip_joint  type=PhysicsRevoluteJoint  name=rg2_gripper_finger_1_finger_tip_joint
+/World/rg2/joints/rg2_gripper_finger_2_truss_arm_joint  type=PhysicsRevoluteJoint  name=rg2_gripper_finger_2_truss_arm_joint
+/World/rg2/joints/rg2_gripper_finger_2_finger_tip_joint  type=PhysicsRevoluteJoint  name=rg2_gripper_finger_2_finger_tip_joint
+/World/rg2/joints/rg2_gripper_joint  type=PhysicsRevoluteJoint  name=rg2_gripper_joint
+/World/rg2/joints/rg2_gripper_mirror_joint  type=PhysicsRevoluteJoint  name=rg2_gripper_mirror_joint
+/World/wrist_to_rg2  type=PhysicsFixedJoint  name=wrist_to_rg2

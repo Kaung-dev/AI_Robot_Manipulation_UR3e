@@ -1,0 +1,4 @@
+failed to create symbolic link '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_moveit_config/ament_cmake_python/ur_onrobot_moveit_config/ur_onrobot_moveit_config' because existing path cannot be removed: Is a directory
+gmake[2]: *** [CMakeFiles/ament_cmake_python_symlink_ur_onrobot_moveit_config.dir/build.make:70: CMakeFiles/ament_cmake_python_symlink_ur_onrobot_moveit_config] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:138: CMakeFiles/ament_cmake_python_symlink_ur_onrobot_moveit_config.dir/all] Error 2
+gmake: *** [Makefile:146: all] Error 2

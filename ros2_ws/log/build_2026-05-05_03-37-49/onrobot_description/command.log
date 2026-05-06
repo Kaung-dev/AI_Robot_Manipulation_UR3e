@@ -1,0 +1,4 @@
+Invoking command in '/home/user/Desktop/ur_pick/ros2_ws/build/onrobot_description': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/user/Desktop/ur_pick/ros2_ws/build/onrobot_description -- -j15 -l15
+Invoked command in '/home/user/Desktop/ur_pick/ros2_ws/build/onrobot_description' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/user/Desktop/ur_pick/ros2_ws/build/onrobot_description -- -j15 -l15
+Invoking command in '/home/user/Desktop/ur_pick/ros2_ws/build/onrobot_description': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/user/Desktop/ur_pick/ros2_ws/build/onrobot_description
+Invoked command in '/home/user/Desktop/ur_pick/ros2_ws/build/onrobot_description' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/user/Desktop/ur_pick/ros2_ws/build/onrobot_description
