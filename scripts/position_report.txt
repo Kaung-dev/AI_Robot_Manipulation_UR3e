@@ -1,0 +1,8 @@
+wrist_world  translate = (0.45607689023017883, 0.22285380959510803, 0.062356285750865936)
+bracket_world translate = (1.8547109329291942, 0.23468082601432944, 2.3879973479655963)
+new /World/rg2 translate = (-1.3981982205639496, -0.015341239313658273, -2.3256315703491914)
+bracket_world translate after = (0.4560768902301784, 0.22285380959510803, 0.062356285750864604)
+|bracket-wrist| after = 0.000000  (should be ~0)
+no nested ArticulationRootAPI under /World/rg2
+
+Done. Ctrl+S to save, then Play.
