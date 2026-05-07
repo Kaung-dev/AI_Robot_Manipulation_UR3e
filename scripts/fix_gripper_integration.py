@@ -22,15 +22,17 @@ from pathlib import Path
 
 import omni.usd
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-GRIPPER_USD = "/home/user/Desktop/ur_pick/rg2_inria_usd/rg2_inria.usd"
+
+GRIPPER_USD = str(PROJECT_ROOT / "rg2_inria_usd" / "rg2_inria.usd")
 RG2_PATH = "/World/rg2"
 WRIST_LINK = "/World/ur3e/wrist_3_link"
 BRACKET_PATH = "/World/rg2/world/rg2_gripper_bracket"
 INTERNAL_ROOT_JOINT = "/World/rg2/root_joint"
 MOUNT_JOINT = "/World/wrist_to_rg2"
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/fix_gripper_report.txt")
+OUT = Path(str(PROJECT_ROOT / "scripts" / "fix_gripper_report.txt"))
 
 
 def _set_xform_matrix(prim, mat: Gf.Matrix4d):

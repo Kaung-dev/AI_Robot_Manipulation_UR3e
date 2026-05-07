@@ -9,8 +9,10 @@ Dump the state of the gripper command pipeline, end to end:
 from pathlib import Path
 import omni.usd
 from pxr import Sdf, Usd, UsdPhysics
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/gripper_pipeline.txt")
+
+OUT = Path(str(PROJECT_ROOT / "scripts" / "gripper_pipeline.txt"))
 RG2 = "/World/rg2"
 MASTER = "/World/rg2/joints/rg2_gripper_joint"
 SUB = "/World/RosBridgeGraph/SubJS"

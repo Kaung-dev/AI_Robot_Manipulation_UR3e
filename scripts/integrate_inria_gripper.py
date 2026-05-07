@@ -18,21 +18,23 @@ Run flow:
   - Ctrl+S to save scene.usd
   - Press Play
 
-Output: also writes a short report to /home/user/Desktop/ur_pick/scripts/integration_report.txt
+Output: also writes a short report to scripts/integration_report.txt
 """
 
 from pathlib import Path
 
 import omni.usd
 from pxr import Sdf, Gf, Usd, UsdGeom, UsdPhysics
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-GRIPPER_USD = "/home/user/Desktop/ur_pick/rg2_inria_usd/rg2_inria.usd"
+
+GRIPPER_USD = str(PROJECT_ROOT / "rg2_inria_usd" / "rg2_inria.usd")
 RG2_PATH = "/World/rg2"
 WRIST_LINK = "/World/ur3e/wrist_3_link"
 BRACKET_REL = "world/rg2_gripper_bracket"  # path *under* RG2_PATH
 MOUNT_JOINT_PATH = "/World/wrist_to_rg2"
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/integration_report.txt")
+OUT = Path(str(PROJECT_ROOT / "scripts" / "integration_report.txt"))
 
 
 def main():

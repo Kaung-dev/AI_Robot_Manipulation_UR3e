@@ -15,13 +15,13 @@ How to run
 ----------
 1. In Isaac Sim: open scene.usd and press Play (so the OmniGraph ticks).
 2. Open 4 terminals; in each: source /opt/ros/humble/setup.bash AND
-   source /home/user/Desktop/ur_pick/ros2_ws/install/setup.bash. Then run:
+   source ros2_ws/install/setup.bash. Then run:
      T1: ros2 launch ur_onrobot_control start_robot.launch.py \
            ur_type:=ur3e onrobot_type:=rg2 use_fake_hardware:=true launch_rviz:=false
      T2: ros2 launch ur_onrobot_moveit_config ur_onrobot_moveit.launch.py \
            ur_type:=ur3e onrobot_type:=rg2 launch_rviz:=false
      T3: ros2 launch ur_onrobot_hello_moveit tutorials_rviz.launch.py
-     T4: python3 /home/user/Desktop/ur_pick/scripts/moveit_to_isaac_bridge.py
+     T4: python3 scripts/moveit_to_isaac_bridge.py
 3. In a 5th terminal, run any demo, e.g.:
      ros2 run ur_onrobot_hello_moveit your_first_project
    The arm in RViz mirrors MoveIt's plan; the arm in Isaac Sim physically tracks it.

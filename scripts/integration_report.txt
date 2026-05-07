@@ -1,5 +1,5 @@
 [OK] removed existing /World/rg2
-[OK] referenced /home/user/Desktop/ur_pick/rg2_inria_usd/rg2_inria.usd at /World/rg2
+[OK] referenced rg2_inria_usd/rg2_inria.usd at /World/rg2
 [OK] removed ArticulationRootAPI from /World/rg2/root_joint
 [OK] added fixed joint /World/wrist_to_rg2: /World/ur3e/wrist_3_link -> /World/rg2/world/rg2_gripper_bracket
 

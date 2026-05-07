@@ -6,7 +6,7 @@ Run in Isaac Sim's Script Editor with the scene open.
 
 Outputs:
   - Console summary (per-node attrs, rels, wiring)
-  - JSON dump at /home/user/Desktop/ur_pick/scripts/graph_inspection.json
+  - JSON dump at scripts/graph_inspection.json
 """
 
 import json
@@ -14,9 +14,11 @@ from pathlib import Path
 
 import omni.usd
 from pxr import Usd, Sdf
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 GRAPH_PATH = "/World/RosBridgeGraph"
-OUT_PATH = Path("/home/user/Desktop/ur_pick/scripts/graph_inspection.json")
+OUT_PATH = Path(str(PROJECT_ROOT / "scripts" / "graph_inspection.json"))
 
 
 def _safe(v):

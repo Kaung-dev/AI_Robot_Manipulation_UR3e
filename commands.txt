@@ -1,16 +1,26 @@
+# Replace REPO with where you cloned, e.g. ~/Desktop/AI_Robot_Manipulation_UR3e or ~/Desktop/ur_pick
+# All commands assume your cwd is REPO. Run `cd REPO` once per terminal.
+
+# ── Launch Isaac Sim ─────────────────────────────────────────────────────
+# Adjust the venv path to wherever you installed Isaac Sim 4.5.
 source /opt/ros/humble/setup.bash
-/home/user/isaacsim_env/bin/isaacsim isaacsim.exp.full
+~/isaacsim_env/bin/isaacsim isaacsim.exp.full
 
+# Then in Isaac Sim: File → Open → scene/scene.usd → ▶ Play
 
-
-
-
-# in each terminal first:
+# ── In each new terminal first ───────────────────────────────────────────
+cd ~/Desktop/AI_Robot_Manipulation_UR3e   # or wherever you cloned
 source /opt/ros/humble/setup.bash
-source /home/user/Desktop/ur_pick/ros2_ws/install/setup.bash
+source ros2_ws/install/setup.bash
 
-ros2 launch ur_onrobot_control start_robot.launch.py ur_type:=ur3e onrobot_type:=rg2 use_fake_hardware:=true launch_rviz:=false
+# ── T1: UR + RG2 controllers (fake hardware) ─────────────────────────────
+ros2 launch ur_onrobot_control start_robot.launch.py \
+    ur_type:=ur3e onrobot_type:=rg2 \
+    use_fake_hardware:=true launch_rviz:=false
 
-ros2 launch ur_onrobot_moveit_config ur_onrobot_moveit.launch.py ur_type:=ur3e onrobot_type:=rg2
+# ── T2: MoveIt servers + RViz ────────────────────────────────────────────
+ros2 launch ur_onrobot_moveit_config ur_onrobot_moveit.launch.py \
+    ur_type:=ur3e onrobot_type:=rg2
 
-python3 /home/user/Desktop/ur_pick/scripts/moveit_to_isaac_bridge.py
+# ── T3: bridge MoveIt → Isaac Sim ────────────────────────────────────────
+python3 scripts/moveit_to_isaac_bridge.py

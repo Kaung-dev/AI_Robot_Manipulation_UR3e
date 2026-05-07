@@ -4,13 +4,13 @@ from pathlib import Path
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--usd", default="/home/user/Desktop/ur_pick/scene/scene.usd")
+parser.add_argument("--usd", default=str(PROJECT_ROOT / "scene" / "scene.usd"))
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 args.headless = True
 
-OUT_TXT = Path("/home/user/Desktop/ur_pick/scripts/scene_inspection.txt")
-OUT_JSON = Path("/home/user/Desktop/ur_pick/scripts/scene_inspection.json")
+OUT_TXT = Path(str(PROJECT_ROOT / "scripts" / "scene_inspection.txt"))
+OUT_JSON = Path(str(PROJECT_ROOT / "scripts" / "scene_inspection.json"))
 OUT_TXT.write_text("starting AppLauncher...\n")
 
 app = AppLauncher(args).app
@@ -18,6 +18,8 @@ app = AppLauncher(args).app
 OUT_TXT.write_text(OUT_TXT.read_text() + "AppLauncher started, importing pxr\n")
 
 from pxr import Usd, UsdPhysics  # noqa: E402
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 stage = Usd.Stage.Open(args.usd)
 lines = [f"=== {args.usd} ==="]

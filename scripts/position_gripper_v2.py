@@ -16,20 +16,22 @@ Run flow:
   - Run this in Script Editor.
   - Ctrl+S, then Play.
 
-Output: /home/user/Desktop/ur_pick/scripts/position_report.txt
+Output: scripts/position_report.txt
 """
 
 from pathlib import Path
 
 import omni.usd
 from pxr import Gf, Sdf, UsdGeom, UsdPhysics, Usd
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 WRIST_LINK = "/World/ur3e/wrist_3_link"
 RG2_PATH = "/World/rg2"
 BRACKET_PATH = "/World/rg2/world/rg2_gripper_bracket"
 INTERNAL_ROOT_JOINT = "/World/rg2/root_joint"
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/position_report.txt")
+OUT = Path(str(PROJECT_ROOT / "scripts" / "position_report.txt"))
 
 
 def _set_xform_matrix(prim, mat: Gf.Matrix4d):
