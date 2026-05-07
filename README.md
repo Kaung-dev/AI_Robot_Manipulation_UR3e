@@ -127,14 +127,16 @@ If nothing moves: `ros2 topic echo /isaac_joint_commands` should be printing Joi
 
 ## Path B — Isaac Lab tasks
 
-### Teleoperate (keyboard)
+### Teleoperate
+
+The same `teleop_se3_agent.py` script supports keyboard, gamepad, and SpaceMouse — pick one with `--teleop_device`.
+
+**Keyboard:**
 
 ```bash
 ~/IsaacLab/isaaclab.sh -p ~/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py \
     --task Isaac-Lift-Cube-UR3e-RG2-IK-Rel-v0 --num_envs 1 --teleop_device keyboard
 ```
-
-Click the viewport, then:
 
 | key | action |
 |---|---|
@@ -143,14 +145,43 @@ Click the viewport, then:
 | `K` / `L` | close / open gripper |
 | `R` | reset |
 
+**Gamepad** (Xbox / PS-style controller, USB or Bluetooth):
+
+```bash
+~/IsaacLab/isaaclab.sh -p ~/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py \
+    --task Isaac-Lift-Cube-UR3e-RG2-IK-Rel-v0 --num_envs 1 --teleop_device gamepad
+```
+
+| input | action |
+|---|---|
+| Left stick | translate X / Y |
+| Right stick up/down | translate Z |
+| Right stick left/right | rotate Z (yaw) |
+| D-pad left/right | rotate X (roll) |
+| D-pad up/down | rotate Y (pitch) |
+| `X` button | toggle gripper open/close |
+
+Plug the controller in *before* launching, click the Isaac Sim viewport so it has input focus, then move sticks. Verify Linux sees it with `ls /dev/input/js0`. The connection runs through Omniverse's Carb input layer ([`Se3Gamepad`](../IsaacLab/source/isaaclab/isaaclab/devices/gamepad/se3_gamepad.py)) — no extra ROS / `joy_node` needed.
+
 ### Record demos for IL
+
+Both teleop devices work for demonstration capture — swap `--teleop_device keyboard` for `gamepad` to use the controller. The gamepad is usually faster and produces smoother trajectories than keyboard for IL data.
 
 ```bash
 mkdir -p datasets
+
+# keyboard:
 ~/IsaacLab/isaaclab.sh -p ~/IsaacLab/scripts/tools/record_demos.py \
     --task Isaac-Lift-Cube-UR3e-RG2-IK-Rel-v0 --teleop_device keyboard \
     --dataset_file ./datasets/lift_cube_demos.hdf5
+
+# gamepad:
+~/IsaacLab/isaaclab.sh -p ~/IsaacLab/scripts/tools/record_demos.py \
+    --task Isaac-Lift-Cube-UR3e-RG2-IK-Rel-v0 --teleop_device gamepad \
+    --dataset_file ./datasets/lift_cube_demos.hdf5
 ```
+
+Each successful episode is appended to the HDF5 file. Press the reset key (`R` on keyboard) between attempts. The resulting dataset feeds straight into the BC training command below.
 
 ### Train PPO from scratch
 
