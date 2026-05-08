@@ -62,8 +62,16 @@ UR3E_RG2_CFG = ArticulationCfg(
             # gripper kickback shove the wrist around.
             armature=0.1,
         ),
+        # ALL six gripper joints actuated, not just the 2 outer masters.
+        # The 4 inner followers (truss_arm + finger_tip per side) carry the
+        # flex_finger contact pads; without their own stiffness PhysX leaves
+        # them passive and the gripper "closes" without pinch force, so it
+        # can't lift the cube. The action's regex (`rg2_gripper.*`) already
+        # sends target=1.30 to all 6 on close, so giving every gripper joint
+        # the same actuator gains makes the followers track the target and
+        # produce real grip force on the pads.
         "gripper": ImplicitActuatorCfg(
-            joint_names_expr=["rg2_gripper_joint", "rg2_gripper_mirror_joint"],
+            joint_names_expr=["rg2_gripper.*"],
             effort_limit_sim=80.0,
             stiffness=2e3,
             damping=1e2,
