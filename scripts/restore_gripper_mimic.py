@@ -70,8 +70,19 @@ def apply_mimic(stage, joint_path: str, master_path: str, gearing: float):
     if schema_token not in list(prim.GetAppliedSchemas()):
         try:
             prim.ApplyAPI("PhysxMimicJointAPI", "rotY")
-        except Exception as e:
-            print(f"  [WARN] could not apply schema on {joint_path}: {e}")
+        except Exception:
+            # Fallback for environments where PhysxSchema isn't registered
+            # (e.g. plain usd-core without Isaac Sim plugins). The runtime
+            # only needs the schema name in the prim's apiSchemas metadata
+            # and the underlying attributes — both of which we can set via Sdf.
+            spec = stage.GetEditTarget().GetPrimSpecForScenePath(prim.GetPath())
+            if spec is None:
+                spec = Sdf.CreatePrimInLayer(stage.GetRootLayer(), prim.GetPath())
+            existing = list(spec.GetInfo("apiSchemas").prependedItems) if spec.HasInfo("apiSchemas") else []
+            if schema_token not in existing:
+                items = Sdf.TokenListOp.Create(prependedItems=existing + [schema_token])
+                spec.SetInfo("apiSchemas", items)
+                print(f"  [info] added {schema_token} to apiSchemas via Sdf on {joint_path}")
 
     # gearing
     g = prim.GetAttribute(base + "gearing")

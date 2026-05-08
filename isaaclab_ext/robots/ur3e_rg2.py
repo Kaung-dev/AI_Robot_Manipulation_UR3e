@@ -73,9 +73,9 @@ UR3E_RG2_CFG = ArticulationCfg(
         # gripper.
         "gripper": ImplicitActuatorCfg(
             joint_names_expr=["rg2_gripper_joint", "rg2_gripper_mirror_joint"],
-            effort_limit_sim=80.0,
-            stiffness=2e3,
-            damping=1e2,
+            effort_limit_sim=200.0,   # bumped from 80 — harder squeeze on cube
+            stiffness=5e3,            # bumped from 2e3 — drive holds against contact
+            damping=2e2,
         ),
     },
     soft_joint_pos_limit_factor=1.0,
