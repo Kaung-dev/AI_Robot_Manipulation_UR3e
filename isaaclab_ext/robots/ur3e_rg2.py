@@ -62,16 +62,17 @@ UR3E_RG2_CFG = ArticulationCfg(
             # gripper kickback shove the wrist around.
             armature=0.1,
         ),
-        # ALL six gripper joints actuated, not just the 2 outer masters.
-        # The 4 inner followers (truss_arm + finger_tip per side) carry the
-        # flex_finger contact pads; without their own stiffness PhysX leaves
-        # them passive and the gripper "closes" without pinch force, so it
-        # can't lift the cube. The action's regex (`rg2_gripper.*`) already
-        # sends target=1.30 to all 6 on close, so giving every gripper joint
-        # the same actuator gains makes the followers track the target and
-        # produce real grip force on the pads.
+        # Only the two outer-arm "master" joints are direct-driven. The 4
+        # follower joints (truss_arm + finger_tip per side) follow via
+        # PhysxMimicJointAPI (gearing -1, applied by
+        # scripts/restore_gripper_mimic.py) — forcing them to track the
+        # master geometrically. Master's drive force propagates through the
+        # mimic constraint into the contact pads, which is what produces the
+        # pinch force. Driving all 6 directly with the same target (+1.30)
+        # makes the gearing-mismatched joints fight each other and locks the
+        # gripper.
         "gripper": ImplicitActuatorCfg(
-            joint_names_expr=["rg2_gripper.*"],
+            joint_names_expr=["rg2_gripper_joint", "rg2_gripper_mirror_joint"],
             effort_limit_sim=80.0,
             stiffness=2e3,
             damping=1e2,
