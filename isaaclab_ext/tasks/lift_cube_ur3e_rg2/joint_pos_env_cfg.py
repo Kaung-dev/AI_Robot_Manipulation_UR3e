@@ -3,7 +3,13 @@
 from isaaclab.assets import RigidObjectCfg
 from isaaclab.sensors import FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
-from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
+from isaaclab.sim.schemas.schemas_cfg import (
+    MassPropertiesCfg,
+    RigidBodyPropertiesCfg,
+)
+from isaaclab.sim.spawners.materials.physics_materials_cfg import (
+    RigidBodyMaterialCfg,
+)
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
@@ -45,7 +51,11 @@ class UR3eRG2CubeLiftEnvCfg(LiftEnvCfg):
         # flange; the FrameTransformer below adds the TCP offset.
         self.commands.object_pose.body_name = "wrist_3_link"
 
-        # Cube object (same dex_cube as Franka task)
+        # Cube object (same dex_cube as Franka task), but with mass + friction
+        # tuned for the RG2 gripper. The DexCube preset's defaults assume a
+        # Franka with a strong, parallel-jaw 2F-85 — RG2's transmitted pinch
+        # is lighter, so we lighten the cube and bump friction high enough
+        # that any contact holds.
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0, 0.055], rot=[1, 0, 0, 0]),
@@ -59,6 +69,12 @@ class UR3eRG2CubeLiftEnvCfg(LiftEnvCfg):
                     max_linear_velocity=1000.0,
                     max_depenetration_velocity=5.0,
                     disable_gravity=False,
+                ),
+                mass_props=MassPropertiesCfg(mass=0.05),  # 50 g — very light
+                physics_material=RigidBodyMaterialCfg(
+                    static_friction=1.5,
+                    dynamic_friction=1.5,
+                    restitution=0.0,
                 ),
             ),
         )
