@@ -7,9 +7,6 @@ from isaaclab.sim.schemas.schemas_cfg import (
     MassPropertiesCfg,
     RigidBodyPropertiesCfg,
 )
-from isaaclab.sim.spawners.materials.physics_materials_cfg import (
-    RigidBodyMaterialCfg,
-)
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
@@ -44,7 +41,7 @@ class UR3eRG2CubeLiftEnvCfg(LiftEnvCfg):
             asset_name="robot",
             joint_names=["rg2_gripper_joint", "rg2_gripper_mirror_joint"],
             open_command_expr={"rg2_gripper.*": 0.0},
-            close_command_expr={"rg2_gripper.*": 1.30},  # ~74.5° in radians
+            close_command_expr={"rg2_gripper.*": 0.60},  # snug fit around 4cm cube
         )
 
         # End-effector body for the goal-pose command. wrist_3_link is the arm
@@ -71,11 +68,6 @@ class UR3eRG2CubeLiftEnvCfg(LiftEnvCfg):
                     disable_gravity=False,
                 ),
                 mass_props=MassPropertiesCfg(mass=0.05),  # 50 g — very light
-                physics_material=RigidBodyMaterialCfg(
-                    static_friction=1.5,
-                    dynamic_friction=1.5,
-                    restitution=0.0,
-                ),
             ),
         )
 
