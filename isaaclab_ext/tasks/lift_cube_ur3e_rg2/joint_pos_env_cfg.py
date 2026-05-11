@@ -41,12 +41,30 @@ class UR3eRG2CubeLiftEnvCfg(LiftEnvCfg):
             asset_name="robot",
             joint_names=["rg2_gripper_joint", "rg2_gripper_mirror_joint"],
             open_command_expr={"rg2_gripper.*": 0.0},
-            close_command_expr={"rg2_gripper.*": 0.60},  # snug fit around 4cm cube
+            # 0.75 rad ≈ 43° — past the previous 0.60. The mimic constraint
+            # keeps both fingers symmetric, so this just commands a harder
+            # squeeze; PhysX clamps once the pads contact the cube.
+            close_command_expr={"rg2_gripper.*": 0.75},
         )
 
         # End-effector body for the goal-pose command. wrist_3_link is the arm
         # flange; the FrameTransformer below adds the TCP offset.
         self.commands.object_pose.body_name = "wrist_3_link"
+
+        # UR3e reach is ~500 mm — the Franka-tuned cube spawn (0.5 m) sits at
+        # the very edge of the workspace and randomization can push it past
+        # the reach limit. Move the cube to ~0.3 m and tighten the randomized
+        # range so every spawn is reachable.
+        self.events.reset_object_position.params["pose_range"] = {
+            "x": (-0.05, 0.05),
+            "y": (-0.10, 0.10),
+            "z": (0.0, 0.0),
+        }
+        # Pull the goal-pose target into the UR3e workspace too, otherwise the
+        # LIFT_OBJECT state asks the IK to reach a point it can't get to.
+        self.commands.object_pose.ranges.pos_x = (0.25, 0.40)
+        self.commands.object_pose.ranges.pos_y = (-0.15, 0.15)
+        self.commands.object_pose.ranges.pos_z = (0.15, 0.30)
 
         # Cube object (same dex_cube as Franka task), but with mass + friction
         # tuned for the RG2 gripper. The DexCube preset's defaults assume a
@@ -55,7 +73,7 @@ class UR3eRG2CubeLiftEnvCfg(LiftEnvCfg):
         # that any contact holds.
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0, 0.055], rot=[1, 0, 0, 0]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.3, 0, 0.055], rot=[1, 0, 0, 0]),
             spawn=UsdFileCfg(
                 usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
                 scale=(0.8, 0.8, 0.8),
@@ -78,7 +96,7 @@ class UR3eRG2CubeLiftEnvCfg(LiftEnvCfg):
         marker_cfg.prim_path = "/Visuals/FrameTransformer"
         self.scene.ee_frame = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/Robot/ur3e/base_link",
-            debug_vis=False,
+            debug_vis=True,
             visualizer_cfg=marker_cfg,
             target_frames=[
                 FrameTransformerCfg.FrameCfg(

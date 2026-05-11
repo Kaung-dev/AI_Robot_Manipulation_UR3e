@@ -40,3 +40,22 @@ gym.register(
     },
     disable_env_checker=True,
 )
+
+# Differential-IK (absolute) — used by the auto-pick state machine.
+gym.register(
+    id="Isaac-Lift-Cube-UR3e-RG2-IK-Abs-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.ik_abs_env_cfg:UR3eRG2CubeLiftEnvCfg",
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Lift-Cube-UR3e-RG2-IK-Abs-Play-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.ik_abs_env_cfg:UR3eRG2CubeLiftEnvCfg_PLAY",
+    },
+    disable_env_checker=True,
+)
