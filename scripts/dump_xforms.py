@@ -3,13 +3,15 @@ Dump every xform op on every Xformable prim under /onrobot_rg_test,
 so we can see what kind of transforms each link has and where the bracket
 offset is hiding.
 
-Output: /home/user/Desktop/ur_pick/scripts/xform_dump.txt
+Output: scripts/xform_dump.txt
 """
 from pathlib import Path
 import omni.usd
 from pxr import Usd, UsdGeom
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/xform_dump.txt")
+
+OUT = Path(str(PROJECT_ROOT / "scripts" / "xform_dump.txt"))
 ROOT = "/onrobot_rg_test"
 
 

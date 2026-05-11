@@ -15,19 +15,22 @@ import argparse
 from pathlib import Path
 from isaaclab.app import AppLauncher
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--in_usd",  default="/home/user/Desktop/ur_pick/scene/scene.usd")
-parser.add_argument("--out_usd", default="/home/user/Desktop/ur_pick/scene/scene_isaaclab.usd")
+parser.add_argument("--in_usd",  default=str(PROJECT_ROOT / "scene" / "scene.usd"))
+parser.add_argument("--out_usd", default=str(PROJECT_ROOT / "scene" / "scene_isaaclab.usd"))
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 args.headless = True
 
-LOG = Path("/home/user/Desktop/ur_pick/scripts/fix_scene.log")
+LOG = Path(str(PROJECT_ROOT / "scripts" / "fix_scene.log"))
 LOG.write_text("starting\n")
 
 app = AppLauncher(args).app
 
 from pxr import Usd, UsdPhysics, Sdf  # noqa: E402
+
 
 stage = Usd.Stage.Open(args.in_usd)
 log = [f"opened {args.in_usd}"]

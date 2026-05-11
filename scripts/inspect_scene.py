@@ -2,7 +2,7 @@
 Isaac Sim scene inspector.
 
 How to run:
-  1. Open your scene (e.g. /home/user/Desktop/ur_pick/scene/scene.usd) in Isaac Sim.
+  1. Open your scene (e.g. scene/scene.usd) in Isaac Sim.
   2. Window -> Script Editor.
   3. File -> Open Script... -> select this file. Or copy-paste the contents.
   4. Click Run.
@@ -12,7 +12,7 @@ What it does:
   - Lists every articulation root, every joint (with parent/child link, axis, limits,
     drive APIs), every OmniGraph and the ROS2 / Articulation nodes inside it.
   - Prints a human-readable summary to the Script Editor output.
-  - Writes the full structured dump to /home/user/Desktop/ur_pick/scripts/scene_inspection.json
+  - Writes the full structured dump to scripts/scene_inspection.json
     so the next script (graph generator) can consume it.
 """
 
@@ -21,8 +21,10 @@ from pathlib import Path
 
 import omni.usd
 from pxr import Usd, UsdPhysics, Sdf
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-OUT_PATH = Path("/home/user/Desktop/ur_pick/scripts/scene_inspection.json")
+
+OUT_PATH = Path(str(PROJECT_ROOT / "scripts" / "scene_inspection.json"))
 
 JOINT_SCHEMAS = {
     "PhysicsRevoluteJoint": UsdPhysics.RevoluteJoint,

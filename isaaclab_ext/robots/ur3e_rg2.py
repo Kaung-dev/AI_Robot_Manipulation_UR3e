@@ -36,6 +36,11 @@ UR3E_RG2_CFG = ArticulationCfg(
             enabled_self_collisions=True,
             solver_position_iteration_count=8,
             solver_velocity_iteration_count=0,
+            # Fix root link to its init_state.pos — required to mount the
+            # robot on top of the pegboard table at z=0.72. Without this,
+            # the URDF's root_joint (body0=[], world-anchor) drags the
+            # robot back to world origin regardless of init_state.pos.
+            fix_root_link=True,
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
@@ -62,11 +67,20 @@ UR3E_RG2_CFG = ArticulationCfg(
             # gripper kickback shove the wrist around.
             armature=0.1,
         ),
+        # Only the two outer-arm "master" joints are direct-driven. The 4
+        # follower joints (truss_arm + finger_tip per side) follow via
+        # PhysxMimicJointAPI (gearing -1, applied by
+        # scripts/restore_gripper_mimic.py) — forcing them to track the
+        # master geometrically. Master's drive force propagates through the
+        # mimic constraint into the contact pads, which is what produces the
+        # pinch force. Driving all 6 directly with the same target (+1.30)
+        # makes the gearing-mismatched joints fight each other and locks the
+        # gripper.
         "gripper": ImplicitActuatorCfg(
             joint_names_expr=["rg2_gripper_joint", "rg2_gripper_mirror_joint"],
-            effort_limit_sim=80.0,
-            stiffness=2e3,
-            damping=1e2,
+            effort_limit_sim=400.0,   # 2× — squeeze harder against the cube
+            stiffness=1.0e4,          # 2× stiffness — drive holds against contact
+            damping=3e2,              # tracks stiffness — keep critically damped
         ),
     },
     soft_joint_pos_limit_factor=1.0,

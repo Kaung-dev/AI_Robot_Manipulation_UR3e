@@ -9,18 +9,20 @@ fix-to-world. This:
      to world, recreates it.
   4) If /World/ur3e is missing ArticulationRootAPI, applies it.
 
-Output: /home/user/Desktop/ur_pick/scripts/anchor_report.txt
+Output: scripts/anchor_report.txt
 """
 from pathlib import Path
 
 import omni.usd
 from pxr import Gf, Sdf, Usd, UsdPhysics
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 UR_PATH = "/World/ur3e"
 UR_BASE_LINK = "/World/ur3e/base_link"
 UR_ROOT_JOINT = "/World/ur3e/root_joint"
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/anchor_report.txt")
+OUT = Path(str(PROJECT_ROOT / "scripts" / "anchor_report.txt"))
 
 
 def main():

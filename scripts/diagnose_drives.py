@@ -3,13 +3,15 @@ Print every UR3e arm joint's current rest angle vs its drive target.
 If they don't match, when you press Play the drives will violently pull
 the joint to the target — that's the "insane pose" symptom.
 
-Output: /home/user/Desktop/ur_pick/scripts/drives_report.txt
+Output: scripts/drives_report.txt
 """
 import math
 from pathlib import Path
 
 import omni.usd
 from pxr import UsdPhysics
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 UR_JOINT_NAMES = [
     "shoulder_pan_joint",
@@ -20,7 +22,7 @@ UR_JOINT_NAMES = [
     "wrist_3_joint",
 ]
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/drives_report.txt")
+OUT = Path(str(PROJECT_ROOT / "scripts" / "drives_report.txt"))
 
 
 def main():

@@ -6,6 +6,10 @@ solver maps that to UR3e joint targets every step.
 """
 
 from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
+from isaaclab.devices.device_base import DevicesCfg
+from isaaclab.devices.openxr import OpenXRDevice, OpenXRDeviceCfg, XrCfg
+from isaaclab.devices.openxr.retargeters.manipulator.gripper_retargeter import GripperRetargeterCfg
+from isaaclab.devices.openxr.retargeters.manipulator.se3_rel_retargeter import Se3RelRetargeterCfg
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
 from isaaclab.utils import configclass
 
@@ -35,6 +39,38 @@ class UR3eRG2CubeLiftEnvCfg(joint_pos_env_cfg.UR3eRG2CubeLiftEnvCfg):
             ),
             scale=0.5,
             body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.18]),
+        )
+
+        # XR anchor: cube task uses Franka's default table layout — robot at
+        # world origin, work surface at z≈0.05. Stand the operator 80 cm back.
+        self.xr = XrCfg(anchor_pos=(-0.8, 0.0, 0.3), anchor_rot=(1.0, 0.0, 0.0, 0.0))
+
+        # VR teleop device. Only consulted when teleop_se3_agent.py is run
+        # with --teleop_device handtracking. Other devices fall through to
+        # the script's manual creation path, so this addition is purely
+        # additive and cannot break keyboard/gamepad/spacemouse teleop.
+        self.teleop_devices = DevicesCfg(
+            devices={
+                "handtracking": OpenXRDeviceCfg(
+                    retargeters=[
+                        Se3RelRetargeterCfg(
+                            bound_hand=OpenXRDevice.TrackingTarget.HAND_RIGHT,
+                            zero_out_xy_rotation=True,
+                            use_wrist_rotation=False,
+                            use_wrist_position=True,
+                            delta_pos_scale_factor=5.0,
+                            delta_rot_scale_factor=5.0,
+                            sim_device=self.sim.device,
+                        ),
+                        GripperRetargeterCfg(
+                            bound_hand=OpenXRDevice.TrackingTarget.HAND_RIGHT,
+                            sim_device=self.sim.device,
+                        ),
+                    ],
+                    sim_device=self.sim.device,
+                    xr_cfg=self.xr,
+                ),
+            }
         )
 
 

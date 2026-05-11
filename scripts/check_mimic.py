@@ -5,8 +5,10 @@ Output: scripts/check_mimic.txt
 from pathlib import Path
 import omni.usd
 from pxr import Usd, UsdPhysics
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/check_mimic.txt")
+
+OUT = Path(str(PROJECT_ROOT / "scripts" / "check_mimic.txt"))
 RG2 = "/World/rg2"
 
 

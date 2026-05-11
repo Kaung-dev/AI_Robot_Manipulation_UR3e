@@ -7,15 +7,17 @@ Usage:
   2) Run this script in the Script Editor.
   3) IMMEDIATELY press Play. The recorder is already armed.
   4) Wait 5 seconds.
-  5) The file /home/user/Desktop/ur_pick/scripts/joint_log.txt will be written.
+  5) The file scripts/joint_log.txt will be written.
 """
 from pathlib import Path
 
 import omni.physx
 import omni.usd
 from pxr import UsdPhysics
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/joint_log.txt")
+
+OUT = Path(str(PROJECT_ROOT / "scripts" / "joint_log.txt"))
 DURATION_S = 5.0
 
 JOINT_NAMES = [

@@ -1,12 +1,14 @@
 """
 List every joint in the open stage. Run in Script Editor; output goes to
-/home/user/Desktop/ur_pick/scripts/joints_list.txt so we can read it.
+scripts/joints_list.txt so we can read it.
 """
 from pathlib import Path
 import omni.usd
 from pxr import UsdPhysics
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/joints_list.txt")
+
+OUT = Path(str(PROJECT_ROOT / "scripts" / "joints_list.txt"))
 
 stage = omni.usd.get_context().get_stage()
 lines = []

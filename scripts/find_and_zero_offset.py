@@ -5,13 +5,15 @@ This script:
   (1) lists all xformable prims under /onrobot_rg_test with non-zero translate
   (2) zeroes the largest translate (>= 0.5 m) so the gripper sits at origin
 
-Output also written to /home/user/Desktop/ur_pick/scripts/offset_report.txt
+Output also written to scripts/offset_report.txt
 """
 from pathlib import Path
 import omni.usd
 from pxr import Usd, UsdGeom, Gf
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-OUT = Path("/home/user/Desktop/ur_pick/scripts/offset_report.txt")
+
+OUT = Path(str(PROJECT_ROOT / "scripts" / "offset_report.txt"))
 ROOT = "/onrobot_rg_test"
 
 stage = omni.usd.get_context().get_stage()
