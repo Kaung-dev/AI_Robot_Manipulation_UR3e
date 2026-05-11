@@ -117,23 +117,23 @@ class UR3eRG2PegboardLiftEnvCfg(LiftEnvCfg):
 
         # Pegboard slot positions — same as view.py but with z shifted down
         # by 0.696 to match the lowered table.
-        # _DROP adds vertical clearance so each tool's ring drops cleanly
-        # onto the peg below, instead of spawning flush with the peg (which
-        # randomized which tool caught vs slipped due to tiny rotation
-        # perturbations during the first physics step).
+        # NOTE: tools must spawn with their ring already positioned around
+        # the peg (the peg threads through the ring horizontally). Any
+        # vertical drop clearance means the ring falls *past* the peg
+        # before settling — confirmed worse with even 8 cm of drop. Spawn
+        # exactly at slot z so the peg is inside the ring on the first step.
         _Z_SHIFT = -0.696
-        _DROP = 0.08  # spawn 8 cm above the slot — gives gravity room to seat
         LEFT_SLOTS = [
-            (0.555,  0.260, 0.95 + _Z_SHIFT + _DROP),    # L0 lower-far-left
-            (0.555,  0.087, 0.95 + _Z_SHIFT + _DROP),    # L1 lower-near-left
-            (0.555,  0.260, 1.235 + _Z_SHIFT + _DROP),   # L2 upper-far-left
-            (0.555,  0.087, 1.235 + _Z_SHIFT + _DROP),   # L3 upper-near-left
+            (0.555,  0.260, 0.95 + _Z_SHIFT),    # L0 lower-far-left
+            (0.555,  0.087, 0.95 + _Z_SHIFT),    # L1 lower-near-left
+            (0.555,  0.260, 1.235 + _Z_SHIFT),   # L2 upper-far-left
+            (0.555,  0.087, 1.235 + _Z_SHIFT),   # L3 upper-near-left
         ]
         RIGHT_SLOTS = [
-            (0.555, -0.087, 0.95 + _Z_SHIFT + _DROP),    # R0
-            (0.555, -0.260, 0.95 + _Z_SHIFT + _DROP),    # R1
-            (0.555, -0.087, 1.235 + _Z_SHIFT + _DROP),   # R2
-            (0.555, -0.260, 1.235 + _Z_SHIFT + _DROP),   # R3
+            (0.555, -0.087, 0.95 + _Z_SHIFT),    # R0
+            (0.555, -0.260, 0.95 + _Z_SHIFT),    # R1
+            (0.555, -0.087, 1.235 + _Z_SHIFT),   # R2
+            (0.555, -0.260, 1.235 + _Z_SHIFT),   # R3
         ]
         # All 6 tools DYNAMIC and pickable. The 4 lower-row tools (z=0.254)
         # catch on the z=0.434 pegs and hang. The 2 upper-row tools (z=0.539)
