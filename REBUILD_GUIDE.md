@@ -331,6 +331,239 @@ After that the gym IDs `Isaac-Lift-Cube-UR3e-RG2-IK-Rel-v0`, `Isaac-Lift-Cube-UR
 
 ---
 
+## Step 9 — VR teleop install (optional, path B extension)
+
+This step adds **Meta Quest 2** teleop on top of path B. The task configs at `isaaclab_ext/tasks/lift_*_ur3e_rg2/ik_rel_env_cfg.py` already declare a `handtracking` teleop device using Isaac Lab's shipped `OpenXRDevice` + `Se3RelRetargeter` + `GripperRetargeter` — Step 9 is just installing the runtime side so the headset can reach Isaac Sim.
+
+> **Verify install commands against the current upstream docs.** Monado and WiVRn move fast; package names and the WiVRn build dep list change between releases. Treat this section as a roadmap, not a 1:1 spec.
+
+### 9.0 Hardware floor
+
+| Component | Minimum | Comfortable |
+|---|---|---|
+| GPU | RTX 3070 (8 GB) | RTX 3080+ (12 GB+) |
+| RAM | 16 GB | 32 GB |
+| Wi-Fi | Dual-band 5 GHz AP | Dedicated Wi-Fi 6/6E AP |
+| Alternative to Wi-Fi | USB-C tether (10 ft fiber) | — |
+
+**RTX 3050 8 GB is below Isaac Sim's minimum spec before VR adds its load.** Expect 10–20 FPS at the headset on a 3050 — the pipeline works but isn't comfortable. Render-side bottleneck, not a code fix.
+
+### 9.1 Install Monado (OpenXR runtime)
+
+```bash
+# Build deps + Monado from apt (Ubuntu 22.04 universe):
+sudo apt install -y \
+  build-essential cmake ninja-build pkg-config git \
+  libsdl2-dev libgl-dev libvulkan-dev libxcb-randr0-dev \
+  libavcodec-dev libavutil-dev libswscale-dev libusb-1.0-0-dev \
+  libudev-dev libv4l-dev libopencv-dev libeigen3-dev \
+  libbluetooth-dev libhidapi-dev libwayland-dev libxkbcommon-dev \
+  libuvc-dev libjpeg-dev
+
+# Monado from source (ppa often lags upstream):
+git clone https://gitlab.freedesktop.org/monado/monado.git ~/monado
+cd ~/monado
+cmake -B build -G Ninja
+ninja -C build
+sudo ninja -C build install
+
+# Point OpenXR loader at Monado:
+mkdir -p ~/.config/openxr/1
+ln -sfn /usr/local/share/openxr/1/openxr_monado.json \
+        ~/.config/openxr/1/active_runtime.json
+```
+
+Smoke test the runtime alone:
+
+```bash
+monado-service &           # background OpenXR service
+xrgears                    # or any OpenXR sample
+```
+
+If `xrgears` complains about a missing runtime, the symlink in `~/.config/openxr/1` is wrong.
+
+### 9.2 Build WiVRn server (Linux → Quest streamer)
+
+```bash
+sudo apt install -y \
+  libavfilter-dev libavdevice-dev libopus-dev libx264-dev \
+  libpipewire-0.3-dev libsystemd-dev nlohmann-json3-dev
+
+git clone https://github.com/WiVRn/WiVRn.git ~/WiVRn
+cd ~/WiVRn
+cmake -B build -DCMAKE_BUILD_TYPE=Release -G Ninja
+ninja -C build
+```
+
+The server binary is at `~/WiVRn/build/server/wivrn-server`. Run it (foreground for the first test):
+
+```bash
+~/WiVRn/build/server/wivrn-server
+```
+
+It will listen on the LAN and advertise itself via mDNS so the Quest client can discover it.
+
+### 9.3 Quest 2 — developer mode + WiVRn client APK
+
+1. **Enable developer mode** on the Quest 2:
+   - Create a Meta developer account at `developer.oculus.com` (free).
+   - In the Meta Quest mobile app on your phone → Devices → your Quest → Developer Mode → ON.
+   - Reboot the headset.
+
+2. **Sideload the WiVRn client APK**:
+   - Download the latest `WiVRn-client-*.apk` from the [WiVRn releases page](https://github.com/WiVRn/WiVRn/releases).
+   - Install **SideQuest** on Linux (AppImage from `sidequestvr.com`).
+   - Plug Quest in via USB-C, accept the "Allow USB debugging" prompt **inside the headset**.
+   - In SideQuest: "Install APK file from folder on computer" → pick the downloaded APK.
+
+   Alternative (no SideQuest):
+   ```bash
+   sudo apt install -y adb
+   adb devices                                  # should show your Quest
+   adb install ~/Downloads/WiVRn-client-*.apk
+   ```
+
+3. **Pair Quest to the WiVRn server**:
+   - Put the headset on, find the WiVRn client in `Apps → Unknown Sources`.
+   - Launch it. It should auto-discover the Linux server on the LAN. Confirm pairing.
+
+### 9.4 Validation gates (run in this order — don't skip)
+
+| Gate | Command | Pass criterion |
+|---|---|---|
+| **9.4.a** OpenXR + Quest alone | Launch WiVRn client on Quest, run `xrgears` on Linux | See the gears spinning in the headset |
+| **9.4.b** Isaac Sim XR alone | `~/isaacsim_env/bin/isaacsim isaacsim.exp.full` → Window → Extensions → enable `omni.kit.xr.core` → File → Open `scene/scene.usd` → Play | See your scene in the headset, no robot control |
+| **9.4.c** Full VR teleop | The two commands below | Right wrist moves the EE; pinch closes RG2 |
+
+**If gate 9.4.a fails**, the issue is Monado / WiVRn / Wi-Fi — not Isaac Lab. Debug there before touching Isaac Sim.
+**If gate 9.4.b fails**, the issue is Isaac Sim's XR extension or GPU. Skip 9.4.c until 9.4.b passes.
+
+### 9.5 Run VR teleop
+
+```bash
+# Cube task — VR teleop
+cd ~/IsaacLab && ./isaaclab.sh -p scripts/environments/teleoperation/teleop_se3_agent.py \
+    --task Isaac-Lift-Cube-UR3e-RG2-IK-Rel-v0 --num_envs 1 --teleop_device handtracking
+
+# Pegboard task — VR teleop
+cd ~/IsaacLab && ./isaaclab.sh -p scripts/environments/teleoperation/teleop_se3_agent.py \
+    --task Isaac-Lift-Pegboard-UR3e-RG2-IK-Rel-v0 --num_envs 1 --teleop_device handtracking
+
+# Record VR demos to HDF5
+cd ~/IsaacLab && ./isaaclab.sh -p scripts/tools/record_demos.py \
+    --task Isaac-Lift-Pegboard-UR3e-RG2-IK-Rel-v0 --teleop_device handtracking \
+    --dataset_file ~/Desktop/ur_pick/datasets/lift_pegboard_vr.hdf5
+```
+
+Controls (bare-hand tracking, no Quest controllers used):
+
+| input | action |
+|---|---|
+| right wrist position | EE translation |
+| right wrist yaw | EE yaw (roll/pitch zeroed for stability) |
+| pinch thumb + index < 3 cm | gripper close |
+| open thumb + index > 5 cm | gripper open |
+| WiVRn/dashboard "start" event | begin teleop (default state: paused) |
+| WiVRn/dashboard "reset" event | reset env |
+
+### 9.6 Tuning — when behavior feels wrong
+
+Edit the `teleop_devices` block in `isaaclab_ext/tasks/lift_*_ur3e_rg2/ik_rel_env_cfg.py`:
+
+| Symptom | Field to change |
+|---|---|
+| EE moves too fast / overshoots | `delta_pos_scale_factor` down (default 5.0 — upstream Franka uses 10.0) |
+| EE rotation too twitchy | `delta_rot_scale_factor` down |
+| Gripper toggles rapidly when fingers half-pinched | adjust `GRIPPER_CLOSE_METERS` / `GRIPPER_OPEN_METERS` (need to subclass `GripperRetargeter` — they're class constants) |
+| Operator spawns inside the robot / behind the table | edit `self.xr = XrCfg(anchor_pos=...)` |
+| Want roll/pitch control | set `zero_out_xy_rotation=False` (less stable, more expressive) |
+| Want fingertip pinch pose instead of wrist | set `use_wrist_position=False` and `use_wrist_rotation=False` |
+
+### 9.7 Known issues specific to VR
+
+- **Hand tracking needs light.** Quest 2's hand tracking is optical; in a dim room your hand will dropout and the robot will freeze on the last pose. The device class doesn't crash, it just stops emitting deltas.
+- **No controller fallback in shipped device.** Isaac Lab's `OpenXRDevice` reads `/user/hand/left` and `/user/hand/right` (hand-tracking endpoints). To use trigger/grip from physical controllers instead, subclass it and read from `/user/hand/left/input/trigger/value` etc. — out of scope here.
+- **Wi-Fi latency above ~30 ms is unusable.** Tether via USB-C if your Wi-Fi adds >50 ms RTT to the Quest.
+- **The 3050 will be slow.** Said elsewhere. Not a bug.
+
+---
+
+## Troubleshooting (setup-time crashes)
+
+### A. Isaac Sim segfaults right after `app ready` (NVIDIA driver 595)
+
+Symptom — Isaac Sim window opens for a second, then dies with:
+
+```
+app ready
+[Warning] [rtx.scenedb.plugin] SceneDbContext : TLAS limit buffer size ...
+Segmentation fault (core dumped)
+```
+
+Cause — NVIDIA driver **595.x** is not compatible with Isaac Sim 4.5's RTX scene-DB plugin. Isaac Sim 4.5 is validated against the 535 / 550 / **580** line.
+
+Fix — downgrade to driver 580:
+
+```bash
+nvidia-smi                                # check current version
+sudo apt -s install nvidia-driver-580     # dry-run first
+sudo apt install nvidia-driver-580
+sudo reboot
+nvidia-smi                                # should now show Driver Version: 580.x
+```
+
+Then re-launch Isaac Sim; the segfault should be gone.
+
+### B. `Failed to acquire interface: omni::physx::IPhysxFabric` (Fabric extension version mismatch)
+
+Symptom — environment creation fails with:
+
+```
+Pulling extension: omni.physx.fabric-106.3.2
+Interface: [omni::physx::IPhysxPrivate v0.2] requested but
+default plugin [omni::physx::IPhysxPrivate v1.2] cannot provide requested version
+RuntimeError: Failed to acquire interface: omni::physx::IPhysxFabric
+Failed to create environment
+```
+
+Cause — two versions of `omni.physx.fabric` ended up in the Kit extension cache (typically when both `pip install isaacsim[all]==4.5.*` and `./isaaclab.sh --install` populate caches). The older **106.3.2** gets pulled first and tries to talk to **106.5.x** PhysX core → ABI mismatch.
+
+Fix — delete the stale 106.3.2 extension from both caches so only 106.5.3 remains.
+
+1. Find what's installed:
+
+   ```bash
+   find ~/.local/share/ov/data/exts/v2 -maxdepth 1 -type d -name "omni.physx.fabric*" -print
+   find ~/isaacsim_env/lib/python3.10/site-packages/omni/data/Kit/Isaac-Sim/4.5/exts/3 \
+     -maxdepth 1 -name "omni.physx.fabric*" -ls
+   ```
+
+2. If you see **both** `106.3.2` and `106.5.3`, remove the 106.3.2 dirs (paths shown with the actual suffixes used by Kit):
+
+   ```bash
+   rm -rf \
+     ~/isaacsim_env/lib/python3.10/site-packages/omni/data/Kit/Isaac-Sim/4.5/exts/3/omni.physx.fabric-106.3.2+106.3.0.lx64.r.cp310.ub3f \
+     ~/.local/share/ov/data/exts/v2/omni.physx.fabric-106.3.2+106.3.0.lx64.r.cp310.ub3f
+   ```
+
+3. Verify only 106.5.3 remains:
+
+   ```bash
+   find ~/isaacsim_env/lib/python3.10/site-packages/omni/data/Kit/Isaac-Sim/4.5/exts/3 \
+     -maxdepth 1 -name "omni.physx.fabric*" -ls
+   # expected:  omni.physx.fabric-106.5.3+106.5.0.lx64.r.cp310.ub3f
+   ```
+
+4. Re-run the task:
+
+   ```bash
+   cd ~/Desktop/ur_pick
+   ~/IsaacLab/isaaclab.sh -p ~/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py \
+     --task Isaac-Lift-Cube-UR3e-RG2-IK-Rel-v0 --num_envs 1 --teleop_device keyboard
+   ```
+
+---
+
 ## Known limitations / gotchas
 
 - **Gripper close is cosmetically imperfect.** The Inria URDF doesn't have the real RG2 closed-chain 4-bar; it fakes parallel motion with single-axis mimics. Fingertips don't quite stay parallel at the close extreme. Functionally fine — pads can grip any object of finite width.
