@@ -36,6 +36,11 @@ UR3E_RG2_CFG = ArticulationCfg(
             enabled_self_collisions=True,
             solver_position_iteration_count=8,
             solver_velocity_iteration_count=0,
+            # Fix root link to its init_state.pos — required to mount the
+            # robot on top of the pegboard table at z=0.72. Without this,
+            # the URDF's root_joint (body0=[], world-anchor) drags the
+            # robot back to world origin regardless of init_state.pos.
+            fix_root_link=True,
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(

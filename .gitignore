@@ -13,6 +13,10 @@ ros2_ws/log/
 # Generated USD output of fix_scene_for_isaaclab.py — recreated by setup_isaaclab.sh
 scene/scene_isaaclab.usd
 
+# Experimental robot USD from Isaac Sim's URDF importer GUI — not used by
+# the current pegboard setup.
+robot/
+
 # Python
 __pycache__/
 *.py[cod]
