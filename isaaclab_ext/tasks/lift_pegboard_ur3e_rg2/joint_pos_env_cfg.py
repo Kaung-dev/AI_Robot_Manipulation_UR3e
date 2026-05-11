@@ -130,23 +130,34 @@ class UR3eRG2PegboardLiftEnvCfg(LiftEnvCfg):
             (0.555, -0.087, 1.235 + _Z_SHIFT),   # R2  → z=0.539
             (0.555, -0.260, 1.235 + _Z_SHIFT),   # R3  → z=0.539
         ]
-        # All 6 tools hang on the pegboard at the view.py slot positions.
-        # The table USD has pegs (Cylinder collision geometry) at three
-        # vertical rows: z=1.13, 1.41, 1.73 in original table frame
-        # (= z=0.434, 0.714, 1.034 after our -0.696 shift). Tools spawn
-        # ~17 cm below the next peg up and catch on it via their rings.
+        # The pegboard has 3 collision-peg rows at z=0.434, 0.714, 1.034
+        # (after our -0.696 shift). Tools at lower slots (z=0.254) reliably
+        # catch on the z=0.434 pegs and hang. Upper-slot tools (z=0.539) fall
+        # past lower pegs before they can reach the upper pegs at z=0.714 —
+        # so we make the 2 upper tools KINEMATIC at their slot positions
+        # (decorative only, not pickable). The 4 lower tools stay dynamic
+        # and pickable.
+        # Layout:
+        #   L0 (lower far)  : brush       — dynamic, hangs, pickable
+        #   L1 (lower near) : toothbrush  — dynamic, env "object", pickable
+        #   L2 (upper far)  : silicone    — KINEMATIC, decoration
+        #   L3 (upper near) : scissors    — KINEMATIC, decoration
+        #   R0 (lower near) : pliers      — dynamic, hangs, pickable
+        #   R1 (lower far)  : screwdriver — dynamic, hangs, pickable
         _tool_specs = [
-            ("brush",        "brush_ring.usd",         list(LEFT_SLOTS[0])),    # L0 lower
-            ("scissors",     "scissors_ring.usd",      list(LEFT_SLOTS[1])),    # L1 lower
-            ("silicone",     "silicone_tube_ring.usd", list(LEFT_SLOTS[2])),    # L2 upper
-            ("pliers",       "pliers_ring.usd",        list(RIGHT_SLOTS[0])),   # R0 lower
-            ("screwdriver",  "screw_driver_ring.usd",  list(RIGHT_SLOTS[1])),   # R1 lower
+            # (name, usd, pos, kinematic?)
+            ("brush",        "brush_ring.usd",         list(LEFT_SLOTS[0]),  False),
+            ("silicone",     "silicone_tube_ring.usd", list(LEFT_SLOTS[2]),  True),   # kinematic deco
+            ("scissors",     "scissors_ring.usd",      list(LEFT_SLOTS[3]),  True),   # kinematic deco
+            ("pliers",       "pliers_ring.usd",        list(RIGHT_SLOTS[0]), False),
+            ("screwdriver",  "screw_driver_ring.usd",  list(RIGHT_SLOTS[1]), False),
         ]
 
-        # ToothBrush — the env "object". L3 upper slot per view.py.
+        # ToothBrush — the env "object". Moved from L3 (upper, would be
+        # kinematic) to L1 (lower) so it actually hangs AND can be picked.
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=list(LEFT_SLOTS[3]), rot=[1, 0, 0, 0]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=list(LEFT_SLOTS[1]), rot=[1, 0, 0, 0]),
             spawn=UsdFileCfg(
                 usd_path=str(_ASSETS / "tooth_brush.usd"),
                 rigid_props=_tool_rigid,
@@ -162,7 +173,8 @@ class UR3eRG2PegboardLiftEnvCfg(LiftEnvCfg):
                              rigid_props=_kinematic_rigid),
         )
 
-        for name, fname, pos in _tool_specs:
+        for name, fname, pos, kinematic in _tool_specs:
+            rigid_props = _kinematic_rigid if kinematic else _tool_rigid
             setattr(
                 self.scene,
                 f"tool_{name}",
@@ -171,7 +183,7 @@ class UR3eRG2PegboardLiftEnvCfg(LiftEnvCfg):
                     init_state=RigidObjectCfg.InitialStateCfg(pos=pos, rot=[1, 0, 0, 0]),
                     spawn=UsdFileCfg(
                         usd_path=str(_ASSETS / fname),
-                        rigid_props=_tool_rigid,
+                        rigid_props=rigid_props,
                         mass_props=_tool_mass,
                     ),
                 ),
