@@ -130,23 +130,23 @@ class UR3eRG2CubeLiftEnvCfg(LiftEnvCfg):
             (0.555, -0.087, 1.235 + _Z_SHIFT),   # R2  → z=0.539
             (0.555, -0.260, 1.235 + _Z_SHIFT),   # R3  → z=0.539
         ]
-        # 4 lower-row tools hang on the pegboard pegs (visible scenery — UR3e
-        # at z=0.4 can't reach z=0.95 pegs, but they look nice).
-        # The 5th tool (silicone) goes on the work-surface in reach.
+        # All 6 tools hang on the pegboard at the view.py slot positions.
+        # The table USD has pegs (Cylinder collision geometry) at three
+        # vertical rows: z=1.13, 1.41, 1.73 in original table frame
+        # (= z=0.434, 0.714, 1.034 after our -0.696 shift). Tools spawn
+        # ~17 cm below the next peg up and catch on it via their rings.
         _tool_specs = [
-            ("brush",        "brush_ring.usd",         list(LEFT_SLOTS[0])),    # hangs L0
-            ("scissors",     "scissors_ring.usd",      list(LEFT_SLOTS[1])),    # hangs L1
-            ("pliers",       "pliers_ring.usd",        list(RIGHT_SLOTS[0])),   # hangs R0
-            ("screwdriver",  "screw_driver_ring.usd",  list(RIGHT_SLOTS[1])),   # hangs R1
-            ("silicone",     "silicone_tube_ring.usd", [0.32, 0.12, 0.04]),     # on table top (z≈0)
+            ("brush",        "brush_ring.usd",         list(LEFT_SLOTS[0])),    # L0 lower
+            ("scissors",     "scissors_ring.usd",      list(LEFT_SLOTS[1])),    # L1 lower
+            ("silicone",     "silicone_tube_ring.usd", list(LEFT_SLOTS[2])),    # L2 upper
+            ("pliers",       "pliers_ring.usd",        list(RIGHT_SLOTS[0])),   # R0 lower
+            ("screwdriver",  "screw_driver_ring.usd",  list(RIGHT_SLOTS[1])),   # R1 lower
         ]
 
-        # ToothBrush — the env "object". Place it on the work surface
-        # (z≈0.04, just above the lowered table top) directly in front of
-        # the robot.
+        # ToothBrush — the env "object". L3 upper slot per view.py.
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.30, 0.0, 0.04], rot=[1, 0, 0, 0]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=list(LEFT_SLOTS[3]), rot=[1, 0, 0, 0]),
             spawn=UsdFileCfg(
                 usd_path=str(_ASSETS / "tooth_brush.usd"),
                 rigid_props=_tool_rigid,
