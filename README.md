@@ -178,6 +178,42 @@ Append this to any teleop command to filter out harmless `omni.usd` warning spam
 2>&1 | grep -v "GetInstanceIndices\|ProtoIndex\|omni.usd"
 ```
 
+### Teleoperate (VR — Meta Quest 2 over OpenXR)
+
+Both IK-Rel tasks register a `handtracking` device that maps **right-hand wrist pose → SE(3) EE delta** and **thumb-index pinch → gripper open/close**. Pre-reqs (one-time, all on Linux):
+
+1. Install [Monado](https://monado.dev) (OpenXR runtime) and [WiVRn](https://github.com/WiVRn/WiVRn) (Quest streaming server). Wired (USB-C) or 5 GHz Wi-Fi.
+2. Sideload the WiVRn client APK onto Quest 2 (via SideQuest or `adb install`).
+3. Confirm any OpenXR sample renders on the headset before launching Isaac Sim — if a stock demo can't reach the headset, Isaac Sim won't either.
+
+Then launch the same `teleop_se3_agent.py` as keyboard/gamepad, but with `--teleop_device handtracking`. The `--xr` flag is added automatically when this device is selected.
+
+**Cube:**
+```bash
+cd ~/IsaacLab && ./isaaclab.sh -p scripts/environments/teleoperation/teleop_se3_agent.py \
+    --task Isaac-Lift-Cube-UR3e-RG2-IK-Rel-v0 --num_envs 1 --teleop_device handtracking
+```
+
+**Pegboard:**
+```bash
+cd ~/IsaacLab && ./isaaclab.sh -p scripts/environments/teleoperation/teleop_se3_agent.py \
+    --task Isaac-Lift-Pegboard-UR3e-RG2-IK-Rel-v0 --num_envs 1 --teleop_device handtracking
+```
+
+**VR controls** (no keyboard needed — the headset reports start/stop/reset via the SteamVR/WiVRn dashboard, and the device class subscribes to those events):
+
+| input | action |
+|---|---|
+| right-hand wrist movement | translate / rotate EE (yaw only — roll/pitch are zeroed for stability) |
+| pinch thumb + index < 3 cm | close gripper |
+| open thumb + index > 5 cm | open gripper |
+| WiVRn/SteamVR "start" event | begin teleop (default: paused until start) |
+| WiVRn/SteamVR "reset" event | reset env |
+
+The **operator anchor** is set to (-0.8 m, 0, +0.3 m) — about 80 cm behind the robot pedestal, eyes near work-surface height. Edit `xr = XrCfg(...)` in `ik_rel_env_cfg.py` to move the spawn point. Position scale defaults to 5× (half of upstream Franka) because the UR3e workspace is smaller; raise it if hand motion feels sluggish.
+
+> **GPU expectations**: collab-sim reports 30–35 FPS on a 3090. Anything below an RTX 3070 will be uncomfortable in VR — see `REBUILD_GUIDE.md` for the hardware floor.
+
 ### Auto-pick (scripted state machine)
 
 **Cube:**
