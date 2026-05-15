@@ -13,6 +13,17 @@ ros2_ws/log/
 # Generated USD output of fix_scene_for_isaaclab.py — recreated by setup_isaaclab.sh
 scene/scene_isaaclab.usd
 
+# USDs produced by scripts/export_pegboard_scene.py — Isaac Sim bakes the
+# host's absolute paths into the references, so they don't survive `git push`.
+# Regenerate locally per machine.
+scene/pegboard_full.usd
+
+# 3rd-party Isaac Sim demo scene + UR10e+Robotiq robot pulled from S3;
+# the upstream scene contains absolute paths baked in by the original author.
+# Re-download with commands in CAMERA_AND_TELEOP.md if you need them.
+scene/isaac_manipulator_scene.usd
+scene/ur10e_robotiq2f_140.usd
+
 # Experimental robot USD from Isaac Sim's URDF importer GUI — not used by
 # the current pegboard setup.
 robot/
