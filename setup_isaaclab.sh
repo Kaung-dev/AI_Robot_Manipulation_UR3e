@@ -33,13 +33,19 @@ CUBE_TASK_SRC="$REPO_DIR/isaaclab_ext/tasks/lift_cube_ur3e_rg2"
 ln -sfn "$CUBE_TASK_SRC" "$CUBE_TASK_DST"
 echo "[INFO] linked  $CUBE_TASK_DST  ->  $CUBE_TASK_SRC"
 
-# 3) lift-pegboard task
+# 3) lift-pegboard task (UR3e)
 PEGBOARD_TASK_DST="$ISAACLAB_PATH/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/lift/config/ur3e_rg2_pegboard"
 PEGBOARD_TASK_SRC="$REPO_DIR/isaaclab_ext/tasks/lift_pegboard_ur3e_rg2"
 ln -sfn "$PEGBOARD_TASK_SRC" "$PEGBOARD_TASK_DST"
 echo "[INFO] linked  $PEGBOARD_TASK_DST  ->  $PEGBOARD_TASK_SRC"
 
-# 4) Generate scene_isaaclab.usd if missing.
+# 4) lift-pegboard task (Franka)
+FRANKA_TASK_DST="$ISAACLAB_PATH/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/lift/config/franka_pegboard"
+FRANKA_TASK_SRC="$REPO_DIR/isaaclab_ext/tasks/lift_pegboard_franka"
+ln -sfn "$FRANKA_TASK_SRC" "$FRANKA_TASK_DST"
+echo "[INFO] linked  $FRANKA_TASK_DST  ->  $FRANKA_TASK_SRC"
+
+# 5) Generate scene_isaaclab.usd if missing.
 if [[ ! -f "$REPO_DIR/scene/scene_isaaclab.usd" ]]; then
   echo "[INFO] producing scene/scene_isaaclab.usd ..."
   "$ISAACLAB_PATH/isaaclab.sh" -p "$REPO_DIR/scripts/fix_scene_for_isaaclab.py" \
