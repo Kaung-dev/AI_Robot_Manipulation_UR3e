@@ -35,13 +35,22 @@ class UR3eRG2PegboardLiftEnvCfg(LiftEnvCfg):
     def __post_init__(self):
         super().__post_init__()
 
-        # Robot in front of the (now-lowered) table on a small pedestal.
-        # Table top is at z≈0 after the -0.696 lower. Robot at (0.05, 0, 0.20)
-        # — 20 cm pedestal, just in front of the table's forward edge (which
-        # is now at x=0.265 same as before). UR3e's 500 mm reach now covers
-        # the work surface AND the lower pegboard row at z=0.254.
+        # Robot pedestal-mounted in front of the table. (0.10, 0, 0.20) puts
+        # the toothbrush at L1 (0.555, 0.087, 0.254) at distance 0.47 m —
+        # within UR3e's 500 mm reach.
+        # Self-collisions OFF during PPO: random exploration slams the
+        # gripper into itself and NaNs PhysX without it (value loss -> inf).
         self.scene.robot = UR3E_RG2_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.robot.init_state.pos = (0.05, 0.0, 0.20)
+        self.scene.robot.init_state.pos = (0.10, 0.0, 0.20)
+        self.scene.robot.spawn.articulation_props.enabled_self_collisions = False
+
+        # Bump PhysX GPU buffers for multi-env training. The pegboard scene
+        # has many rigid bodies per env (table + 6 tools + basket + robot),
+        # so the default buffer overflows past ~512 envs without these.
+        self.sim.physx.gpu_max_rigid_patch_count = 524288
+        self.sim.physx.gpu_max_rigid_contact_count = 2_097_152
+        self.sim.physx.gpu_found_lost_pairs_capacity = 524288
+        self.sim.physx.gpu_total_aggregate_pairs_capacity = 524288
 
         # Arm action: joint position control on the 6 UR3e revolute joints
         self.actions.arm_action = mdp.JointPositionActionCfg(
@@ -68,13 +77,13 @@ class UR3eRG2PegboardLiftEnvCfg(LiftEnvCfg):
         # flange; the FrameTransformer below adds the TCP offset.
         self.commands.object_pose.body_name = "wrist_3_link"
 
-        # UR3e reach is ~500 mm — the Franka-tuned cube spawn (0.5 m) sits at
-        # the very edge of the workspace and randomization can push it past
-        # the reach limit. Move the cube to ~0.3 m and tighten the randomized
-        # range so every spawn is reachable.
+        # Tighten the reset randomization. The toothbrush hangs on the L1
+        # peg — too much xy randomization and it spawns off the peg (no peg
+        # at that location → falls to the floor). Keep ±1 cm so it always
+        # hangs on L1.
         self.events.reset_object_position.params["pose_range"] = {
-            "x": (-0.05, 0.05),
-            "y": (-0.10, 0.10),
+            "x": (-0.01, 0.01),
+            "y": (-0.01, 0.01),
             "z": (0.0, 0.0),
         }
         # The standard lift task expects a body called "Object" (DexCube's
@@ -84,13 +93,14 @@ class UR3eRG2PegboardLiftEnvCfg(LiftEnvCfg):
         self.events.reset_object_position.params["asset_cfg"] = SceneEntityCfg(
             "object", body_names="tooth_brush"
         )
-        # Pull the goal-pose target into the UR3e workspace too. With the
-        # robot mounted on the 0.72 m table top, the lift target lives in
-        # world-z [0.85, 1.10] — above the tools' rest height (~0.80) and
-        # within UR3e's reach from the elevated base.
-        self.commands.object_pose.ranges.pos_x = (0.25, 0.40)
-        self.commands.object_pose.ranges.pos_y = (-0.15, 0.15)
-        self.commands.object_pose.ranges.pos_z = (0.85, 1.10)
+        # Goal-pose target = ABOVE the basket so the lift reward drives the
+        # toothbrush from its peg into the basket. Basket is at (0.32, -0.18,
+        # 0.02) and is ~0.28 m tall, so its lip is at z≈0.30. Place the goal
+        # 5–15 cm above the lip with some xy randomization within the basket
+        # opening footprint.
+        self.commands.object_pose.ranges.pos_x = (0.28, 0.36)
+        self.commands.object_pose.ranges.pos_y = (-0.22, -0.14)
+        self.commands.object_pose.ranges.pos_z = (0.34, 0.42)
 
         # Table — KINEMATIC, lowered by 0.696 m so its wooden base sits on
         # the Isaac Lab ground plane (z=0) instead of floating at z=0.696.
