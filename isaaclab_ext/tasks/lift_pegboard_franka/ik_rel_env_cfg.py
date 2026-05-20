@@ -44,7 +44,7 @@ class FrankaPegboardLiftEnvCfg(joint_pos_env_cfg.FrankaPegboardLiftEnvCfg):
         )
 
         # XR anchor: operator appears ~80 cm behind the robot, eyes at pegboard height.
-        self.xr = XrCfg(anchor_pos=(-0.8, 0.0, 0.3), anchor_rot=(1.0, 0.0, 0.0, 0.0))
+        self.xr = XrCfg(anchor_pos=(-1.1, 1.0, -0.5), anchor_rot=(1.0, 0.0, 0.0, 0.0))
 
         self.teleop_devices = DevicesCfg(
             devices={
@@ -52,12 +52,12 @@ class FrankaPegboardLiftEnvCfg(joint_pos_env_cfg.FrankaPegboardLiftEnvCfg):
                     retargeters=[
                         Se3RelRetargeterCfg(
                             bound_hand=OpenXRDevice.TrackingTarget.HAND_RIGHT,
-                            zero_out_xy_rotation=True,
-                            use_wrist_rotation=False,
+                            zero_out_xy_rotation=False,
+                            use_wrist_rotation=True,
                             use_wrist_position=True,
-                            # Standard Franka scale (10.0); tune down if motion feels too sensitive.
-                            delta_pos_scale_factor=10.0,
-                            delta_rot_scale_factor=10.0,
+                            delta_pos_scale_factor=20.0,
+                            delta_rot_scale_factor=15.0,
+                            alpha_rot=0.3,
                             sim_device=self.sim.device,
                         ),
                         GripperRetargeterCfg(
