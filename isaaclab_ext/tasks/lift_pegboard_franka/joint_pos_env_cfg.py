@@ -126,11 +126,9 @@ class FrankaPegboardLiftEnvCfg(LiftEnvCfg):
             (0.555, -0.260, 1.235 + _Z_SHIFT),   # R3
         ]
         _tool_specs = [
-            ("brush",        "brush_ring.usd",         list(LEFT_SLOTS[0])),
             ("silicone",     "silicone_tube_ring.usd", list(LEFT_SLOTS[2])),
             ("scissors",     "scissors_ring.usd",      list(LEFT_SLOTS[3])),
             ("pliers",       "pliers_ring.usd",        list(RIGHT_SLOTS[0])),
-            ("screwdriver",  "screw_driver_ring.usd",  list(RIGHT_SLOTS[1])),
         ]
 
         # ToothBrush — the env "object", on L1 so it both hangs and is pickable.

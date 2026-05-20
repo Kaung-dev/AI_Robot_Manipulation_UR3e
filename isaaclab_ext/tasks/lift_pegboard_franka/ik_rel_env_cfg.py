@@ -6,6 +6,10 @@ solver maps that to Franka joint targets every step.
 """
 
 from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
+from isaaclab.devices.device_base import DevicesCfg
+from isaaclab.devices.openxr import OpenXRDevice, OpenXRDeviceCfg, XrCfg
+from isaaclab.devices.openxr.retargeters.manipulator.gripper_retargeter import GripperRetargeterCfg
+from isaaclab.devices.openxr.retargeters.manipulator.se3_rel_retargeter import Se3RelRetargeterCfg
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
 from isaaclab.utils import configclass
 
@@ -37,6 +41,34 @@ class FrankaPegboardLiftEnvCfg(joint_pos_env_cfg.FrankaPegboardLiftEnvCfg):
             ),
             scale=0.5,
             body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
+        )
+
+        # XR anchor: operator appears ~80 cm behind the robot, eyes at pegboard height.
+        self.xr = XrCfg(anchor_pos=(-1.1, 1.0, -0.5), anchor_rot=(1.0, 0.0, 0.0, 0.0))
+
+        self.teleop_devices = DevicesCfg(
+            devices={
+                "handtracking": OpenXRDeviceCfg(
+                    retargeters=[
+                        Se3RelRetargeterCfg(
+                            bound_hand=OpenXRDevice.TrackingTarget.HAND_RIGHT,
+                            zero_out_xy_rotation=False,
+                            use_wrist_rotation=True,
+                            use_wrist_position=True,
+                            delta_pos_scale_factor=20.0,
+                            delta_rot_scale_factor=15.0,
+                            alpha_rot=0.3,
+                            sim_device=self.sim.device,
+                        ),
+                        GripperRetargeterCfg(
+                            bound_hand=OpenXRDevice.TrackingTarget.HAND_RIGHT,
+                            sim_device=self.sim.device,
+                        ),
+                    ],
+                    sim_device=self.sim.device,
+                    xr_cfg=self.xr,
+                ),
+            }
         )
 
 
