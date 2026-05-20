@@ -37,7 +37,27 @@ TASK_SRC="$REPO_DIR/isaaclab_ext/tasks/lift_cube_ur3e_rg2"
 ln -sfn "$TASK_SRC" "$TASK_DST"
 echo "[INFO] linked  $TASK_DST  ->  $TASK_SRC"
 
-# 3) Generate scene_isaaclab.usd if missing.
+# 3) lift-pegboard-franka task variant
+TASK_DST="$ISAACLAB_PATH/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/lift/config/pegboard_franka"
+TASK_SRC="$REPO_DIR/isaaclab_ext/tasks/lift_pegboard_franka"
+ln -sfn "$TASK_SRC" "$TASK_DST"
+echo "[INFO] linked  $TASK_DST  ->  $TASK_SRC"
+
+# 4) lift-pegboard-ur3e-rg2 task variant
+TASK_DST="$ISAACLAB_PATH/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/lift/config/pegboard_ur3e_rg2"
+TASK_SRC="$REPO_DIR/isaaclab_ext/tasks/lift_pegboard_ur3e_rg2"
+ln -sfn "$TASK_SRC" "$TASK_DST"
+echo "[INFO] linked  $TASK_DST  ->  $TASK_SRC"
+
+# 5) stack-cube-franka task (reference)
+STACK_DST="$ISAACLAB_PATH/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/stack_cube_franka"
+STACK_SRC="$REPO_DIR/isaaclab_ext/tasks/stack_cube_franka"
+if [[ ! -e "$STACK_DST" ]]; then
+  ln -sfn "$STACK_SRC" "$STACK_DST"
+  echo "[INFO] linked  $STACK_DST  ->  $STACK_SRC"
+fi
+
+# 6) Generate scene_isaaclab.usd if missing.
 if [[ ! -f "$REPO_DIR/scene/scene_isaaclab.usd" ]]; then
   echo "[INFO] producing scene/scene_isaaclab.usd ..."
   "$ISAACLAB_PATH/isaaclab.sh" -p "$REPO_DIR/scripts/fix_scene_for_isaaclab.py" \

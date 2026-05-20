@@ -75,19 +75,30 @@ class FrankaPegboardLiftEnvCfg(LiftEnvCfg):
         # End-effector body for the goal-pose command.
         self.commands.object_pose.body_name = "panda_hand"
 
-        # Same tightened reset as UR3e — the toothbrush must stay on L1.
+        # Zero pose randomization so target object stays on its peg.
         self.events.reset_object_position.params["pose_range"] = {
-            "x": (-0.01, 0.01),
-            "y": (-0.01, 0.01),
+            "x": (0.0, 0.0),
+            "y": (0.0, 0.0),
             "z": (0.0, 0.0),
         }
         self.events.reset_object_position.params["asset_cfg"] = SceneEntityCfg(
-            "object", body_names="tooth_brush"
+            "object", body_names=".*"
         )
-        # Goal-pose target above the basket — unchanged from UR3e variant.
-        self.commands.object_pose.ranges.pos_x = (0.28, 0.36)
+
+        # Goal pose at basket level in ROBOT BASE frame.
+        # Franka at world (-0.2, 0, 0). Basket at world (0.32, -0.18, 0.02).
+        # Robot-frame: x=0.52, y=-0.18, z=0.02.
+        # Goal at basket rim height so dropping object inside triggers success.
+        self.commands.object_pose.ranges.pos_x = (0.48, 0.56)
         self.commands.object_pose.ranges.pos_y = (-0.22, -0.14)
-        self.commands.object_pose.ranges.pos_z = (0.34, 0.42)
+        self.commands.object_pose.ranges.pos_z = (0.02, 0.12)
+
+        # Success termination: object within 15 cm of the goal pose.
+        from isaaclab.managers import TerminationTermCfg as DoneTerm
+        self.terminations.success = DoneTerm(
+            func=mdp.object_reached_goal,
+            params={"threshold": 0.15, "command_name": "object_pose"},
+        )
 
         # Table — KINEMATIC, lowered by 0.696 m so the wooden base sits on
         # the ground plane. After translation: work surface ≈ z=0, pegboard
@@ -127,18 +138,18 @@ class FrankaPegboardLiftEnvCfg(LiftEnvCfg):
         ]
         _tool_specs = [
             ("brush",        "brush_ring.usd",         list(LEFT_SLOTS[0])),
-            ("silicone",     "silicone_tube_ring.usd", list(LEFT_SLOTS[2])),
+            ("toothbrush",   "tooth_brush.usd",        list(LEFT_SLOTS[1])),
             ("scissors",     "scissors_ring.usd",      list(LEFT_SLOTS[3])),
             ("pliers",       "pliers_ring.usd",        list(RIGHT_SLOTS[0])),
             ("screwdriver",  "screw_driver_ring.usd",  list(RIGHT_SLOTS[1])),
         ]
 
-        # ToothBrush — the env "object", on L1 so it both hangs and is pickable.
+        # Silicone tube — the env "object" (target). L2 upper slot on pegboard.
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=list(LEFT_SLOTS[1]), rot=[1, 0, 0, 0]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=list(LEFT_SLOTS[2]), rot=[1, 0, 0, 0]),
             spawn=UsdFileCfg(
-                usd_path=str(_ASSETS / "tooth_brush.usd"),
+                usd_path=str(_ASSETS / "silicone_tube_ring.usd"),
                 rigid_props=_tool_rigid,
                 mass_props=_tool_mass,
             ),

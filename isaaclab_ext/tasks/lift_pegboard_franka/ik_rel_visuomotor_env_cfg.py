@@ -1,16 +1,11 @@
-"""Franka Panda pegboard task — IK-Rel + wrist & overhead cameras.
+"""Franka Panda pegboard task — IK-Rel + wrist camera.
 
-This is the visuomotor variant for camera-based imitation learning. Modeled
-after the upstream ``stack_ik_rel_visuomotor_env_cfg.py`` but adapted to the
-pegboard scene:
+This is the visuomotor variant for camera-based imitation learning.
+``wrist_cam`` is mounted on ``panda_hand`` and gives a top-down view of the
+gripper fingers — useful for learning precise grasp alignment.
 
-* ``wrist_cam`` is mounted on ``panda_hand`` (same prim as upstream Franka).
-* ``table_cam`` is positioned to frame the pegboard front + the basket; the
-  upstream values were tuned for a flat table with 3 cubes and are not
-  useful here.
-
-Two image observation terms are added to the policy group. ``concatenate_terms``
-is turned off because RGB tensors can't be concatenated with the existing
+The image observation term is added to the policy group. ``concatenate_terms``
+is turned off because the RGB tensor can't be concatenated with the existing
 low-dim observations into a single flat vector — the BC pipeline reads them
 as a dict.
 """
@@ -30,7 +25,7 @@ from . import ik_rel_env_cfg
 
 @configclass
 class ObservationsCfg:
-    """Policy obs = lift env's low-dim terms + 2 RGB cameras."""
+    """Policy obs = lift env's low-dim terms + wrist RGB camera."""
 
     @configclass
     class PolicyCfg(ObsGroup):
@@ -43,14 +38,15 @@ class ObservationsCfg:
         )
         actions = ObsTerm(func=mdp.last_action)
 
-        # RGB cameras (84x84 to match upstream BC config defaults).
-        table_cam = ObsTerm(
-            func=mdp_image,
-            params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False},
-        )
+        # Wrist RGB camera (84x84 to match upstream BC config defaults).
         wrist_cam = ObsTerm(
             func=mdp_image,
             params={"sensor_cfg": SceneEntityCfg("wrist_cam"), "data_type": "rgb", "normalize": False},
+        )
+        # Fixed table camera — full workspace coverage.
+        table_cam = ObsTerm(
+            func=mdp_image,
+            params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False},
         )
 
         def __post_init__(self):
@@ -82,16 +78,13 @@ class FrankaPegboardLiftVisuomotorEnvCfg(ik_rel_env_cfg.FrankaPegboardLiftEnvCfg
                 clipping_range=(0.1, 2.0),
             ),
             offset=CameraCfg.OffsetCfg(
-                pos=(0.13, 0.0, -0.15),
+                pos=(0.15, 0.0, -0.3),
                 rot=(-0.70614, 0.03701, 0.03701, -0.70614),
                 convention="ros",
             ),
         )
 
-        # Overhead/front "table" camera. Placed in front of the pegboard,
-        # ~70 cm up, looking back and down toward the robot + pegboard.
-        # Tune these in CameraCfg.OffsetCfg if the framing is off — pos is in
-        # the env's local frame (the env origin is between robot and pegboard).
+        # Fixed table camera — overhead view of full workspace.
         self.scene.table_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/table_cam",
             update_period=0.0,
@@ -103,9 +96,9 @@ class FrankaPegboardLiftVisuomotorEnvCfg(ik_rel_env_cfg.FrankaPegboardLiftEnvCfg
                 clipping_range=(0.1, 3.0),
             ),
             offset=CameraCfg.OffsetCfg(
-                pos=(1.1, 0.0, 0.7),
-                rot=(0.35355, -0.61237, -0.61237, 0.35355),
-                convention="ros",
+                pos=(0.5, 0.25, 1.1),
+                rot=(0.7071, 0.0, 0.7071, 0.0),
+                convention="world",
             ),
         )
 
@@ -114,12 +107,12 @@ class FrankaPegboardLiftVisuomotorEnvCfg(ik_rel_env_cfg.FrankaPegboardLiftEnvCfg
         self.rerender_on_reset = True
         self.sim.render.antialiasing_mode = "OFF"
 
-        self.image_obs_list = ["table_cam", "wrist_cam"]
+        self.image_obs_list = ["wrist_cam", "table_cam"]
 
 
 @configclass
 class FrankaPegboardLiftVisuomotorEnvCfg_PLAY(FrankaPegboardLiftVisuomotorEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.scene.num_envs = 50
+        self.scene.num_envs = 1
         self.scene.env_spacing = 2.5

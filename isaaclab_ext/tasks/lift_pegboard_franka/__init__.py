@@ -30,6 +30,7 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.ik_rel_env_cfg:FrankaPegboardLiftEnvCfg",
+        "robomimic_bc_cfg_entry_point": f"{agents.__name__}:robomimic/bc_rnn.json",
     },
     disable_env_checker=True,
 )
@@ -48,6 +49,7 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.ik_rel_visuomotor_env_cfg:FrankaPegboardLiftVisuomotorEnvCfg",
+        "robomimic_bc_cfg_entry_point": f"{agents.__name__}:robomimic/bc_rnn_image.json",
     },
     disable_env_checker=True,
 )
