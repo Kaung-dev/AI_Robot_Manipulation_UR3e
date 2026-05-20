@@ -1,11 +1,17 @@
-# `AI_Robot_Manipulation_UR3e` — UR3e + RG2 in Isaac Sim / Isaac Lab
+# `AI_Robot_Manipulation_UR3e` — UR3e + Franka Panda in Isaac Sim / Isaac Lab
 
-UR3e arm + OnRobot RG2 gripper, set up for **two pipelines** that share the same scene, with **two task families**:
+Two robots, two pipelines:
+
+- **UR3e + RG2** — original robot, ROS2/MoveIt bridge + Isaac Lab gym tasks (cube + pegboard)
+- **Franka Panda** — VR hand tracking teleoperation + imitation learning data collection (pegboard)
+
+**Pipelines:**
 
 - **A. ROS2 / MoveIt → Isaac Sim.** Drag the marker in RViz, click *Plan & Execute*, the arm tracks in Isaac Sim. Bridge node ([scripts/moveit_to_isaac_bridge.py](scripts/moveit_to_isaac_bridge.py)) translates `/joint_states` ↔ `/isaac_joint_commands`.
 - **B. Isaac Lab gym tasks** (teleop / RL / IL / scripted auto-pick):
   - **Cube** task family — `Isaac-Lift-Cube-UR3e-RG2-*` (the original DexCube lift target, has a working auto-pick state machine)
-  - **Pegboard** task family — `Isaac-Lift-Pegboard-UR3e-RG2-*` (new — RobotIS net table + basket + 6 tools hanging on pegs)
+  - **Pegboard UR3e** task family — `Isaac-Lift-Pegboard-UR3e-RG2-*` (RobotIS net table + basket + 6 tools hanging on pegs)
+  - **Pegboard Franka** task family — `Isaac-Lift-Pegboard-Franka-*` (same scene, Franka Panda, VR hand tracking, imitation learning dataset collection)
 
 > **First-time setup or rebuilding from scratch?** See [REBUILD_GUIDE.md](REBUILD_GUIDE.md) — it walks the entire path from a fresh OS install to a working demo. This README is the **operate-it** doc; that one is the **build-it** doc.
 
@@ -26,7 +32,9 @@ UR3e arm + OnRobot RG2 gripper, set up for **two pipelines** that share the same
 | `scripts/fix_scene_for_isaaclab.py` | converts `scene.usd` → `scene_isaaclab.usd` |
 | `scripts/pick_cube_auto.py` | scripted state-machine auto-pick for the cube task |
 | `scripts/pick_pegboard_auto.py` | scripted state-machine auto-pick for the pegboard toothbrush |
-| `setup_isaaclab.sh` | bootstrap: symlinks `isaaclab_ext/` into a local IsaacLab clone + builds `scene_isaaclab.usd` |
+| `isaaclab_patches/` | modified IsaacLab files (VR rendering, hand tracking, recording controls) — copied into the IsaacLab install by `setup_isaaclab.sh` |
+| `setup_isaaclab.sh` | bootstrap: symlinks `isaaclab_ext/` into IsaacLab, copies `isaaclab_patches/`, builds `scene_isaaclab.usd` |
+| `launch_teleop.sh` | one-command VR launch for Franka (wraps `record_demos.py` with visuomotor task) |
 | `ros2_ws/` | ROS2 workspace (`tonydle/UR_OnRobot_ROS2` + drivers) — `colcon build`-able |
 | `commands.txt` | quick-reference cheat-sheet |
 
@@ -44,36 +52,41 @@ sudo apt install ros-humble-desktop ros-humble-moveit ros-humble-moveit-task-con
 echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 ```
 
-### 2. Isaac Sim 4.5 (pip)
+### 2. Isaac Sim 5.1 standalone
 
-```bash
-python3.10 -m venv ~/isaacsim_env
-source ~/isaacsim_env/bin/activate
-pip install --upgrade pip "setuptools<81" wheel
-pip install "isaacsim[all]==4.5.*" --extra-index-url https://pypi.nvidia.com
+Download and run the Linux installer from the Omniverse launcher (or direct `.sh` download). Default install path: `~/isaac-sim/isaac-sim-standalone-5.1.0-linux-x86_64/`.
+
+> The standalone package bundles its own Python runtime — no virtual environment needed.
+
+### 3. Isaac Lab 2.3.2 (bundled in Isaac Sim 5.1) — only for path B
+
+Isaac Lab 2.3.2 ships inside the standalone package at:
+
+```
+~/isaac-sim/isaac-sim-standalone-5.1.0-linux-x86_64/IsaacLab
 ```
 
-> The `setuptools<81` pin matters: 81+ removed `pkg_resources`, which Isaac Lab still needs.
+No separate clone or install required. `setup_isaaclab.sh` targets this path by default (override with `ISAACLAB_PATH`).
 
-### 3. Isaac Lab v2.2.1 (matching Isaac Sim 4.5) — only for path B
+### 4a. WiVRn (only for Franka VR teleoperation)
 
 ```bash
-git clone --branch v2.2.1 --depth 1 https://github.com/isaac-sim/IsaacLab.git ~/IsaacLab
-cd ~/IsaacLab
-source ~/isaacsim_env/bin/activate
-./isaaclab.sh --install
-pip install --editable source/isaaclab --no-build-isolation
+# Server on Linux host:
+flatpak install io.github.wivrn.wivrn
 
-# Make Isaac Lab's `isaaclab.sh -p` wrapper use the venv's Python:
-mkdir -p ~/IsaacLab/_isaac_sim
-cat > ~/IsaacLab/_isaac_sim/python.sh <<'EOF'
-#!/bin/bash
-exec ~/isaacsim_env/bin/python "$@"
-EOF
-chmod +x ~/IsaacLab/_isaac_sim/python.sh
+# Client on Quest 2:
+# Install WiVRn APK via SideQuest, then open the app on the headset.
 ```
 
-### 4. This repo
+No ADB tunnel needed — same Wi-Fi works. After install, configure `~/.config/wivrn/config.json`:
+
+```json
+{ "encoder": "nvenc", "codec": "h264", "bitrate": 35000000, "scale": 0.75 }
+```
+
+And create `~/.config/openxr/1/active_runtime.json` pointing at the WiVRn `.so` (see `REBUILD_GUIDE.md`).
+
+### 4b. This repo
 
 ```bash
 git clone git@github.com:Kaung-dev/AI_Robot_Manipulation_UR3e.git
@@ -95,12 +108,12 @@ cd ..
 Isaac Lab integration (only for path B):
 
 ```bash
-./setup_isaaclab.sh                              # uses ~/IsaacLab by default
+./setup_isaaclab.sh                              # targets Isaac Sim 5.1 standalone by default
 # or:
 ISAACLAB_PATH=/path/to/IsaacLab ./setup_isaaclab.sh
 ```
 
-This symlinks both task folders (`lift_cube_ur3e_rg2/` and `lift_pegboard_ur3e_rg2/`) plus the robot config into your IsaacLab clone, and generates `scene/scene_isaaclab.usd` from `scene/scene.usd`.
+This symlinks all task folders and the robot config into IsaacLab, copies the `isaaclab_patches/` files (VR rendering overrides, hand tracking retargeter, recording controls) into the IsaacLab install, and generates `scene/scene_isaaclab.usd` from `scene/scene.usd`.
 
 ---
 
@@ -137,11 +150,16 @@ Verify with: `ros2 topic echo /isaac_joint_commands` (should show 6 arm joints +
 - `Isaac-Lift-Cube-UR3e-RG2-IK-Abs-v0` — absolute IK, used by the auto-pick state machine
 - `-Play-v0` variants of each (smaller `num_envs`, no observation noise)
 
-**Pegboard** (RobotIS net table + basket + 6 tools):
+**Pegboard UR3e** (RobotIS net table + basket + 6 tools):
 - `Isaac-Lift-Pegboard-UR3e-RG2-v0`
 - `Isaac-Lift-Pegboard-UR3e-RG2-IK-Rel-v0`
 - `Isaac-Lift-Pegboard-UR3e-RG2-IK-Abs-v0`
 - `-Play-v0` variants
+
+**Pegboard Franka** (same scene, Franka Panda, 4 tools, VR teleoperation + IL):
+- `Isaac-Lift-Pegboard-Franka-v0` — joint-position action
+- `Isaac-Lift-Pegboard-Franka-IK-Rel-v0` — relative differential IK
+- `Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-v0` — IK-Rel + wrist cam + table cam (used for VR recording)
 
 ### Teleoperate (keyboard / gamepad / SpaceMouse)
 
@@ -178,41 +196,47 @@ Append this to any teleop command to filter out harmless `omni.usd` warning spam
 2>&1 | grep -v "GetInstanceIndices\|ProtoIndex\|omni.usd"
 ```
 
-### Teleoperate (VR — Meta Quest 2 over OpenXR)
+### Teleoperate (VR — Meta Quest 2, Franka Panda)
 
-Both IK-Rel tasks register a `handtracking` device that maps **right-hand wrist pose → SE(3) EE delta** and **thumb-index pinch → gripper open/close**. Pre-reqs (one-time, all on Linux):
+The Franka pegboard task uses **right-hand wrist pose → SE(3) EE delta** (full 6-DoF orientation) and **right thumb+index pinch → gripper**. Launch with `launch_teleop.sh` from this repo:
 
-1. Install [Monado](https://monado.dev) (OpenXR runtime) and [WiVRn](https://github.com/WiVRn/WiVRn) (Quest streaming server). Wired (USB-C) or 5 GHz Wi-Fi.
-2. Sideload the WiVRn client APK onto Quest 2 (via SideQuest or `adb install`).
-3. Confirm any OpenXR sample renders on the headset before launching Isaac Sim — if a stock demo can't reach the headset, Isaac Sim won't either.
-
-Then launch the same `teleop_se3_agent.py` as keyboard/gamepad, but with `--teleop_device handtracking`. The `--xr` flag is added automatically when this device is selected.
-
-**Cube:**
 ```bash
-cd ~/IsaacLab && ./isaaclab.sh -p scripts/environments/teleoperation/teleop_se3_agent.py \
-    --task Isaac-Lift-Cube-UR3e-RG2-IK-Rel-v0 --num_envs 1 --teleop_device handtracking
+# 1. Start WiVRn server:
+flatpak run io.github.wivrn.wivrn
+
+# 2. On Quest 2: open the WiVRn app and confirm "Connected to server"
+
+# 3. Launch Isaac Sim + Franka:
+cd /path/to/ur_pick
+./launch_teleop.sh handtracking
 ```
 
-**Pegboard:**
-```bash
-cd ~/IsaacLab && ./isaaclab.sh -p scripts/environments/teleoperation/teleop_se3_agent.py \
-    --task Isaac-Lift-Pegboard-UR3e-RG2-IK-Rel-v0 --num_envs 1 --teleop_device handtracking
-```
+The script always loads `Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-v0` with both camera feeds rendered as floating panels in the scene. Recording starts **paused** — enable it with a left-hand gesture (see table below).
 
-**VR controls** (no keyboard needed — the headset reports start/stop/reset via the SteamVR/WiVRn dashboard, and the device class subscribes to those events):
+**VR controls (right hand — arm control):**
 
 | input | action |
 |---|---|
-| right-hand wrist movement | translate / rotate EE (yaw only — roll/pitch are zeroed for stability) |
-| pinch thumb + index < 3 cm | close gripper |
-| open thumb + index > 5 cm | open gripper |
-| WiVRn/SteamVR "start" event | begin teleop (default: paused until start) |
-| WiVRn/SteamVR "reset" event | reset env |
+| Right wrist movement | EE translation (world frame, position scale 20×) |
+| Right wrist orientation | EE rotation (full 6-DoF, rotation scale 15×) |
+| Pinch right thumb + index < 3 cm | Close gripper |
+| Open right thumb + index > 5 cm | Open gripper |
 
-The **operator anchor** is set to (-0.8 m, 0, +0.3 m) — about 80 cm behind the robot pedestal, eyes near work-surface height. Edit `xr = XrCfg(...)` in `ik_rel_env_cfg.py` to move the spawn point. Position scale defaults to 5× (half of upstream Franka) because the UR3e workspace is smaller; raise it if hand motion feels sluggish.
+**VR controls (left hand — recording):**
 
-> **GPU expectations**: collab-sim reports 30–35 FPS on a 3090. Anything below an RTX 3070 will be uncomfortable in VR — see `REBUILD_GUIDE.md` for the hardware floor.
+| gesture | hold | action |
+|---|---|---|
+| Open palm (fingers spread) | ~0.5 s | Toggle recording pause / resume |
+| Thumb + middle finger pinch | ~0.5 s | Accept episode — save to HDF5 + reset env |
+| Fist (all fingers curled) | ~0.5 s | Discard episode — skip + reset env |
+
+> Left thumb+index pinch is **not** used — it triggers the Quest 2 system menu.
+
+A green/red sphere at the left wrist shows recording state (green = recording, red = paused).
+
+The **operator anchor** is `(-1.1, 1.0, -0.5)` — about 110 cm behind the robot, 100 cm to the operator's right (Y positive), elevated view (Z is inverted in this context — negative values move up). Edit `xr = XrCfg(anchor_pos=...)` in `isaaclab_ext/tasks/lift_pegboard_franka/ik_rel_env_cfg.py` to adjust.
+
+> **GPU expectations**: requires rasterised rendering (ray tracing is force-disabled). Tested on an RTX 4070 laptop GPU — anything below an RTX 3070 will likely drop below comfortable VR frame rates.
 
 ### Auto-pick (scripted state machine)
 
@@ -230,6 +254,23 @@ Both scripts use a warp-based FSM (rest → approach above → approach → gras
 
 ### Record demos for IL
 
+**Franka VR (gesture-controlled):**
+
+```bash
+mkdir -p ~/datasets
+cd /path/to/ur_pick
+./launch_teleop.sh handtracking
+```
+
+Recording is off by default. Use left-hand gestures to control it:
+- Open palm → start/pause recording
+- Thumb+middle pinch → accept episode (appends to HDF5, resets env)
+- Fist → discard episode (resets env, episode not saved)
+
+Output: `~/datasets/franka_pegboard_<timestamp>.hdf5` (robomimic-compatible). Each accepted episode includes `wrist_cam`, `table_cam`, `joint_pos`, `joint_vel`, `actions`, `object_position`, `target_object_position` at 84×84 for the camera observations.
+
+**UR3e keyboard (original workflow):**
+
 ```bash
 mkdir -p datasets
 
@@ -238,7 +279,7 @@ cd ~/IsaacLab && ./isaaclab.sh -p scripts/tools/record_demos.py \
     --dataset_file ~/Desktop/ur_pick/datasets/lift_cube_demos.hdf5
 ```
 
-Each successful episode appends to the HDF5. Press `R` (or `L`) between attempts. Swap the task ID for the pegboard variant to record those demos.
+Each successful episode appends to the HDF5. Press `R` (or `L`) between attempts. Swap the task ID for the pegboard variant.
 
 ### Train PPO from scratch
 
