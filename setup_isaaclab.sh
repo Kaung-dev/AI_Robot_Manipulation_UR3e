@@ -45,7 +45,18 @@ FRANKA_TASK_SRC="$REPO_DIR/isaaclab_ext/tasks/lift_pegboard_franka"
 ln -sfn "$FRANKA_TASK_SRC" "$FRANKA_TASK_DST"
 echo "[INFO] linked  $FRANKA_TASK_DST  ->  $FRANKA_TASK_SRC"
 
-# 5) Generate scene_isaaclab.usd if missing.
+# 5) Apply IsaacLab patches (VR teleoperation + recording controls)
+echo "[INFO] applying isaaclab_patches/ ..."
+PATCHES="$REPO_DIR/isaaclab_patches"
+cp -f "$PATCHES/scripts/tools/vr_camera_screens.py"                                                     "$ISAACLAB_PATH/scripts/tools/"
+cp -f "$PATCHES/scripts/tools/vr_gesture_detector.py"                                                   "$ISAACLAB_PATH/scripts/tools/"
+cp -f "$PATCHES/scripts/tools/record_demos.py"                                                          "$ISAACLAB_PATH/scripts/tools/"
+cp -f "$PATCHES/scripts/environments/teleoperation/teleop_se3_agent.py"                                 "$ISAACLAB_PATH/scripts/environments/teleoperation/"
+cp -f "$PATCHES/source/isaaclab/isaaclab/devices/openxr/openxr_device.py"                              "$ISAACLAB_PATH/source/isaaclab/isaaclab/devices/openxr/"
+cp -f "$PATCHES/source/isaaclab/isaaclab/devices/openxr/retargeters/manipulator/se3_rel_retargeter.py" "$ISAACLAB_PATH/source/isaaclab/isaaclab/devices/openxr/retargeters/manipulator/"
+echo "[INFO] patches applied"
+
+# 6) Generate scene_isaaclab.usd if missing.
 if [[ ! -f "$REPO_DIR/scene/scene_isaaclab.usd" ]]; then
   echo "[INFO] producing scene/scene_isaaclab.usd ..."
   "$ISAACLAB_PATH/isaaclab.sh" -p "$REPO_DIR/scripts/fix_scene_for_isaaclab.py" \
