@@ -5,6 +5,10 @@ import gymnasium as gym
 
 from . import agents
 
+# ---------------------------------------------------------------------------
+# Joint-position (RL training)
+# ---------------------------------------------------------------------------
+
 gym.register(
     id="Isaac-Lift-Pegboard-Franka-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
@@ -25,6 +29,10 @@ gym.register(
     disable_env_checker=True,
 )
 
+# ---------------------------------------------------------------------------
+# IK-Rel (teleop / BC without cameras)
+# ---------------------------------------------------------------------------
+
 gym.register(
     id="Isaac-Lift-Pegboard-Franka-IK-Rel-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
@@ -43,6 +51,10 @@ gym.register(
     disable_env_checker=True,
 )
 
+# ---------------------------------------------------------------------------
+# IK-Rel + cameras (VR demo recording) — one task per object
+# ---------------------------------------------------------------------------
+
 gym.register(
     id="Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
@@ -57,6 +69,42 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.ik_rel_visuomotor_env_cfg:FrankaPegboardLiftVisuomotorEnvCfg_PLAY",
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-Toothbrush-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.ik_rel_visuomotor_env_cfg:FrankaPegboardLiftVisuomotorToothbrushEnvCfg",
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-Scissors-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.ik_rel_visuomotor_env_cfg:FrankaPegboardLiftVisuomotorScissorsEnvCfg",
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-Silicone-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.ik_rel_visuomotor_env_cfg:FrankaPegboardLiftVisuomotorSiliconeEnvCfg",
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-Pliers-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.ik_rel_visuomotor_env_cfg:FrankaPegboardLiftVisuomotorPliersEnvCfg",
     },
     disable_env_checker=True,
 )

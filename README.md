@@ -42,6 +42,13 @@ Two robots, two pipelines:
 
 ## Prerequisites
 
+> **Version requirements (path B / Franka VR pipeline):**
+> - **Isaac Sim 5.1.0 standalone** (not pip, not 4.x, not 5.0)
+> - **Isaac Lab 2.3.2** (bundled — do not use a separately cloned version)
+> - **WiVRn v26.x** (tested on v26.2.3)
+>
+> The `isaaclab_patches/` files and task configs are written against these exact versions. Other versions are untested and will likely break.
+
 These are **not** in the repo (large + machine-specific). Install once per machine.
 
 ### 1. ROS2 Humble + MoveIt (only for path A)
@@ -159,7 +166,10 @@ Verify with: `ros2 topic echo /isaac_joint_commands` (should show 6 arm joints +
 **Pegboard Franka** (same scene, Franka Panda, 4 tools, VR teleoperation + IL):
 - `Isaac-Lift-Pegboard-Franka-v0` — joint-position action
 - `Isaac-Lift-Pegboard-Franka-IK-Rel-v0` — relative differential IK
-- `Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-v0` — IK-Rel + wrist cam + table cam (used for VR recording)
+- `Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-Toothbrush-v0` — VR recording, toothbrush (60 s episodes)
+- `Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-Scissors-v0` — VR recording, scissors
+- `Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-Silicone-v0` — VR recording, silicone tube
+- `Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-Pliers-v0` — VR recording, pliers
 
 ### Teleoperate (keyboard / gamepad / SpaceMouse)
 
@@ -206,12 +216,13 @@ flatpak run io.github.wivrn.wivrn
 
 # 2. On Quest 2: open the WiVRn app and confirm "Connected to server"
 
-# 3. Launch Isaac Sim + Franka:
+# 3. Launch Isaac Sim + Franka (specify which object to pick):
 cd /path/to/ur_pick
-./launch_teleop.sh handtracking
+./launch_teleop.sh handtracking toothbrush
+# or: scissors | silicone | pliers
 ```
 
-The script always loads `Isaac-Lift-Pegboard-Franka-IK-Rel-Visuomotor-v0` with both camera feeds rendered as floating panels in the scene. Recording starts **paused** — enable it with a left-hand gesture (see table below).
+The script loads the per-object visuomotor task with both camera feeds rendered as floating panels in the scene. Recording starts **paused** — enable it with a left-hand gesture (see table below).
 
 **VR controls (right hand — arm control):**
 
@@ -259,7 +270,7 @@ Both scripts use a warp-based FSM (rest → approach above → approach → gras
 ```bash
 mkdir -p ~/datasets
 cd /path/to/ur_pick
-./launch_teleop.sh handtracking
+./launch_teleop.sh handtracking toothbrush   # or scissors | silicone | pliers
 ```
 
 Recording is off by default. Use left-hand gestures to control it:
