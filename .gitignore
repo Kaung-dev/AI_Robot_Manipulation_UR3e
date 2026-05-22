@@ -28,6 +28,9 @@ scene/ur10e_robotiq2f_140.usd
 # the current pegboard setup.
 robot/
 
+# Local environment config (machine-specific paths — do not commit)
+.env
+
 # Python
 __pycache__/
 *.py[cod]

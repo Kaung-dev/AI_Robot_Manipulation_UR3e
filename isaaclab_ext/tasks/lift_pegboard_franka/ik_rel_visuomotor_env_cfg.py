@@ -1,18 +1,19 @@
 """Franka Panda pegboard task — IK-Rel + wrist & overhead cameras.
 
-This is the visuomotor variant for camera-based imitation learning. Modeled
-after the upstream ``stack_ik_rel_visuomotor_env_cfg.py`` but adapted to the
-pegboard scene:
+Visuomotor variant for VR-based imitation learning data collection.
 
-* ``wrist_cam`` is mounted on ``panda_hand`` (same prim as upstream Franka).
-* ``table_cam`` is positioned to frame the pegboard front + the basket; the
-  upstream values were tuned for a flat table with 3 cubes and are not
-  useful here.
+Changes vs the base IK-Rel config:
+- 60 s episode length so the operator can complete a full pick→carry→drop.
+- Goal command does not resample within an episode (resampling_time_range > episode_length_s).
+- wrist_cam on panda_hand (84x84 RGB+depth, top-down view of fingers).
+- table_cam facing the pegboard + basket (84x84 RGB+depth).
+- rerender_on_reset and DLSS disabled to avoid ghosting after env resets.
 
-Two image observation terms are added to the policy group. ``concatenate_terms``
-is turned off because RGB tensors can't be concatenated with the existing
-low-dim observations into a single flat vector — the BC pipeline reads them
-as a dict.
+Four per-object variants:
+    FrankaPegboardLiftVisuomotorToothbrushEnvCfg  — L1 toothbrush
+    FrankaPegboardLiftVisuomotorScissorsEnvCfg    — L3 scissors
+    FrankaPegboardLiftVisuomotorSiliconeEnvCfg    — L2 silicone tube
+    FrankaPegboardLiftVisuomotorPliersEnvCfg      — R0 pliers
 """
 
 import isaaclab.sim as sim_utils
@@ -30,11 +31,10 @@ from . import ik_rel_env_cfg
 
 @configclass
 class ObservationsCfg:
-    """Policy obs = lift env's low-dim terms + 2 RGB cameras."""
+    """Policy obs = low-dim terms from the lift env + 2 RGB cameras."""
 
     @configclass
     class PolicyCfg(ObsGroup):
-        # Low-dim terms from the parent lift env.
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
@@ -43,7 +43,6 @@ class ObservationsCfg:
         )
         actions = ObsTerm(func=mdp.last_action)
 
-        # RGB cameras (84x84 to match upstream BC config defaults).
         table_cam = ObsTerm(
             func=mdp_image,
             params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False},
@@ -54,72 +53,150 @@ class ObservationsCfg:
         )
 
         def __post_init__(self):
-            # Off because RGB tensors can't be flat-concatenated with low-dim.
             self.enable_corruption = False
             self.concatenate_terms = False
 
     policy: PolicyCfg = PolicyCfg()
 
 
+def _apply_visuomotor(cfg) -> None:
+    """Add cameras, extend episode length, and fix goal resampling."""
+    cfg.episode_length_s = 60.0
+    # Prevent goal from resampling mid-episode — operator decides where to place.
+    cfg.commands.object_pose.resampling_time_range = (65.0, 65.0)
+
+    # Disable debug visualizations — EE frame arrows and goal markers appear in camera images.
+    cfg.scene.ee_frame.debug_vis = False
+    cfg.commands.object_pose.debug_vis = False
+
+    cfg.scene.wrist_cam = CameraCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/panda_hand/wrist_cam",
+        update_period=0.0,
+        height=224,
+        width=224,
+        data_types=["rgb"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955,
+            clipping_range=(0.1, 2.0),
+        ),
+        offset=CameraCfg.OffsetCfg(
+            pos=(0.13, 0.0, -0.15),
+            rot=(-0.70614, 0.03701, 0.03701, -0.70614),
+            convention="ros",
+        ),
+    )
+
+    cfg.scene.table_cam = CameraCfg(
+        prim_path="{ENV_REGEX_NS}/table_cam",
+        update_period=0.0,
+        height=224,
+        width=224,
+        data_types=["rgb"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955,
+            clipping_range=(0.1, 3.0),
+        ),
+        offset=CameraCfg.OffsetCfg(
+            pos=(-0.06733, 0.52086, 1.08428),
+            # Derived from Isaac Sim viewport "Create Camera from View":
+            # USD Euler XYZ = (56.42158°, 0°, -127.50792°) → quaternion in Isaac Lab "ros" convention.
+            rot=(0.2090, -0.3897, 0.7904, -0.4240),
+            convention="ros",
+        ),
+    )
+
+    cfg.rerender_on_reset = True
+    cfg.sim.render.antialiasing_mode = "OFF"
+    cfg.image_obs_list = ["table_cam", "wrist_cam"]
+
+
+# ---------------------------------------------------------------------------
+# Toothbrush (original default, now explicit)
+# ---------------------------------------------------------------------------
+
 @configclass
-class FrankaPegboardLiftVisuomotorEnvCfg(ik_rel_env_cfg.FrankaPegboardLiftEnvCfg):
+class FrankaPegboardLiftVisuomotorToothbrushEnvCfg(ik_rel_env_cfg.FrankaPegboardLiftEnvCfg):
     observations: ObservationsCfg = ObservationsCfg()
 
     def __post_init__(self):
         super().__post_init__()
-
-        # Wrist camera on panda_hand. Offset copied from upstream Franka
-        # stack-cube visuomotor cfg — it gives a good top-down view of the
-        # gripper fingers, which is what we want when picking from a peg.
-        self.scene.wrist_cam = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/Robot/panda_hand/wrist_cam",
-            update_period=0.0,
-            height=84,
-            width=84,
-            data_types=["rgb", "distance_to_image_plane"],
-            spawn=sim_utils.PinholeCameraCfg(
-                focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955,
-                clipping_range=(0.1, 2.0),
-            ),
-            offset=CameraCfg.OffsetCfg(
-                pos=(0.13, 0.0, -0.15),
-                rot=(-0.70614, 0.03701, 0.03701, -0.70614),
-                convention="ros",
-            ),
-        )
-
-        # Overhead/front "table" camera. Placed in front of the pegboard,
-        # ~70 cm up, looking back and down toward the robot + pegboard.
-        # Tune these in CameraCfg.OffsetCfg if the framing is off — pos is in
-        # the env's local frame (the env origin is between robot and pegboard).
-        self.scene.table_cam = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/table_cam",
-            update_period=0.0,
-            height=84,
-            width=84,
-            data_types=["rgb", "distance_to_image_plane"],
-            spawn=sim_utils.PinholeCameraCfg(
-                focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955,
-                clipping_range=(0.1, 3.0),
-            ),
-            offset=CameraCfg.OffsetCfg(
-                pos=(1.1, 0.0, 0.7),
-                rot=(0.35355, -0.61237, -0.61237, 0.35355),
-                convention="ros",
-            ),
-        )
-
-        # Required for camera observations to stay in sync after env resets,
-        # and to disable DLSS (which introduces frame-to-frame ghosting).
-        self.rerender_on_reset = True
-        self.sim.render.antialiasing_mode = "OFF"
-
-        self.image_obs_list = ["table_cam", "wrist_cam"]
+        _apply_visuomotor(self)
 
 
 @configclass
-class FrankaPegboardLiftVisuomotorEnvCfg_PLAY(FrankaPegboardLiftVisuomotorEnvCfg):
+class FrankaPegboardLiftVisuomotorToothbrushEnvCfg_PLAY(FrankaPegboardLiftVisuomotorToothbrushEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
+
+
+# ---------------------------------------------------------------------------
+# Scissors
+# ---------------------------------------------------------------------------
+
+@configclass
+class FrankaPegboardLiftVisuomotorScissorsEnvCfg(ik_rel_env_cfg.FrankaPegboardLiftScissorsEnvCfg):
+    observations: ObservationsCfg = ObservationsCfg()
+
+    def __post_init__(self):
+        super().__post_init__()
+        _apply_visuomotor(self)
+
+
+@configclass
+class FrankaPegboardLiftVisuomotorScissorsEnvCfg_PLAY(FrankaPegboardLiftVisuomotorScissorsEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.num_envs = 50
+        self.scene.env_spacing = 2.5
+
+
+# ---------------------------------------------------------------------------
+# Silicone tube
+# ---------------------------------------------------------------------------
+
+@configclass
+class FrankaPegboardLiftVisuomotorSiliconeEnvCfg(ik_rel_env_cfg.FrankaPegboardLiftSiliconeEnvCfg):
+    observations: ObservationsCfg = ObservationsCfg()
+
+    def __post_init__(self):
+        super().__post_init__()
+        _apply_visuomotor(self)
+
+
+@configclass
+class FrankaPegboardLiftVisuomotorSiliconeEnvCfg_PLAY(FrankaPegboardLiftVisuomotorSiliconeEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.num_envs = 50
+        self.scene.env_spacing = 2.5
+
+
+# ---------------------------------------------------------------------------
+# Pliers
+# ---------------------------------------------------------------------------
+
+@configclass
+class FrankaPegboardLiftVisuomotorPliersEnvCfg(ik_rel_env_cfg.FrankaPegboardLiftPliersEnvCfg):
+    observations: ObservationsCfg = ObservationsCfg()
+
+    def __post_init__(self):
+        super().__post_init__()
+        _apply_visuomotor(self)
+
+
+@configclass
+class FrankaPegboardLiftVisuomotorPliersEnvCfg_PLAY(FrankaPegboardLiftVisuomotorPliersEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.num_envs = 50
+        self.scene.env_spacing = 2.5
+
+
+# ---------------------------------------------------------------------------
+# Backwards-compatible alias for the original single-object visuomotor task
+# ---------------------------------------------------------------------------
+
+FrankaPegboardLiftVisuomotorEnvCfg = FrankaPegboardLiftVisuomotorToothbrushEnvCfg
+FrankaPegboardLiftVisuomotorEnvCfg_PLAY = FrankaPegboardLiftVisuomotorToothbrushEnvCfg_PLAY
