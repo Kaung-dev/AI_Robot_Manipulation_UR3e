@@ -164,14 +164,14 @@ class FrankaPegboardLiftEnvCfg(LiftEnvCfg):
 
     def _pick_object_spec(self):
         """Return (usd_filename, peg_position)."""
-        return ("tooth_brush.usd", list(LEFT_SLOTS[1]))
+        return ("tooth_brush_green.usd", list(LEFT_SLOTS[1]))
 
     def _background_tool_specs(self):
         """Return [(scene_name, usd_filename, peg_position), ...] for static props."""
         return [
-            ("silicone", "silicone_tube_ring.usd", list(LEFT_SLOTS[2])),
-            ("scissors", "scissors_ring.usd",      list(LEFT_SLOTS[3])),
-            ("pliers",   "pliers_ring.usd",         list(RIGHT_SLOTS[0])),
+            ("silicone", "silicone_tube_ring_blue.usd", list(LEFT_SLOTS[2])),
+            ("scissors", "scissors_ring_red.usd",       list(LEFT_SLOTS[3])),
+            ("pliers",   "pliers_ring_orange.usd",      list(RIGHT_SLOTS[0])),
         ]
 
     def _setup_scene_objects(self):
@@ -227,13 +227,13 @@ class FrankaPegboardLiftEnvCfg_PLAY(FrankaPegboardLiftEnvCfg):
 @configclass
 class FrankaPegboardLiftScissorsEnvCfg(FrankaPegboardLiftEnvCfg):
     def _pick_object_spec(self):
-        return ("scissors_ring.usd", list(LEFT_SLOTS[3]))
+        return ("scissors_ring_red.usd", list(LEFT_SLOTS[3]))
 
     def _background_tool_specs(self):
         return [
-            ("toothbrush", "tooth_brush.usd",         list(LEFT_SLOTS[1])),
-            ("silicone",   "silicone_tube_ring.usd",   list(LEFT_SLOTS[2])),
-            ("pliers",     "pliers_ring.usd",           list(RIGHT_SLOTS[0])),
+            ("toothbrush", "tooth_brush_green.usd",       list(LEFT_SLOTS[1])),
+            ("silicone",   "silicone_tube_ring_blue.usd",  list(LEFT_SLOTS[2])),
+            ("pliers",     "pliers_ring_orange.usd",       list(RIGHT_SLOTS[0])),
         ]
 
 
@@ -249,13 +249,13 @@ class FrankaPegboardLiftScissorsEnvCfg_PLAY(FrankaPegboardLiftScissorsEnvCfg):
 @configclass
 class FrankaPegboardLiftSiliconeEnvCfg(FrankaPegboardLiftEnvCfg):
     def _pick_object_spec(self):
-        return ("silicone_tube_ring.usd", list(LEFT_SLOTS[2]))
+        return ("silicone_tube_ring_blue.usd", list(LEFT_SLOTS[2]))
 
     def _background_tool_specs(self):
         return [
-            ("toothbrush", "tooth_brush.usd",    list(LEFT_SLOTS[1])),
-            ("scissors",   "scissors_ring.usd",  list(LEFT_SLOTS[3])),
-            ("pliers",     "pliers_ring.usd",     list(RIGHT_SLOTS[0])),
+            ("toothbrush", "tooth_brush_green.usd",    list(LEFT_SLOTS[1])),
+            ("scissors",   "scissors_ring_red.usd",    list(LEFT_SLOTS[3])),
+            ("pliers",     "pliers_ring_orange.usd",   list(RIGHT_SLOTS[0])),
         ]
 
 
@@ -271,13 +271,13 @@ class FrankaPegboardLiftSiliconeEnvCfg_PLAY(FrankaPegboardLiftSiliconeEnvCfg):
 @configclass
 class FrankaPegboardLiftPliersEnvCfg(FrankaPegboardLiftEnvCfg):
     def _pick_object_spec(self):
-        return ("pliers_ring.usd", list(RIGHT_SLOTS[0]))
+        return ("pliers_ring_orange.usd", list(RIGHT_SLOTS[0]))
 
     def _background_tool_specs(self):
         return [
-            ("toothbrush", "tooth_brush.usd",         list(LEFT_SLOTS[1])),
-            ("silicone",   "silicone_tube_ring.usd",   list(LEFT_SLOTS[2])),
-            ("scissors",   "scissors_ring.usd",        list(LEFT_SLOTS[3])),
+            ("toothbrush", "tooth_brush_green.usd",       list(LEFT_SLOTS[1])),
+            ("silicone",   "silicone_tube_ring_blue.usd",  list(LEFT_SLOTS[2])),
+            ("scissors",   "scissors_ring_red.usd",        list(LEFT_SLOTS[3])),
         ]
 
 

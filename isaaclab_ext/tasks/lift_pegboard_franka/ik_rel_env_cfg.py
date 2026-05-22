@@ -39,7 +39,7 @@ def _apply_ik_vr(cfg) -> None:
         body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
     )
 
-    cfg.xr = XrCfg(anchor_pos=(-1.1, 1.0, -0.5), anchor_rot=(1.0, 0.0, 0.0, 0.0))
+    cfg.xr = XrCfg(anchor_pos=(-0.4, 1.0, -0.5), anchor_rot=(1.0, 0.0, 0.0, 0.0))
     cfg.teleop_devices = DevicesCfg(
         devices={
             "handtracking": OpenXRDeviceCfg(
@@ -50,8 +50,9 @@ def _apply_ik_vr(cfg) -> None:
                         use_wrist_rotation=True,
                         use_wrist_position=True,
                         delta_pos_scale_factor=20.0,
-                        delta_rot_scale_factor=15.0,
-                        alpha_rot=0.3,
+                        delta_rot_scale_factor=10.0,
+                        alpha_rot=0.35,
+                        rotation_threshold=0.02,
                         sim_device=cfg.sim.device,
                     ),
                     GripperRetargeterCfg(

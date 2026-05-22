@@ -1,8 +1,11 @@
-"""In-scene VR camera display screens.
+"""In-scene camera display screens.
 
 Creates two self-illuminated quad panels in the simulation scene showing live
-feeds from the wrist and table cameras. Panels appear in the VR headset since
-the scene is streamed via WiVRn.
+feeds from the wrist and table cameras. Panels appear in the VR headset (via
+WiVRn) and in the desktop Isaac Sim viewport.
+
+Reads camera data directly from IsaacLab sensor buffers — no Replicator render
+products are created, keeping VRAM usage minimal.
 
 These are operator visual aids only — not part of the HDF5 dataset.
 
@@ -12,7 +15,7 @@ Usage (after env.reset()):
 
 Usage (in sim loop):
     if screens:
-        screens.update()
+        screens.update(env)
 """
 
 from __future__ import annotations
@@ -23,27 +26,16 @@ import numpy as np
 class VRCameraScreens:
     # Operator sits at (-0.8, 0, 0.3) looking toward +X.
     # Screens float between operator and robot, side by side at eye level.
-    _WRIST_CENTER = (-0.3, -0.35, 1.3)  # operator's right
-    _TABLE_CENTER = (-0.3,  0.35, 1.3)  # operator's left
+    _WRIST_CENTER = (-0.3, -0.35, 1.0)  # operator's right
+    _TABLE_CENTER = (-0.3,  0.35, 1.0)  # operator's left
     _SIZE = 0.35   # metres, square
-    _RES  = (256, 256)  # display resolution — higher than 84x84 dataset res
+    _RES  = (84, 84)   # match recording resolution — avoids extra render overhead
 
-    def __init__(self, wrist_cam_path: str, table_cam_path: str):
-        import omni.replicator.core as rep
+    def __init__(self):
         import omni.ui as ui
         import omni.usd
 
-        self._ui = ui
         self._stage = omni.usd.get_context().get_stage()
-        h, w = self._RES
-
-        rp_wrist = rep.create.render_product(wrist_cam_path, (w, h))
-        rp_table = rep.create.render_product(table_cam_path, (w, h))
-
-        self._ann_wrist = rep.annotators.get("rgb")
-        self._ann_wrist.attach([rp_wrist])
-        self._ann_table = rep.annotators.get("rgb")
-        self._ann_table.attach([rp_table])
 
         self._tex_wrist = ui.DynamicTextureProvider("vr_wrist_cam")
         self._tex_table = ui.DynamicTextureProvider("vr_table_cam")
@@ -68,20 +60,30 @@ class VRCameraScreens:
             return None
 
         try:
-            return cls(wrist, table)
+            return cls()
         except Exception as e:
             print(f"[VRScreens] Setup failed: {e}")
             return None
 
-    def update(self) -> None:
-        """Refresh both screen textures. Call once per simulation step."""
-        self._push(self._ann_wrist, self._tex_wrist)
-        self._push(self._ann_table, self._tex_table)
+    def update(self, env=None) -> None:
+        """Refresh both screen textures from IsaacLab sensor data. Call once per simulation step."""
+        if env is None:
+            return  # no data source without env
+        try:
+            wrist = env.scene["wrist_cam"].data.output["rgb"]  # (N, H, W, 3) uint8 tensor
+            table = env.scene["table_cam"].data.output["rgb"]
+            if wrist is not None and wrist.shape[0] > 0:
+                self._push_array(wrist[0].cpu().numpy(), self._tex_wrist)
+            if table is not None and table.shape[0] > 0:
+                self._push_array(table[0].cpu().numpy(), self._tex_table)
+        except Exception:
+            pass  # sensor data not ready yet (e.g. before first step)
 
-    def _push(self, annotator, provider) -> None:
-        data = annotator.get_data()
+    def _push_array(self, data: np.ndarray, provider) -> None:
+        """Push an (H, W, 3) uint8 numpy array to a DynamicTextureProvider."""
         if data is None or data.size == 0:
             return
+        data = data.astype(np.uint8)
         h, w = data.shape[:2]
         rgba = np.concatenate(
             [data[..., :3], np.full((h, w, 1), 255, dtype=np.uint8)], axis=2
@@ -146,17 +148,17 @@ class VRHandMarker:
         sphere = UsdGeom.Sphere.Define(self._stage, prim_path)
         sphere.CreateRadiusAttr(self._RADIUS)
 
-        # Cache translate op for per-frame updates.
         self._translate_op = UsdGeom.Xformable(sphere).AddTranslateOp()
         self._translate_op.Set(Gf.Vec3d(0, 0, 0))
 
+        # UsdPreviewSurface — works without MDL, emissive colour visible in viewport.
         mat = UsdShade.Material.Define(self._stage, prim_path + "_Mat")
         sh  = UsdShade.Shader.Define(self._stage, prim_path + "_Mat/Shader")
-        sh.CreateIdAttr("OmniPBR")
-        sh.CreateInput("enable_emission",    Sdf.ValueTypeNames.Bool).Set(True)
-        sh.CreateInput("emissive_intensity", Sdf.ValueTypeNames.Float).Set(3.0)
-        self._color_input = sh.CreateInput("emissive_color", Sdf.ValueTypeNames.Color3f)
-        self._color_input.Set(Gf.Vec3f(0.0, 1.0, 0.0))  # default green
+        sh.CreateIdAttr("UsdPreviewSurface")
+        sh.CreateInput("roughness",  Sdf.ValueTypeNames.Float).Set(1.0)
+        sh.CreateInput("metallic",   Sdf.ValueTypeNames.Float).Set(0.0)
+        self._emissive_input = sh.CreateInput("emissiveColor", Sdf.ValueTypeNames.Color3f)
+        self._emissive_input.Set(Gf.Vec3f(0.0, 1.0, 0.0))  # default green
         mat.CreateSurfaceOutput().ConnectToSource(sh.ConnectableAPI(), "surface")
         UsdShade.MaterialBindingAPI(sphere).Bind(mat)
 
@@ -167,4 +169,4 @@ class VRHandMarker:
         from pxr import Gf
         self._translate_op.Set(Gf.Vec3d(float(wrist_pos[0]), float(wrist_pos[1]), float(wrist_pos[2])))
         color = (0.0, 1.0, 0.0) if is_recording else (1.0, 0.0, 0.0)
-        self._color_input.Set(Gf.Vec3f(*color))
+        self._emissive_input.Set(Gf.Vec3f(*color))

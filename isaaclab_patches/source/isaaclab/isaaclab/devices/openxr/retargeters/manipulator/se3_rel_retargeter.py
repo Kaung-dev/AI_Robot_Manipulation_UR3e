@@ -72,7 +72,7 @@ class Se3RelRetargeter(RetargeterBase):
 
         # Define thresholds for small movements
         self._position_threshold = 0.001
-        self._rotation_threshold = 0.05
+        self._rotation_threshold = cfg.rotation_threshold
 
         # Initialize visualization if enabled
         self._enable_visualization = cfg.enable_visualization
@@ -219,6 +219,7 @@ class Se3RelRetargeterCfg(RetargeterCfg):
     delta_rot_scale_factor: float = 10.0
     alpha_pos: float = 0.5
     alpha_rot: float = 0.5
+    rotation_threshold: float = 0.005  # rad — deadband on smoothed rotation delta
     enable_visualization: bool = False
     bound_hand: DeviceBase.TrackingTarget = DeviceBase.TrackingTarget.HAND_RIGHT
     retargeter_type: type[RetargeterBase] = Se3RelRetargeter

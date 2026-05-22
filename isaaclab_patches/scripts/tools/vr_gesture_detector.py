@@ -26,6 +26,7 @@ class LeftHandGestureDetector:
     def __init__(self):
         self._counts:    dict[str, int]  = {g: 0 for g in self._GESTURES}
         self._triggered: dict[str, bool] = {g: False for g in self._GESTURES}
+        self.open_palm_active: bool = False  # continuous state: True while hand is spread open
 
     def update(self, left_poses: dict[str, np.ndarray]) -> dict[str, bool]:
         """Return which gestures fired this frame (True = just triggered).
@@ -52,6 +53,7 @@ class LeftHandGestureDetector:
         is_fist     = avg_dist < self.FIST_THRESHOLD and not is_pinching
         is_open     = avg_dist > self.OPEN_THRESHOLD and not is_pinching
 
+        self.open_palm_active = is_open
         active = {"pinch": is_pinching, "fist": is_fist, "open_palm": is_open}
         return {g: self._debounce(g, active[g]) for g in self._GESTURES}
 

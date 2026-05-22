@@ -10,7 +10,11 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ISAACLAB_PATH="${ISAACLAB_PATH:-$HOME/isaac-sim/isaac-sim-standalone-5.1.0-linux-x86_64/IsaacLab}"
+
+# Resolve ISAACLAB_PATH (env var > .env > auto-detect)
+# shellcheck disable=SC1091
+source "$REPO_DIR/scripts/find_isaaclab.sh"
+_resolve_isaaclab_path "$REPO_DIR" || exit 1
 
 if [[ ! -d "$ISAACLAB_PATH" ]]; then
   echo "[ERROR] IsaacLab not found at $ISAACLAB_PATH"

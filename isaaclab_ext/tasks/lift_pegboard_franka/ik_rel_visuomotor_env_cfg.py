@@ -65,12 +65,16 @@ def _apply_visuomotor(cfg) -> None:
     # Prevent goal from resampling mid-episode — operator decides where to place.
     cfg.commands.object_pose.resampling_time_range = (65.0, 65.0)
 
+    # Disable debug visualizations — EE frame arrows and goal markers appear in camera images.
+    cfg.scene.ee_frame.debug_vis = False
+    cfg.commands.object_pose.debug_vis = False
+
     cfg.scene.wrist_cam = CameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/panda_hand/wrist_cam",
         update_period=0.0,
-        height=84,
-        width=84,
-        data_types=["rgb", "distance_to_image_plane"],
+        height=224,
+        width=224,
+        data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955,
             clipping_range=(0.1, 2.0),
@@ -85,16 +89,18 @@ def _apply_visuomotor(cfg) -> None:
     cfg.scene.table_cam = CameraCfg(
         prim_path="{ENV_REGEX_NS}/table_cam",
         update_period=0.0,
-        height=84,
-        width=84,
-        data_types=["rgb", "distance_to_image_plane"],
+        height=224,
+        width=224,
+        data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955,
             clipping_range=(0.1, 3.0),
         ),
         offset=CameraCfg.OffsetCfg(
-            pos=(1.1, 0.0, 0.7),
-            rot=(0.35355, -0.61237, -0.61237, 0.35355),
+            pos=(-0.06733, 0.52086, 1.08428),
+            # Derived from Isaac Sim viewport "Create Camera from View":
+            # USD Euler XYZ = (56.42158°, 0°, -127.50792°) → quaternion in Isaac Lab "ros" convention.
+            rot=(0.2090, -0.3897, 0.7904, -0.4240),
             convention="ros",
         ),
     )

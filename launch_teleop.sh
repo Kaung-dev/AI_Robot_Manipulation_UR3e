@@ -19,7 +19,13 @@
 
 set -euo pipefail
 
-ILAB="/home/steph/isaac-sim/isaac-sim-standalone-5.1.0-linux-x86_64/IsaacLab"
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+# Resolve ISAACLAB_PATH (env var > .env > auto-detect)
+# shellcheck disable=SC1091
+source "$REPO_ROOT/scripts/find_isaaclab.sh"
+_resolve_isaaclab_path "$REPO_ROOT" || exit 1
+
 DEVICE="${1:-handtracking}"
 OBJECT="${2:-toothbrush}"
 
@@ -45,11 +51,11 @@ echo "[INFO] Device:  $DEVICE"
 echo "[INFO] Dataset: $DATASET_FILE"
 
 if [[ "$DEVICE" == "handtracking" ]]; then
-    export XR_RUNTIME_JSON="/home/steph/.config/openxr/1/active_runtime.json"
+    export XR_RUNTIME_JSON="$HOME/.config/openxr/1/active_runtime.json"
     export XR_LOADER_DEBUG=all
     echo "[INFO] XR_RUNTIME_JSON: $XR_RUNTIME_JSON"
 fi
 
-"$ILAB/isaaclab.sh" -p "$ILAB/scripts/tools/record_demos.py" \
+"$ISAACLAB_PATH/isaaclab.sh" -p "$ISAACLAB_PATH/scripts/tools/record_demos.py" \
     --task "$TASK" --teleop_device "$DEVICE" \
-    --dataset_file "$DATASET_FILE" --step_hz 30
+    --dataset_file "$DATASET_FILE" --step_hz 30 --enable_cameras

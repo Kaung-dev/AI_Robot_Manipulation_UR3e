@@ -87,22 +87,27 @@ if "handtracking" in args_cli.teleop_device.lower():
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
-# XR rendering overrides — must run immediately after AppLauncher, before any scene loads.
-# Mirrors the same block in teleop_se3_agent.py; see that file for rationale on each setting.
+# Rendering overrides — always applied, not just in XR mode.
+# RTX ray tracing is unnecessary for teleoperation/data collection and OOMs on limited VRAM
+# (RTX 3050: Spatial Hash Grid allocation fails at ~30s on first render in default RTX mode).
+import carb as _carb
+_s = _carb.settings.get_settings()
+_s.set_string("/rtx/rendermode", "RasterizedLighting")
+_s.set_bool("/rtx/post/dof/enabled", False)
+_s.set_bool("/rtx/post/motionblur/enabled", False)
+_s.set_bool("/rtx/post/bloom/enabled", False)
+_s.set_bool("/rtx/post/chromaticAberration/enabled", False)
+_s.set_bool("/rtx/post/lensFlares/enabled", False)
+_s.set_bool("/rtx/shadows/enabled", False)
+_s.set_bool("/rtx/ambientOcclusion/enabled", False)
+_s.set_bool("/rtx/reflections/enabled", False)
+_s.set_bool("/rtx/indirectDiffuse/enabled", False)
+_s.set_bool("/rtx-transient/resourcemanager/enableTextureStreaming", True)
+print("[INFO] Renderer: RasterizedLighting, all ray tracing features off, texture streaming on")
+
 if app_launcher_args.get("xr"):
     try:
-        import carb
         from omni.kit.xr.core import XRCore
-        s = carb.settings.get_settings()
-        s.set_string("/rtx/rendermode", "RasterizedLighting")
-        s.set_bool("/rtx/post/dof/enabled", False)
-        s.set_bool("/rtx/post/motionblur/enabled", False)
-        s.set_bool("/rtx/post/bloom/enabled", False)
-        s.set_bool("/rtx/post/chromaticAberration/enabled", False)
-        s.set_bool("/rtx/post/lensFlares/enabled", False)
-        s.set_bool("/rtx/shadows/enabled", False)
-        s.set_bool("/rtx-transient/resourcemanager/enableTextureStreaming", True)
-        print("[INFO] XR: RasterizedLighting, shadows off, post-processing off, texture streaming on")
         XRCore.request_enable_profile("ar")
     except Exception as e:
         print(f"[WARNING] Failed to configure XR: {e}")
@@ -244,7 +249,7 @@ def create_environment_config(
         # If cameras are not enabled and XR is enabled, remove camera configs
         if not args_cli.enable_cameras:
             env_cfg = remove_camera_configs(env_cfg)
-        env_cfg.sim.render.antialiasing_mode = "DLSS"
+            env_cfg.sim.render.antialiasing_mode = "DLSS"
 
     # modify configuration such that the environment runs indefinitely until
     # the goal is reached or other termination conditions are met
@@ -276,7 +281,9 @@ def create_environment(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg) -> gym.En
         env = gym.make(args_cli.task, cfg=env_cfg).unwrapped
         return env
     except Exception as e:
+        import traceback
         logger.error(f"Failed to create environment: {e}")
+        traceback.print_exc()
         exit(1)
 
 
@@ -466,22 +473,28 @@ def run_simulation_loop(
     teleop_interface = setup_teleop_device(teleoperation_callbacks)
     teleop_interface.add_callback("R", reset_recording_instance)
 
+    def toggle_recording():
+        nonlocal running_recording_instance
+        running_recording_instance = not running_recording_instance
+        state = "started" if running_recording_instance else "paused"
+        print(f"Recording {state} (L key)")
+
+    teleop_interface.add_callback("L", toggle_recording)
+
     # Reset before starting
     env.sim.reset()
     env.reset()
     teleop_interface.reset()
 
-    # VR camera screens + hand marker + gesture detector (XR only)
-    vr_screens = None
-    vr_hand_marker = None
+    # Gesture detector + hand marker (XR only)
     gesture_detector = None
+    vr_hand_marker = None
     if args_cli.xr:
         import sys as _sys, os as _os
         _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
-        from vr_camera_screens import VRCameraScreens, VRHandMarker
         from vr_gesture_detector import LeftHandGestureDetector
+        from vr_camera_screens import VRHandMarker
         from isaaclab.devices.openxr import OpenXRDevice
-        vr_screens = VRCameraScreens.try_create(env)
         vr_hand_marker = VRHandMarker()
         gesture_detector = LeftHandGestureDetector()
 
@@ -497,30 +510,25 @@ def run_simulation_loop(
             # Expand to batch dimension
             actions = action.repeat(env.num_envs, 1)
 
-            # Perform action on environment
+            # Always step the environment so the robot responds to input in all modes
+            obv = env.step(actions)
             if running_recording_instance:
-                # Compute actions based on environment
-                obv = env.step(actions)
                 if subtasks is not None:
                     if subtasks == {}:
                         subtasks = obv[0].get("subtask_terms")
                     elif subtasks:
                         show_subtask_instructions(instruction_display, subtasks, obv, env.cfg)
-            else:
-                env.sim.render()
-
-            if vr_screens is not None:
-                vr_screens.update()
 
             # Left-hand gesture controls + wrist marker (XR only)
             if gesture_detector is not None and hasattr(teleop_interface, "get_hand_poses"):
                 left_poses = teleop_interface.get_hand_poses(OpenXRDevice.TrackingTarget.HAND_LEFT)
                 gestures = gesture_detector.update(left_poses)
 
-                if gestures["open_palm"]:
-                    running_recording_instance = not running_recording_instance
+                prev = running_recording_instance
+                running_recording_instance = gesture_detector.open_palm_active
+                if running_recording_instance != prev:
                     state = "resumed" if running_recording_instance else "paused"
-                    print(f"Recording {state} (open palm gesture)")
+                    print(f"Recording {state} (hand {'open' if running_recording_instance else 'closed'})")
 
                 if gestures["pinch"]:
                     # Accept: export current episode as successful then reset
