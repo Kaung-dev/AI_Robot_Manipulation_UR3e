@@ -43,7 +43,13 @@ PEGBOARD_TASK_SRC="$REPO_DIR/isaaclab_ext/tasks/lift_pegboard_ur3e_rg2"
 ln -sfn "$PEGBOARD_TASK_SRC" "$PEGBOARD_TASK_DST"
 echo "[INFO] linked  $PEGBOARD_TASK_DST  ->  $PEGBOARD_TASK_SRC"
 
-# 4) lift-pegboard task (Franka)
+# 4) AIR2 scene task (UR3e)
+AIR2_TASK_DST="$ISAACLAB_PATH/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/lift/config/ur3e_rg2_air2"
+AIR2_TASK_SRC="$REPO_DIR/isaaclab_ext/tasks/lift_air2_ur3e_rg2"
+ln -sfn "$AIR2_TASK_SRC" "$AIR2_TASK_DST"
+echo "[INFO] linked  $AIR2_TASK_DST  ->  $AIR2_TASK_SRC"
+
+# 5) lift-pegboard task (Franka)
 FRANKA_TASK_DST="$ISAACLAB_PATH/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/lift/config/franka_pegboard"
 FRANKA_TASK_SRC="$REPO_DIR/isaaclab_ext/tasks/lift_pegboard_franka"
 ln -sfn "$FRANKA_TASK_SRC" "$FRANKA_TASK_DST"
