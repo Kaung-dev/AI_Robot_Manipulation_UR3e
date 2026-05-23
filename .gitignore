@@ -45,6 +45,16 @@ __pycache__/
 scripts/scene_inspection.json
 scripts/scene_inspection.txt
 scripts/fix_scene.log
+scripts/remove_air_robotics_ref.py
+
+# Backup files from USD editing scripts
+*.bak
+
+# Nested ros2 workspace (duplicate of ros2_ws/)
+ros2_ws/ros2_ws/
+
+# Local dev log (machine-specific notes, not for repo)
+DEVLOG.md
 
 # IDE / OS
 .vscode/
