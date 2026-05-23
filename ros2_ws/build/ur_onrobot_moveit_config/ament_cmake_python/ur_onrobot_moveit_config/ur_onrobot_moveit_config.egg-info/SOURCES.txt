@@ -1,0 +1,7 @@
+setup.py
+ur_onrobot_moveit_config/__init__.py
+ur_onrobot_moveit_config/launch_common.py
+ur_onrobot_moveit_config.egg-info/PKG-INFO
+ur_onrobot_moveit_config.egg-info/SOURCES.txt
+ur_onrobot_moveit_config.egg-info/dependency_links.txt
+ur_onrobot_moveit_config.egg-info/top_level.txt

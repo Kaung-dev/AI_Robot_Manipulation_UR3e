@@ -1,0 +1,97 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-a6e4f48a41fbd97ca207.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "ur_onrobot_hello_moveit",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "planning_around_objects::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-planning_around_objects-028c8f39754077851cef.json",
+					"name" : "planning_around_objects",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-ed16a82ec61a0a623dcd.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ur_onrobot_hello_moveit_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ur_onrobot_hello_moveit_uninstall-f1b0e1f5a4bf42143592.json",
+					"name" : "ur_onrobot_hello_moveit_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "visualizing_in_rviz::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-visualizing_in_rviz-fe2633a8189b0071d068.json",
+					"name" : "visualizing_in_rviz",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "your_first_project::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-your_first_project-5f6e0055ffd9a3214a99.json",
+					"name" : "your_first_project",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit",
+		"source" : "/home/user/Desktop/ur_pick/ros2_ws/src/moveit2_tutorials_ur_onrobot/ur_onrobot_hello_moveit"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

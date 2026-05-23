@@ -188,13 +188,14 @@ def randomize_table_with_objects_on_slots(
             torch.tensor([s[5]], device=env.device),
         )
 
-        # 2. Write table
-        table_asset.write_root_pose_to_sim(
-            torch.cat([table_pos, table_quat], dim=-1), env_ids=env_id_t,
-        )
-        table_asset.write_root_velocity_to_sim(
-            torch.zeros(1, 6, device=env.device), env_ids=env_id_t,
-        )
+        # 2. Write table (only if it supports root pose writes, i.e. RigidObject)
+        if hasattr(table_asset, "write_root_pose_to_sim"):
+            table_asset.write_root_pose_to_sim(
+                torch.cat([table_pos, table_quat], dim=-1), env_ids=env_id_t,
+            )
+            table_asset.write_root_velocity_to_sim(
+                torch.zeros(1, 6, device=env.device), env_ids=env_id_t,
+            )
 
         # 3. Optional anchor (e.g. basket) at fixed offset in table frame
         if anchor_asset is not None and anchor_relative_pose is not None:
@@ -210,12 +211,13 @@ def randomize_table_with_objects_on_slots(
             )
             world_pos = table_pos + math_utils.quat_apply(table_quat, rel_pos)
             world_quat = math_utils.quat_mul(table_quat, rel_quat)
-            anchor_asset.write_root_pose_to_sim(
-                torch.cat([world_pos, world_quat], dim=-1), env_ids=env_id_t,
-            )
-            anchor_asset.write_root_velocity_to_sim(
-                torch.zeros(1, 6, device=env.device), env_ids=env_id_t,
-            )
+            if hasattr(anchor_asset, "write_root_pose_to_sim"):
+                anchor_asset.write_root_pose_to_sim(
+                    torch.cat([world_pos, world_quat], dim=-1), env_ids=env_id_t,
+                )
+                anchor_asset.write_root_velocity_to_sim(
+                    torch.zeros(1, 6, device=env.device), env_ids=env_id_t,
+                )
 
         # 4. Place target on a random allowed slot
         remaining = list(slots)

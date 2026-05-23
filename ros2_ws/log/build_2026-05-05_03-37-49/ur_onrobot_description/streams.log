@@ -1,0 +1,25 @@
+[0.011s] Invoking command in '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_description': AMENT_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:/opt/ros/humble /usr/bin/cmake --build /home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_description -- -j15 -l15
+[0.071s] Invoked command in '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_description' returned '0': AMENT_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:/opt/ros/humble /usr/bin/cmake --build /home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_description -- -j15 -l15
+[0.072s] Invoking command in '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_description': AMENT_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:/opt/ros/humble /usr/bin/cmake --install /home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_description
+[0.082s] -- Install configuration: ""
+[0.082s] -- Execute custom install script
+[0.083s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/launch/view_robot.launch.py
+[0.097s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/rviz/view_robot.rviz
+[0.112s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/urdf/ur_onrobot.urdf.xacro
+[0.122s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/urdf/ur_onrobot_macro.xacro
+[0.134s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ament_index/resource_index/package_run_dependencies/ur_onrobot_description
+[0.147s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ament_index/resource_index/parent_prefix_path/ur_onrobot_description
+[0.161s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/environment/ament_prefix_path.sh
+[0.175s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/environment/ament_prefix_path.dsv
+[0.185s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/environment/path.sh
+[0.194s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/environment/path.dsv
+[0.209s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/local_setup.bash
+[0.223s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/local_setup.sh
+[0.233s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/local_setup.zsh
+[0.247s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/local_setup.dsv
+[0.256s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/package.dsv
+[0.264s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ament_index/resource_index/packages/ur_onrobot_description
+[0.273s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/cmake/ur_onrobot_descriptionConfig.cmake
+[0.283s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/cmake/ur_onrobot_descriptionConfig-version.cmake
+[0.296s] -- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_description/share/ur_onrobot_description/package.xml
+[0.309s] Invoked command in '/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_description' returned '0': AMENT_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/user/Desktop/ur_pick/ros2_ws/install/onrobot_description:/opt/ros/humble /usr/bin/cmake --install /home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_description

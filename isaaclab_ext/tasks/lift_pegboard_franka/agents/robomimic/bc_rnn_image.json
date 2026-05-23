@@ -11,7 +11,7 @@
         "save": {
             "enabled": true,
             "every_n_seconds": null,
-            "every_n_epochs": 100,
+            "every_n_epochs": 50,
             "epochs": [],
             "on_best_validation": false,
             "on_best_rollout_return": false,
@@ -49,7 +49,7 @@
         "goal_mode": null,
         "cuda": true,
         "batch_size": 8,
-        "num_epochs": 100,
+        "num_epochs": 400,
         "seed": 1
     },
     "algo": {
@@ -155,7 +155,7 @@
                 "obs_randomizer_kwargs": {
                     "crop_height": 76,
                     "crop_width": 76,
-                    "num_crops": 1,
+                    "num_crops": 2,
                     "pos_enc": false
                 }
             },

@@ -1,0 +1,1 @@
+ament_cmake_symlink_install_targets("TARGET_FILES" "/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_mtc/minimal" "/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_mtc/pick_and_place" "TARGETS" "minimal" "pick_and_place" "DESTINATION" "lib/ur_onrobot_mtc")

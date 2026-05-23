@@ -13,6 +13,10 @@ ros2_ws/log/
 # Generated USD output of fix_scene_for_isaaclab.py — recreated by setup_isaaclab.sh
 scene/scene_isaaclab.usd
 
+# Collected scene bundles — just a local S3 cache, auto-downloaded by Isaac Sim on demand
+scene/Collected_AIR2/
+scene/Collected_AIR2.zip
+
 # USDs produced by scripts/export_pegboard_scene.py — Isaac Sim bakes the
 # host's absolute paths into the references, so they don't survive `git push`.
 # Regenerate locally per machine.
@@ -27,6 +31,9 @@ scene/ur10e_robotiq2f_140.usd
 # Experimental robot USD from Isaac Sim's URDF importer GUI — not used by
 # the current pegboard setup.
 robot/
+
+# Local environment config (machine-specific paths — do not commit)
+.env
 
 # Python
 __pycache__/

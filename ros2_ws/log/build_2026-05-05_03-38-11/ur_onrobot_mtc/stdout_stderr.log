@@ -1,0 +1,25 @@
+Consolidate compiler generated dependencies of target pick_and_place
+Consolidate compiler generated dependencies of target minimal
+[ 50%] Built target pick_and_place
+[100%] Built target minimal
+-- Install configuration: ""
+-- Execute custom install script
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/lib/ur_onrobot_mtc/minimal
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/lib/ur_onrobot_mtc/pick_and_place
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/config/mtc_ur_onrobot.rviz
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/launch/pick_and_place_demo.launch.py
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ament_index/resource_index/package_run_dependencies/ur_onrobot_mtc
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ament_index/resource_index/parent_prefix_path/ur_onrobot_mtc
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/environment/ament_prefix_path.sh
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/environment/ament_prefix_path.dsv
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/environment/path.sh
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/environment/path.dsv
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/local_setup.bash
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/local_setup.sh
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/local_setup.zsh
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/local_setup.dsv
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/package.dsv
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ament_index/resource_index/packages/ur_onrobot_mtc
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/cmake/ur_onrobot_mtcConfig.cmake
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/cmake/ur_onrobot_mtcConfig-version.cmake
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_mtc/share/ur_onrobot_mtc/package.xml

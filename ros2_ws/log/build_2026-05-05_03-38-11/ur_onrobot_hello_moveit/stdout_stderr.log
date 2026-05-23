@@ -1,0 +1,28 @@
+Consolidate compiler generated dependencies of target your_first_project
+Consolidate compiler generated dependencies of target planning_around_objects
+Consolidate compiler generated dependencies of target visualizing_in_rviz
+[ 33%] Built target planning_around_objects
+[ 66%] Built target your_first_project
+[100%] Built target visualizing_in_rviz
+-- Install configuration: ""
+-- Execute custom install script
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/lib/ur_onrobot_hello_moveit/your_first_project
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/lib/ur_onrobot_hello_moveit/visualizing_in_rviz
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/lib/ur_onrobot_hello_moveit/planning_around_objects
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/rviz/moveit2_tutorials.rviz
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/launch/tutorials_rviz.launch.py
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ament_index/resource_index/package_run_dependencies/ur_onrobot_hello_moveit
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ament_index/resource_index/parent_prefix_path/ur_onrobot_hello_moveit
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/environment/ament_prefix_path.sh
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/environment/ament_prefix_path.dsv
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/environment/path.sh
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/environment/path.dsv
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/local_setup.bash
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/local_setup.sh
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/local_setup.zsh
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/local_setup.dsv
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/package.dsv
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ament_index/resource_index/packages/ur_onrobot_hello_moveit
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/cmake/ur_onrobot_hello_moveitConfig.cmake
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/cmake/ur_onrobot_hello_moveitConfig-version.cmake
+-- Symlinking: /home/user/Desktop/ur_pick/ros2_ws/install/ur_onrobot_hello_moveit/share/ur_onrobot_hello_moveit/package.xml

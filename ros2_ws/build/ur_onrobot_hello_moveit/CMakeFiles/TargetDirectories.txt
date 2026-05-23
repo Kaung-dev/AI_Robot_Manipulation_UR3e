@@ -1,0 +1,12 @@
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/uninstall.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/ur_onrobot_hello_moveit_uninstall.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/your_first_project.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/visualizing_in_rviz.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/planning_around_objects.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/test.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/edit_cache.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/rebuild_cache.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/list_install_components.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/install.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/install/local.dir
+/home/user/Desktop/ur_pick/ros2_ws/build/ur_onrobot_hello_moveit/CMakeFiles/install/strip.dir
