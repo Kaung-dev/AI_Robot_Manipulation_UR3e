@@ -133,34 +133,18 @@ class FrankaAIR2LiftEnvCfg(LiftEnvCfg):
             horizontal_aperture=20.955, clipping_range=(0.1, 1e5),
         )
 
-        # Wrist camera — mounted on panda_link7 (forearm) looking down toward the gripper.
+        # Wrist camera — same hand-mounted view used by the Franka pegboard visuomotor task.
         self.scene.wrist_camera = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/Robot/panda_link7/wrist_cam",
-            update_period=0.1,
-            height=240,
-            width=320,
-            data_types=["rgb", "depth"],
-            spawn=_pinhole,
-            offset=CameraCfg.OffsetCfg(
-                pos=(0.0, 0.0, 0.1),    # 10 cm along link7, above the wrist joint
-                rot=(0.9239, 0.3827, 0.0, 0.0),  # ~45° tilt down toward fingertips
-                convention="ros",
-            ),
-        )
-
-        # Fixed overview camera — looks from above-right toward the robot and pegboard.
-        # Position from Camera_02 placed manually in Isaac Sim.
-        self.scene.overview_camera = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/overview_cam",
-            update_period=0.1,
-            height=480,
-            width=640,
+            prim_path="{ENV_REGEX_NS}/Robot/panda_hand/wrist_cam",
+            update_period=0.0,
+            height=224,
+            width=224,
             data_types=["rgb"],
             spawn=_pinhole,
             offset=CameraCfg.OffsetCfg(
-                pos=(-2.52682, -2.66618, 3.15309),
-                rot=(0.1405, 0.0808, -0.4920, 0.8554),  # X=59.92° Y=0° Z=161.33°
-                convention="world",
+                pos=(0.13, 0.0, -0.15),
+                rot=(-0.6964, 0.1233, 0.1233, -0.6964),
+                convention="ros",
             ),
         )
 
