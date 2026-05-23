@@ -52,13 +52,15 @@ def metrics_from_logits(logits: torch.Tensor, target: torch.Tensor, num_classes:
 def save_overlay(image: torch.Tensor, mask: torch.Tensor, pred: torch.Tensor, path: Path) -> None:
     palette = np.array(
         [
-            [0, 0, 0],
-            [76, 175, 80],
-            [255, 152, 0],
-            [244, 67, 54],
-            [33, 150, 243],
-            [158, 158, 158],
-            [121, 85, 72],
+            [0, 0, 0],         # 0 background
+            [76, 175, 80],     # 1 toothbrush
+            [255, 152, 0],     # 2 pliers
+            [244, 67, 54],     # 3 scissors
+            [33, 150, 243],    # 4 silicone
+            [158, 158, 158],   # 5 robot
+            [255, 235, 59],    # 6 basket
+            [96, 125, 139],    # 7 table
+            [121, 85, 72],     # 8 environment
         ],
         dtype=np.uint8,
     )

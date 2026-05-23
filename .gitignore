@@ -55,6 +55,7 @@ ros2_ws/ros2_ws/
 
 # Local dev log (machine-specific notes, not for repo)
 DEVLOG.md
+WHATIWANT.md
 
 # IDE / OS
 .vscode/

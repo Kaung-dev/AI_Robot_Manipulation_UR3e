@@ -1,5 +1,61 @@
-"""Reset-time event: randomize which 4 of 8 hooks each object occupies."""
+"""Reset-time event: randomize which 4 of 8 hooks each object occupies.
+Startup-time event: tag basket and table prims with dedicated semantic classes
+so the segmentation CNN can distinguish them from generic 'environment'."""
 import torch
+
+
+_semantics_done = False
+
+
+def tag_basket_and_table(env, env_ids=None):
+    """Override the broad 'environment' tag on specific prims (basket, table).
+
+    Runs once. Walks the loaded stage looking for SM_BoxPortableD (the basket)
+    and the SeattleLabTable mesh — applies a Semantics API tag that the
+    colorized segmentation annotator will pick up.
+    """
+    global _semantics_done
+    if _semantics_done:
+        return
+    try:
+        from pxr import Semantics  # type: ignore
+    except ImportError:
+        print("[WARN semantics] pxr.Semantics unavailable; skipping basket/table tag", flush=True)
+        _semantics_done = True
+        return
+
+    stage = env.sim.stage
+    tagged = {"basket": [], "table": []}
+    table_candidates = []  # any prim with 'table' in its name, at any depth
+
+    for prim in stage.Traverse():
+        path_str = str(prim.GetPath())
+        if "/World/envs/env_" not in path_str:
+            continue
+        name_lower = prim.GetName().lower()
+
+        # Basket: SM_BoxPortableD prim and its instance child
+        if "sm_boxportabled" in name_lower or "boxportable" in name_lower:
+            sem = Semantics.SemanticsAPI.Apply(prim, "Semantics_basket")
+            sem.CreateSemanticTypeAttr().Set("class")
+            sem.CreateSemanticDataAttr().Set("basket")
+            tagged["basket"].append(path_str)
+            continue
+
+        # Table: anything with 'table' or 'seattlelab' in the name, anywhere
+        if "table" in name_lower or "seattlelab" in name_lower:
+            table_candidates.append(path_str)
+            sem = Semantics.SemanticsAPI.Apply(prim, "Semantics_table")
+            sem.CreateSemanticTypeAttr().Set("class")
+            sem.CreateSemanticDataAttr().Set("table")
+            tagged["table"].append(path_str)
+
+    print(f"[DEBUG semantics] Tagged {len(tagged['basket'])} basket prims, {len(tagged['table'])} table prims", flush=True)
+    for cls, paths in tagged.items():
+        for p in paths[:5]:
+            print(f"  {cls}: {p}", flush=True)
+
+    _semantics_done = True
 
 # Hook world positions as reported by inspect_air2_hooks.py.
 HOOK_POSITIONS = [

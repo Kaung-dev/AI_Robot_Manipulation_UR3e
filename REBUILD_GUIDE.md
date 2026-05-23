@@ -192,7 +192,7 @@ In Isaac Sim:
 3. Import. Press Play briefly and read the console — you'll see two PhysX errors:
    - `revolute joint ... needs a finite limit set to be used by the mimic joint feature`
    - `PhysxMimicJointAPI ... must have exactly 1 "referenceJoint" relationship defined`
-4. Stop Play. In Script Editor, run [scripts/fix_mimic_limits.py](scripts/fix_mimic_limits.py), then [scripts/fix_mimic_reference.py](scripts/fix_mimic_reference.py). Save the stage.
+4. Stop Play. In Script Editor, run [_archive/debug_scripts/fix_mimic_limits.py](_archive/debug_scripts/fix_mimic_limits.py), then [_archive/debug_scripts/fix_mimic_reference.py](_archive/debug_scripts/fix_mimic_reference.py). Save the stage.
 5. Press Play again. Errors should be gone. Verify by selecting `rg2_gripper_joint` in the Stage panel → Property panel → Drive (angular) → set **Target Position** to 50° → gripper closes; back to 0° → opens.
 6. **File → Save As** → `~/Desktop/ur_pick/rg2_inria_usd/rg2_inria.usd`.
 
@@ -226,12 +226,12 @@ In Script Editor, run each, **Ctrl+S after each** (or just at the end):
 
 | script | what it does |
 |---|---|
-| [scripts/integrate_inria_gripper.py](scripts/integrate_inria_gripper.py) | drops the redundant `ArticulationRootAPI` from inside the gripper, creates `/World/wrist_to_rg2` fixed joint pinning bracket → `/World/ur3e/wrist_3_link` |
-| [scripts/position_gripper_v2.py](scripts/position_gripper_v2.py) | sets `/World/rg2`'s transform so the bracket lands exactly on the wrist's rest pose (no startup impulse) |
-| [scripts/clean_articulations.py](scripts/clean_articulations.py) | deactivates the gripper's internal `root_joint` (pinned the bracket to its import-time world position; conflicts with the wrist mount) |
-| [scripts/split_articulations.py](scripts/split_articulations.py) | re-applies `ArticulationRootAPI` to `/World/rg2` so gripper is its OWN articulation; wrist mount is then an inter-articulation constraint, which PhysX handles cleanly |
-| [scripts/fix_ur_articulation_v2.py](scripts/fix_ur_articulation_v2.py) | moves UR's `ArticulationRootAPI` from the legacy `root_joint` prim to `/World/ur3e/base_link` (where Isaac actually finds it), updates OmniGraph node target paths |
-| [scripts/bump_drives.py](scripts/bump_drives.py) | bumps UR3e arm-joint drive stiffness/damping (the URDF importer's defaults are far too weak for a real load) |
+| [_archive/debug_scripts/integrate_inria_gripper.py](_archive/debug_scripts/integrate_inria_gripper.py) | drops the redundant `ArticulationRootAPI` from inside the gripper, creates `/World/wrist_to_rg2` fixed joint pinning bracket → `/World/ur3e/wrist_3_link` |
+| [_archive/debug_scripts/position_gripper_v2.py](_archive/debug_scripts/position_gripper_v2.py) | sets `/World/rg2`'s transform so the bracket lands exactly on the wrist's rest pose (no startup impulse) |
+| [_archive/debug_scripts/clean_articulations.py](_archive/debug_scripts/clean_articulations.py) | deactivates the gripper's internal `root_joint` (pinned the bracket to its import-time world position; conflicts with the wrist mount) |
+| [_archive/debug_scripts/split_articulations.py](_archive/debug_scripts/split_articulations.py) | re-applies `ArticulationRootAPI` to `/World/rg2` so gripper is its OWN articulation; wrist mount is then an inter-articulation constraint, which PhysX handles cleanly |
+| [_archive/debug_scripts/fix_ur_articulation_v2.py](_archive/debug_scripts/fix_ur_articulation_v2.py) | moves UR's `ArticulationRootAPI` from the legacy `root_joint` prim to `/World/ur3e/base_link` (where Isaac actually finds it), updates OmniGraph node target paths |
+| [_archive/debug_scripts/bump_drives.py](_archive/debug_scripts/bump_drives.py) | bumps UR3e arm-joint drive stiffness/damping (the URDF importer's defaults are far too weak for a real load) |
 | [scripts/reset_drive_targets.py](scripts/reset_drive_targets.py) | copies each UR joint's *current* angle into its drive target, so on Play the drives don't yank the arm to zero |
 
 Save the stage. Press Play. The arm should sit still at rest pose; the gripper should hang quietly on the wrist.
@@ -256,7 +256,7 @@ Connections:
 - `SubJS.outputs:execOut` → `ArtCtrl.inputs:execIn`
 - `SubJS.outputs:positionCommand/velocityCommand/effortCommand/jointNames` → corresponding `ArtCtrl.inputs:*`
 
-For the gripper, run [scripts/add_gripper_artctrl.py](scripts/add_gripper_artctrl.py) — it adds a second `IsaacArticulationController` named `ArtCtrlGripper` targeting `/World/rg2`, wired to the same SubJS.
+For the gripper, run [_archive/debug_scripts/add_gripper_artctrl.py](_archive/debug_scripts/add_gripper_artctrl.py) — it adds a second `IsaacArticulationController` named `ArtCtrlGripper` targeting `/World/rg2`, wired to the same SubJS.
 
 Save. Press Play.
 

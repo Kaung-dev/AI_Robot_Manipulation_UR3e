@@ -19,17 +19,22 @@ AIR2_CLASS_MAP: dict[int, str] = {
     3: "scissors",
     4: "silicone",
     5: "robot",
-    6: "environment",
+    6: "basket",
+    7: "table",
+    8: "environment",
 }
 
+# RGB colors → class IDs. Must match SEMANTIC_MAPPING in segmentation_env_cfg.py.
 AIR2_COLOR_TO_CLASS: dict[tuple[int, int, int], int] = {
-    (76, 175, 80): 1,
-    (255, 152, 0): 2,
-    (244, 67, 54): 3,
-    (33, 150, 243): 4,
-    (158, 158, 158): 5,
-    (121, 85, 72): 6,
-    (0, 0, 0): 0,
+    (76, 175, 80): 1,    # green   → toothbrush
+    (255, 152, 0): 2,    # orange  → pliers
+    (244, 67, 54): 3,    # red     → scissors
+    (33, 150, 243): 4,   # blue    → silicone
+    (158, 158, 158): 5,  # grey    → robot
+    (255, 235, 59): 6,   # yellow  → basket
+    (96, 125, 139): 7,   # blue-grey → table (the AIR2 scene walls/floor/pegboard)
+    (121, 85, 72): 8,    # brown   → environment (anything else)
+    (0, 0, 0): 0,        # black   → background
 }
 
 _ALIASES = {
@@ -42,10 +47,16 @@ _ALIASES = {
     "robot": 5,
     "franka": 5,
     "panda": 5,
-    "environment": 6,
-    "hook": 6,
-    "board": 6,
-    "table": 6,
+    "basket": 6,
+    "box": 6,
+    "sm_box": 6,
+    "boxportable": 6,
+    "table": 7,
+    "seattlelab": 7,
+    "hook": 7,        # hooks are part of the pegboard surface; lump with table
+    "board": 7,
+    "pegboard": 7,
+    "environment": 8,
 }
 
 

@@ -43,7 +43,7 @@ ARM_JOINTS = [
 # Gripper: drive BOTH master joints (left + right) with the same target,
 # matching the Isaac Lab lift task config (close=1.30 rad, open=0.0 rad).
 # This is why scene.usd's mirror_joint had its mimic stripped via
-# scripts/align_gripper_with_isaaclab.py - it's now a free drive.
+# _archive/debug_scripts/align_gripper_with_isaaclab.py - it's now a free drive.
 GRIPPER_WIDTH_JOINT = "finger_width"
 GRIPPER_OPEN_RAD = 0.0
 GRIPPER_CLOSED_RAD = 1.30
