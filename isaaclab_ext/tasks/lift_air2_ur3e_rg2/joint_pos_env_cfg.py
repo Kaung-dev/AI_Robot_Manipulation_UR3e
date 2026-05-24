@@ -36,7 +36,7 @@ _TOOL_RIGID = RigidBodyPropertiesCfg(
     max_angular_velocity=1000.0,
     max_linear_velocity=1000.0,
     max_depenetration_velocity=5.0,
-    disable_gravity=True,  # temporary: confirms positions are correct if objects stay put
+    disable_gravity=True,
 )
 _TOOL_MASS = MassPropertiesCfg(mass=0.05)
 
@@ -50,6 +50,8 @@ class FrankaAIR2LiftEnvCfg(LiftEnvCfg):
         # baked into AIR2.usd (which is frozen/kinematic as part of the scene).
         self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.robot.init_state.pos = (-4.2405, -5.2851, 1.0397)
+        self.scene.robot.init_state.joint_pos["panda_joint1"] = -1.5708  # 90° rotation at spawn
+        self.scene.robot.init_state.joint_pos["panda_joint4"] = -2.26892803   # wrist horizontal
 
         self.sim.physx.gpu_max_rigid_patch_count = 524288
         self.sim.physx.gpu_max_rigid_contact_count = 2_097_152
@@ -110,7 +112,7 @@ class FrankaAIR2LiftEnvCfg(LiftEnvCfg):
                         usd_path=str(_ASSETS / fname),
                         rigid_props=_TOOL_RIGID,
                         mass_props=_TOOL_MASS,
-                    ),
+                            ),
                 ),
             )
 
