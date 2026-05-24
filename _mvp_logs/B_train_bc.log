@@ -1,0 +1,82 @@
+[bc] device=cuda
+[dataset] loaded 10 episodes, 3988 usable frames, chunk_size=16
+[bc] train=3590, val=398
+[encoder] loaded U-Net ckpt, missing=78 unexpected=5
+[bc] trainable params: 185,072 / 1,358,288 total
+[bc] ep 001/50  train pose=0.0108 grip=0.1889  val pose=0.0095 grip=0.0046  lr=9.99e-05  (60.0s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 002/50  train pose=0.0085 grip=0.0023  val pose=0.0078 grip=0.0016  lr=9.96e-05  (59.3s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 003/50  train pose=0.0068 grip=0.0010  val pose=0.0065 grip=0.0008  lr=9.91e-05  (58.2s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 004/50  train pose=0.0058 grip=0.0006  val pose=0.0055 grip=0.0006  lr=9.84e-05  (58.2s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 005/50  train pose=0.0051 grip=0.0004  val pose=0.0052 grip=0.0004  lr=9.76e-05  (58.1s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 006/50  train pose=0.0046 grip=0.0003  val pose=0.0048 grip=0.0003  lr=9.65e-05  (59.1s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 007/50  train pose=0.0044 grip=0.0003  val pose=0.0046 grip=0.0003  lr=9.52e-05  (58.6s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 008/50  train pose=0.0041 grip=0.0002  val pose=0.0042 grip=0.0002  lr=9.38e-05  (58.6s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 009/50  train pose=0.0040 grip=0.0002  val pose=0.0045 grip=0.0002  lr=9.22e-05  (58.6s)
+[bc] ep 010/50  train pose=0.0039 grip=0.0002  val pose=0.0042 grip=0.0002  lr=9.05e-05  (58.9s)
+[bc] ep 011/50  train pose=0.0037 grip=0.0001  val pose=0.0040 grip=0.0002  lr=8.85e-05  (58.6s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 012/50  train pose=0.0037 grip=0.0001  val pose=0.0040 grip=0.0001  lr=8.64e-05  (58.6s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 013/50  train pose=0.0036 grip=0.0001  val pose=0.0042 grip=0.0001  lr=8.42e-05  (59.0s)
+[bc] ep 014/50  train pose=0.0036 grip=0.0001  val pose=0.0037 grip=0.0001  lr=8.19e-05  (59.1s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 015/50  train pose=0.0034 grip=0.0001  val pose=0.0037 grip=0.0001  lr=7.94e-05  (59.2s)
+[bc] ep 016/50  train pose=0.0034 grip=0.0001  val pose=0.0036 grip=0.0001  lr=7.68e-05  (59.3s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 017/50  train pose=0.0032 grip=0.0001  val pose=0.0036 grip=0.0001  lr=7.41e-05  (59.2s)
+[bc] ep 018/50  train pose=0.0032 grip=0.0001  val pose=0.0034 grip=0.0001  lr=7.13e-05  (59.3s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 019/50  train pose=0.0032 grip=0.0001  val pose=0.0035 grip=0.0001  lr=6.84e-05  (59.2s)
+[bc] ep 020/50  train pose=0.0031 grip=0.0001  val pose=0.0034 grip=0.0001  lr=6.55e-05  (59.1s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 021/50  train pose=0.0031 grip=0.0001  val pose=0.0034 grip=0.0001  lr=6.24e-05  (59.0s)
+[bc] ep 022/50  train pose=0.0030 grip=0.0001  val pose=0.0033 grip=0.0001  lr=5.94e-05  (59.4s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 023/50  train pose=0.0030 grip=0.0001  val pose=0.0034 grip=0.0001  lr=5.63e-05  (59.6s)
+[bc] ep 024/50  train pose=0.0029 grip=0.0001  val pose=0.0033 grip=0.0001  lr=5.31e-05  (60.6s)
+[bc] ep 025/50  train pose=0.0029 grip=0.0000  val pose=0.0032 grip=0.0001  lr=5.00e-05  (60.0s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 026/50  train pose=0.0029 grip=0.0000  val pose=0.0032 grip=0.0000  lr=4.69e-05  (60.8s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 027/50  train pose=0.0028 grip=0.0000  val pose=0.0032 grip=0.0000  lr=4.37e-05  (59.4s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 028/50  train pose=0.0028 grip=0.0000  val pose=0.0033 grip=0.0000  lr=4.06e-05  (59.0s)
+[bc] ep 029/50  train pose=0.0027 grip=0.0000  val pose=0.0032 grip=0.0000  lr=3.76e-05  (60.8s)
+[bc] ep 030/50  train pose=0.0028 grip=0.0000  val pose=0.0032 grip=0.0000  lr=3.45e-05  (58.9s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 031/50  train pose=0.0027 grip=0.0000  val pose=0.0031 grip=0.0000  lr=3.16e-05  (59.2s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 032/50  train pose=0.0027 grip=0.0000  val pose=0.0031 grip=0.0000  lr=2.87e-05  (59.0s)
+[bc] ep 033/50  train pose=0.0027 grip=0.0000  val pose=0.0032 grip=0.0000  lr=2.59e-05  (59.1s)
+[bc] ep 034/50  train pose=0.0027 grip=0.0000  val pose=0.0031 grip=0.0000  lr=2.32e-05  (59.1s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 035/50  train pose=0.0026 grip=0.0000  val pose=0.0031 grip=0.0000  lr=2.06e-05  (59.0s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 036/50  train pose=0.0026 grip=0.0000  val pose=0.0030 grip=0.0000  lr=1.81e-05  (59.2s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 037/50  train pose=0.0026 grip=0.0000  val pose=0.0031 grip=0.0000  lr=1.58e-05  (59.0s)
+[bc] ep 038/50  train pose=0.0026 grip=0.0000  val pose=0.0032 grip=0.0000  lr=1.36e-05  (58.8s)
+[bc] ep 039/50  train pose=0.0026 grip=0.0000  val pose=0.0031 grip=0.0000  lr=1.15e-05  (58.8s)
+[bc] ep 040/50  train pose=0.0026 grip=0.0000  val pose=0.0030 grip=0.0000  lr=9.55e-06  (58.8s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 041/50  train pose=0.0026 grip=0.0000  val pose=0.0030 grip=0.0000  lr=7.78e-06  (59.0s)
+[bc] ep 042/50  train pose=0.0026 grip=0.0000  val pose=0.0030 grip=0.0000  lr=6.18e-06  (59.1s)
+[bc] ep 043/50  train pose=0.0025 grip=0.0000  val pose=0.0031 grip=0.0000  lr=4.76e-06  (59.4s)
+[bc] ep 044/50  train pose=0.0025 grip=0.0000  val pose=0.0030 grip=0.0000  lr=3.51e-06  (59.1s)
+[bc] ep 045/50  train pose=0.0025 grip=0.0000  val pose=0.0029 grip=0.0000  lr=2.45e-06  (59.3s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 046/50  train pose=0.0025 grip=0.0000  val pose=0.0031 grip=0.0000  lr=1.57e-06  (59.2s)
+[bc] ep 047/50  train pose=0.0025 grip=0.0000  val pose=0.0030 grip=0.0000  lr=8.86e-07  (59.4s)
+[bc] ep 048/50  train pose=0.0025 grip=0.0000  val pose=0.0030 grip=0.0000  lr=3.94e-07  (59.1s)
+[bc] ep 049/50  train pose=0.0025 grip=0.0000  val pose=0.0029 grip=0.0000  lr=9.87e-08  (59.2s)
+[bc]   saved best to checkpoints\policy_bc_v2.pth
+[bc] ep 050/50  train pose=0.0025 grip=0.0000  val pose=0.0031 grip=0.0000  lr=0.00e+00  (58.9s)
+[bc] done. best val loss = 0.0029

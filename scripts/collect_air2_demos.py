@@ -67,96 +67,9 @@ import isaaclab_tasks  # noqa: F401
 import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
-# -- constants --------------------------------------------------------------
-
-OBJECT_NAMES = ["object", "tool_pliers", "tool_scissors", "tool_silicone"]
-BASKET_POS_LOCAL = torch.tensor([-3.560, -5.370, 1.040])  # basket centre in env-local frame
-
-APPROACH_OFFSET_Y = 0.20  # 20 cm in +Y direction (away from wall, in front of object)
-BASKET_HOVER = 0.30       # 30 cm above basket
-GRASP_OPEN = 1.0          # gripper stays open the whole time — we don't grasp
-POSITION_TOLERANCE = 0.04 # 4 cm tolerance — generous since we don't actually grasp
-
-
-# -- waypoint controller ----------------------------------------------------
-
-def make_object_waypoints(obj_xyz: torch.Tensor) -> list[tuple[torch.Tensor, float, int]]:
-    """Visual-demo sequence per object (no grasp).
-
-    For each object: hover in front of it (away from wall), then move to
-    above the basket. This generates diverse training images of the robot
-    near different objects + the basket, which is what the CNN actually needs.
-    """
-    in_front_of_obj = obj_xyz + torch.tensor([0.0, APPROACH_OFFSET_Y, 0.0])
-    above_basket = BASKET_POS_LOCAL + torch.tensor([0.0, 0.0, BASKET_HOVER])
-    return [
-        (in_front_of_obj, GRASP_OPEN, 10),  # hover in front of object — let camera see it
-        (above_basket,    GRASP_OPEN, 10),  # move to above basket — let camera see it
-    ]
-
-
-class PickPlaceController:
-    """Per-env scripted controller. Stores a waypoint queue per env."""
-
-    def __init__(self, num_envs: int, device: torch.device):
-        self.num_envs = num_envs
-        self.device = device
-        self.waypoints: list[list] = [[] for _ in range(num_envs)]
-        self.wp_idx = torch.zeros(num_envs, dtype=torch.long, device=device)
-        self.dwell = torch.zeros(num_envs, dtype=torch.long, device=device)
-        self.done = torch.zeros(num_envs, dtype=torch.bool, device=device)
-
-    def reset(self, env_objects: list[list[torch.Tensor]]):
-        """Reset all envs with the current object positions.
-
-        env_objects[i] is the list of 4 object xyz tensors for env i.
-        Builds waypoints for each env: pick obj_0 → basket → obj_1 → basket → ...
-        """
-        for i, objs in enumerate(env_objects):
-            wps = []
-            for obj_xyz in objs:
-                wps.extend(make_object_waypoints(obj_xyz))
-            self.waypoints[i] = wps
-        self.wp_idx.zero_()
-        self.dwell.zero_()
-        self.done.zero_()
-
-    def step(self, ee_pos_local: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """Compute IK-Rel pose delta + gripper command for every env.
-
-        ee_pos_local: (num_envs, 3) end-effector position in env-local frame.
-
-        Returns:
-            delta_pos: (num_envs, 3)   IK-Rel position delta to feed env step
-            gripper:   (num_envs,)     binary {-1, +1}
-        """
-        delta_pos = torch.zeros(self.num_envs, 3, device=self.device)
-        gripper = torch.full((self.num_envs,), GRASP_OPEN, device=self.device)
-
-        for i in range(self.num_envs):
-            if self.done[i]:
-                gripper[i] = GRASP_OPEN
-                continue
-            idx = int(self.wp_idx[i])
-            if idx >= len(self.waypoints[i]):
-                self.done[i] = True
-                continue
-            target_xyz, grip_cmd, min_dwell = self.waypoints[i][idx]
-            target_xyz = target_xyz.to(self.device)
-            d = target_xyz - ee_pos_local[i]
-            dist = torch.linalg.norm(d)
-            delta_pos[i] = d  # raw delta; env's `scale=0.5` and Δt absorb magnitude
-            gripper[i] = grip_cmd
-
-            self.dwell[i] += 1
-            if dist < POSITION_TOLERANCE and self.dwell[i] >= min_dwell:
-                self.wp_idx[i] += 1
-                self.dwell[i] = 0
-
-        return delta_pos, gripper
-
-    def all_done(self) -> bool:
-        return bool(self.done.all().item())
+from isaaclab_ext.tasks.lift_air2_ur3e_rg2.scripted_controller import (
+    PickPlaceController, OBJECT_NAMES,
+)
 
 
 # -- per-env episode buffer -------------------------------------------------

@@ -1,0 +1,5 @@
+[plot] wrote eval_results\plots_final\unet_curves.png  (final: train=0.1274 val=0.3171 mIoU=0.719)
+[plot] wrote eval_results\plots_final\bc_curves.png  (final val: pose=0.0031 grip=0.0000)
+[plot] wrote eval_results\plots_final\bc_eval_summary.png  (reach rate: 75%)
+[plot] skip PPO: no events.out.tfevents.* under logs\rsl_rl\air2_ppo\air2_ppo_after_bc_v2
+[plot] skip BC-vs-PPO: need both bc_v2.json and ppo.json

@@ -1,0 +1,209 @@
+{
+  "num_episodes": 20,
+  "mean_reward": 167.99327754974365,
+  "std_reward": 88.177880453589,
+  "basket_reach_rate": 0.75,
+  "mean_steps": 560.0,
+  "episodes": [
+    {
+      "ep_idx": 0,
+      "env_idx": 0,
+      "steps": 800,
+      "cumulative_reward": 239.99563598632812,
+      "min_basket_dist": 0.2696293890476227,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 1,
+      "env_idx": 1,
+      "steps": 800,
+      "cumulative_reward": 239.9803009033203,
+      "min_basket_dist": 0.3233169615268707,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 2,
+      "env_idx": 2,
+      "steps": 800,
+      "cumulative_reward": 239.99488830566406,
+      "min_basket_dist": 0.10229101777076721,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 3,
+      "env_idx": 3,
+      "steps": 800,
+      "cumulative_reward": 239.9915771484375,
+      "min_basket_dist": 0.22752603888511658,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 4,
+      "env_idx": 0,
+      "steps": 200,
+      "cumulative_reward": 59.99980926513672,
+      "min_basket_dist": 0.24893663823604584,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": true
+    },
+    {
+      "ep_idx": 5,
+      "env_idx": 1,
+      "steps": 200,
+      "cumulative_reward": 59.9947624206543,
+      "min_basket_dist": 0.4313710033893585,
+      "reached_basket": false,
+      "terminated": false,
+      "truncated": true
+    },
+    {
+      "ep_idx": 6,
+      "env_idx": 2,
+      "steps": 200,
+      "cumulative_reward": 59.99988555908203,
+      "min_basket_dist": 0.09167777746915817,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": true
+    },
+    {
+      "ep_idx": 7,
+      "env_idx": 3,
+      "steps": 200,
+      "cumulative_reward": 59.99726867675781,
+      "min_basket_dist": 0.15970362722873688,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": true
+    },
+    {
+      "ep_idx": 8,
+      "env_idx": 0,
+      "steps": 800,
+      "cumulative_reward": 239.98287963867188,
+      "min_basket_dist": 0.27922892570495605,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 9,
+      "env_idx": 1,
+      "steps": 800,
+      "cumulative_reward": 239.9900360107422,
+      "min_basket_dist": 0.2597254514694214,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 10,
+      "env_idx": 2,
+      "steps": 800,
+      "cumulative_reward": 240.00367736816406,
+      "min_basket_dist": 0.4525752365589142,
+      "reached_basket": false,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 11,
+      "env_idx": 3,
+      "steps": 800,
+      "cumulative_reward": 239.9853057861328,
+      "min_basket_dist": 0.3014301657676697,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 12,
+      "env_idx": 0,
+      "steps": 200,
+      "cumulative_reward": 59.99567794799805,
+      "min_basket_dist": 0.4534734785556793,
+      "reached_basket": false,
+      "terminated": false,
+      "truncated": true
+    },
+    {
+      "ep_idx": 13,
+      "env_idx": 1,
+      "steps": 200,
+      "cumulative_reward": 59.99989700317383,
+      "min_basket_dist": 0.218947172164917,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": true
+    },
+    {
+      "ep_idx": 14,
+      "env_idx": 2,
+      "steps": 200,
+      "cumulative_reward": 59.99760818481445,
+      "min_basket_dist": 0.4534734785556793,
+      "reached_basket": false,
+      "terminated": false,
+      "truncated": true
+    },
+    {
+      "ep_idx": 15,
+      "env_idx": 3,
+      "steps": 200,
+      "cumulative_reward": 59.9980583190918,
+      "min_basket_dist": 0.2192067801952362,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": true
+    },
+    {
+      "ep_idx": 16,
+      "env_idx": 0,
+      "steps": 800,
+      "cumulative_reward": 239.9803466796875,
+      "min_basket_dist": 0.28507164120674133,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 17,
+      "env_idx": 1,
+      "steps": 800,
+      "cumulative_reward": 239.99586486816406,
+      "min_basket_dist": 0.2406131476163864,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 18,
+      "env_idx": 2,
+      "steps": 800,
+      "cumulative_reward": 239.99769592285156,
+      "min_basket_dist": 0.4489096403121948,
+      "reached_basket": false,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 19,
+      "env_idx": 3,
+      "steps": 800,
+      "cumulative_reward": 239.984375,
+      "min_basket_dist": 0.253754198551178,
+      "reached_basket": true,
+      "terminated": false,
+      "truncated": false
+    }
+  ]
+}

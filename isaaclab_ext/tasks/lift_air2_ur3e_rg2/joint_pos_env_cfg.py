@@ -5,7 +5,7 @@ from pathlib import Path
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
-from isaaclab.managers import EventTermCfg as EventTerm, SceneEntityCfg
+from isaaclab.managers import EventTermCfg as EventTerm, RewardTermCfg as RewTerm, SceneEntityCfg
 import isaaclab.sim as sim_utils
 from isaaclab.sensors import CameraCfg, FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
@@ -129,6 +129,41 @@ class FrankaAIR2LiftEnvCfg(LiftEnvCfg):
         self.commands.object_pose.ranges.pos_x = (-5.8, -5.0)
         self.commands.object_pose.ranges.pos_y = (-3.0, -2.0)
         self.commands.object_pose.ranges.pos_z = (1.0, 1.5)
+
+        # --- AIR2-scene reward overrides ---------------------------------
+        # The base lift rewards are broken for this scene; see mdp/rewards.py
+        # for the diagnosis. We disable the broken terms and add AIR2-aware
+        # ones that actually reward pick-and-place into the basket.
+        self.rewards.lifting_object = None                  # always-on noise (objects spawn on hooks)
+        self.rewards.object_goal_tracking = None            # goal in wrong frame, gives 0
+        self.rewards.object_goal_tracking_fine_grained = None
+        self.rewards.reaching_object.params["std"] = 0.5    # rescale from 10cm → 50cm for AIR2
+
+        # New: dense gradient pulling each object toward the basket.
+        self.rewards.objects_to_basket = RewTerm(
+            func=mdp.all_objects_to_basket,
+            params={"std": 0.5},
+            weight=1.0,
+        )
+        # New: early "progress" signal — fires once an object is pulled off the hook.
+        self.rewards.objects_off_hook = RewTerm(
+            func=mdp.all_objects_off_hook,
+            params={"clearance": 0.20},
+            weight=5.0,
+        )
+        # New: big bonus per object actually inside the basket.
+        self.rewards.objects_in_basket = RewTerm(
+            func=mdp.all_objects_in_basket,
+            params={"radius": 0.30},
+            weight=20.0,
+        )
+        # New: replace the broken reaching reward with one keyed to the nearest
+        # *remaining-on-hook* object, so the EE is always pulled toward unfinished work.
+        self.rewards.ee_to_object = RewTerm(
+            func=mdp.ee_to_nearest_object,
+            params={"std": 0.5},
+            weight=2.0,
+        )
 
         _pinhole = sim_utils.PinholeCameraCfg(
             focal_length=24.0, focus_distance=400.0,

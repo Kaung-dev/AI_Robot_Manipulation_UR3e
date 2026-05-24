@@ -68,3 +68,9 @@ logs/
 runs/
 *.hdf5
 *.pth
+
+# IsaacLab Hydra config snapshots per-run
+outputs/
+
+# Local test scratch
+_smoke_test/

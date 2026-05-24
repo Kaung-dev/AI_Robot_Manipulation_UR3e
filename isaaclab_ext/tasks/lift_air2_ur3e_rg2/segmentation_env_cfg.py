@@ -33,12 +33,16 @@ SEMANTIC_MAPPING = {
 def _set_air2_semantics(cfg) -> None:
     """Attach semantic labels to spawned AIR2 assets.
 
-    The AIR2 scene (cfg.scene.table) is loaded as a single payload that contains
-    walls, floor, pegboard, hooks and the basket. Tag the whole thing 'table' by
-    default; the basket prim gets overridden to 'basket' by a startup event below.
+    Note: cfg.scene.table (the whole AIR2.usd payload — walls, floor, pegboard,
+    basket) is NOT tagged at spawn time. Tagging it as 'table' here would
+    recursively apply 'table' to the basket child too, and the post-load
+    Semantics API doesn't reliably overwrite that for the colorize annotator.
+    Instead, the startup event tag_basket_and_table() in mdp/events.py walks
+    the loaded stage and tags basket prims as 'basket' and other AIR2 prims
+    as 'table' — clean slate, no inheritance conflict.
     """
     cfg.scene.robot.spawn.semantic_tags = [("class", "robot")]
-    cfg.scene.table.spawn.semantic_tags = [("class", "table")]
+    # cfg.scene.table.spawn.semantic_tags intentionally NOT set — handled by event.
     cfg.scene.object.spawn.semantic_tags = [("class", "toothbrush")]
     cfg.scene.tool_pliers.spawn.semantic_tags = [("class", "pliers")]
     cfg.scene.tool_scissors.spawn.semantic_tags = [("class", "scissors")]

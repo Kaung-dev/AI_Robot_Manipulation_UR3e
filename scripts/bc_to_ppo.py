@@ -38,7 +38,13 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="PPO trainer for AIR2 task (with optional BC warm-start).")
 parser.add_argument("--task", default="Isaac-Lift-AIR2-UR3e-RG2-v0")
-parser.add_argument("--bc_ckpt", default=None, help="Optional BC checkpoint (.pth) to warm-start the actor's action head.")
+parser.add_argument("--bc_ckpt", default=None,
+                    help="DEPRECATED: vision+chunked BC ckpt. Only the head shape is checked — almost never compatible. "
+                         "Use --state_bc_ckpt for a real warm-start.")
+parser.add_argument("--state_bc_ckpt", default=None,
+                    help="State-only BC checkpoint from train_state_bc.py. Full actor state-dict load.")
+parser.add_argument("--warm_start_noise_std", type=float, default=0.3,
+                    help="When warm-starting, override init_noise_std (default 1.0 destroys the warm-started behaviour).")
 parser.add_argument("--num_envs", type=int, default=16)
 parser.add_argument("--max_iterations", type=int, default=1000)
 parser.add_argument("--seed", type=int, default=0)
@@ -65,6 +71,31 @@ import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab_tasks.utils.parse_cfg import load_cfg_from_registry
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+
+
+def warm_start_actor_from_state_bc(runner: OnPolicyRunner, ckpt_path: str) -> None:
+    """Load the full state-only BC actor into rsl_rl's actor.
+
+    Architectures match by construction ([train_state_bc.py](train_state_bc.py)
+    builds the same `rsl_rl.networks.MLP`), so this is a strict `load_state_dict`.
+    """
+    print(f"[bc->ppo] loading STATE-BC ckpt: {ckpt_path}", flush=True)
+    blob = torch.load(ckpt_path, map_location="cpu")
+    sd = blob["state_dict"] if isinstance(blob, dict) and "state_dict" in blob else blob
+    actor = runner.alg.policy.actor
+    # Verify shape compatibility before loading
+    actor_sd = actor.state_dict()
+    for key, val in sd.items():
+        if key not in actor_sd:
+            raise RuntimeError(f"[bc->ppo] state_bc key '{key}' not in actor")
+        if actor_sd[key].shape != val.shape:
+            raise RuntimeError(
+                f"[bc->ppo] shape mismatch for '{key}': "
+                f"state_bc={tuple(val.shape)} vs actor={tuple(actor_sd[key].shape)}. "
+                f"Rebuild state-BC with matching --hidden_dims / --activation."
+            )
+    actor.load_state_dict(sd, strict=True)
+    print(f"[bc->ppo] full actor state_dict loaded ({len(sd)} tensors)", flush=True)
 
 
 def warm_start_actor_from_bc(runner: OnPolicyRunner, bc_ckpt_path: str) -> None:
@@ -118,6 +149,19 @@ def main():
         agent_cfg.max_iterations = args_cli.max_iterations
     agent_cfg.seed = args_cli.seed
 
+    # When warm-starting, two changes are critical or PPO destroys the prior:
+    #   1) Lower init_noise_std (default 1.0 = random walk overwhelms the
+    #      warm-started mean within ~5 grad steps).
+    #   2) Disable empirical normalization. The state-BC was trained on raw obs,
+    #      so the actor expects raw inputs. Empirical normalization would
+    #      re-center observations during PPO and silently invalidate the prior.
+    is_warm_start = bool(args_cli.state_bc_ckpt or args_cli.bc_ckpt)
+    if is_warm_start:
+        agent_cfg.policy.init_noise_std = args_cli.warm_start_noise_std
+        agent_cfg.empirical_normalization = False
+        print(f"[bc->ppo] warm-start mode: init_noise_std={agent_cfg.policy.init_noise_std}, "
+              f"empirical_normalization=False", flush=True)
+
     # Logging
     log_root = Path(args_cli.log_dir)
     log_root.mkdir(parents=True, exist_ok=True)
@@ -135,7 +179,9 @@ def main():
     runner.add_git_repo_to_log(__file__)
 
     # Optional warm-start
-    if args_cli.bc_ckpt:
+    if args_cli.state_bc_ckpt:
+        warm_start_actor_from_state_bc(runner, args_cli.state_bc_ckpt)
+    elif args_cli.bc_ckpt:
         warm_start_actor_from_bc(runner, args_cli.bc_ckpt)
     elif args_cli.resume:
         print(f"[bc->ppo] resuming from {args_cli.resume}", flush=True)

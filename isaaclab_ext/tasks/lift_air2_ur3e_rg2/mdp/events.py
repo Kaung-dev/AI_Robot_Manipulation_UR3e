@@ -25,35 +25,39 @@ def tag_basket_and_table(env, env_ids=None):
         return
 
     stage = env.sim.stage
-    tagged = {"basket": [], "table": []}
-    table_candidates = []  # any prim with 'table' in its name, at any depth
+    tagged = {"basket": 0, "table": 0, "skipped": 0}
 
+    def _set_class(prim, class_name: str):
+        sem = Semantics.SemanticsAPI.Apply(prim, "Semantics")
+        sem.CreateSemanticTypeAttr().Set("class")
+        sem.CreateSemanticDataAttr().Set(class_name)
+
+    # Walk the per-env Environment subtree (which holds the AIR2 payload —
+    # walls, floor, pegboard, hooks, basket). Tag the basket as 'basket' and
+    # everything else as 'table'. Skip prims that already have a more-specific
+    # semantic from spawn-time tags (robot, tools).
+    already_tagged_paths = []
     for prim in stage.Traverse():
         path_str = str(prim.GetPath())
         if "/World/envs/env_" not in path_str:
             continue
-        name_lower = prim.GetName().lower()
-
-        # Basket: SM_BoxPortableD prim and its instance child
-        if "sm_boxportabled" in name_lower or "boxportable" in name_lower:
-            sem = Semantics.SemanticsAPI.Apply(prim, "Semantics_basket")
-            sem.CreateSemanticTypeAttr().Set("class")
-            sem.CreateSemanticDataAttr().Set("basket")
-            tagged["basket"].append(path_str)
+        if "/Environment" not in path_str:
             continue
+        # Skip prims that aren't part of the broad scene payload — robot lives
+        # under .../env_N/Robot, tools under .../env_N/Object etc., not under
+        # /Environment. So this loop only touches the AIR2 scene contents.
+        name_lower = prim.GetName().lower()
+        if "sm_boxportabled" in name_lower or "boxportable" in name_lower:
+            _set_class(prim, "basket")
+            tagged["basket"] += 1
+        else:
+            # Default: tag as 'table'. This includes pegboard, walls, floor,
+            # hooks — anything that's not the basket. The CNN learns to
+            # distinguish basket from this broader 'table' background.
+            _set_class(prim, "table")
+            tagged["table"] += 1
 
-        # Table: anything with 'table' or 'seattlelab' in the name, anywhere
-        if "table" in name_lower or "seattlelab" in name_lower:
-            table_candidates.append(path_str)
-            sem = Semantics.SemanticsAPI.Apply(prim, "Semantics_table")
-            sem.CreateSemanticTypeAttr().Set("class")
-            sem.CreateSemanticDataAttr().Set("table")
-            tagged["table"].append(path_str)
-
-    print(f"[DEBUG semantics] Tagged {len(tagged['basket'])} basket prims, {len(tagged['table'])} table prims", flush=True)
-    for cls, paths in tagged.items():
-        for p in paths[:5]:
-            print(f"  {cls}: {p}", flush=True)
+    print(f"[DEBUG semantics] Tagged {tagged['basket']} basket prims + {tagged['table']} table prims (clean-slate post-load)", flush=True)
 
     _semantics_done = True
 
