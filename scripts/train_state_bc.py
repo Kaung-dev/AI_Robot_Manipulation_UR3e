@@ -46,6 +46,8 @@ parser.add_argument("--batch_size", type=int, default=256)
 parser.add_argument("--lr", type=float, default=3e-4)
 parser.add_argument("--val_ratio", type=float, default=0.1)
 parser.add_argument("--out", default="checkpoints/policy_state_bc.pth")
+parser.add_argument("--single_object", action="store_true",
+                    help="Pick ONE random object per episode (faster, cleaner) instead of all 4.")
 parser.add_argument("--hidden_dims", type=int, nargs="+", default=[256, 128, 64],
                     help="Must match rsl_rl_ppo_cfg.policy.actor_hidden_dims.")
 parser.add_argument("--activation", default="elu",
@@ -201,7 +203,10 @@ def main():
     env.reset()
     device = env.unwrapped.device
 
-    controller = PickPlaceController(num_envs=env.unwrapped.num_envs, device=device)
+    controller = PickPlaceController(num_envs=env.unwrapped.num_envs, device=device,
+                                     single_object=args_cli.single_object)
+    if args_cli.single_object:
+        print("[state-bc] single_object mode: each episode picks ONE random object", flush=True)
 
     obs_np, act_np = collect_demos(env, controller, args_cli.num_episodes, args_cli.max_episode_steps)
     env.close()

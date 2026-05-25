@@ -64,10 +64,12 @@ class AIR2DemoDataset(Dataset):
     WRIST_H = WRIST_W = 224
     BOARD_H, BOARD_W = 360, 640
 
-    def __init__(self, demos_root: Path, frame_stride: int = 1, chunk_size: int = CHUNK_SIZE):
+    def __init__(self, demos_root: Path, frame_stride: int = 1, chunk_size: int = CHUNK_SIZE,
+                 success_only: bool = True):
         self.demos_root = Path(demos_root)
         self.frame_stride = frame_stride
         self.chunk_size = chunk_size
+        self.success_only = success_only
         self.index: list[tuple[Path, int]] = []   # (ep_dir, frame_idx_within_ep)
         self.actions: dict[Path, np.ndarray] = {}
         self.joint_pos: dict[Path, np.ndarray] = {}
@@ -76,11 +78,25 @@ class AIR2DemoDataset(Dataset):
         episodes = sorted(p for p in self.demos_root.iterdir() if p.is_dir() and p.name.startswith("ep_"))
         if not episodes:
             raise FileNotFoundError(f"No ep_* directories under {demos_root}")
+        kept, skipped_failed = 0, 0
         for ep in episodes:
             states_path = ep / "states.npz"
             if not states_path.exists():
                 print(f"[dataset] skip {ep.name}: no states.npz")
                 continue
+            # Optionally filter to success=True only — failed demos contain
+            # stuck/flailing frames that pollute the imitation signal.
+            if self.success_only:
+                meta_path = ep / "meta.json"
+                if meta_path.exists():
+                    import json as _json
+                    try:
+                        meta = _json.loads(meta_path.read_text())
+                        if not meta.get("success", False):
+                            skipped_failed += 1
+                            continue
+                    except Exception:
+                        pass  # if meta unreadable, fall through and keep the episode
             data = np.load(states_path)
             n = len(data["action"])
             self.actions[ep] = data["action"].astype(np.float32)
@@ -93,8 +109,10 @@ class AIR2DemoDataset(Dataset):
                 board = ep / "board_rgb" / f"t_{i:04d}.png"
                 if wrist.exists() and board.exists():
                     self.index.append((ep, i))
-        print(f"[dataset] loaded {len(episodes)} episodes, {len(self.index)} usable frames, "
-              f"chunk_size={self.chunk_size}")
+            kept += 1
+        print(f"[dataset] kept {kept}/{len(episodes)} episodes "
+              f"(skipped {skipped_failed} as success=False), "
+              f"{len(self.index)} usable frames, chunk_size={self.chunk_size}")
 
     def __len__(self) -> int:
         return len(self.index)
@@ -183,6 +201,8 @@ def main():
     parser.add_argument("--val_frac", type=float, default=0.1)
     parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--frame_stride", type=int, default=1, help="Take every Nth frame; 1 = all.")
+    parser.add_argument("--include_failed", action="store_true",
+                        help="Train on success=False demos too. Default: only success=True.")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
 
@@ -192,7 +212,8 @@ def main():
     log: list[dict] = []
 
     print(f"[bc] device={args.device}")
-    dataset = AIR2DemoDataset(Path(args.demos), frame_stride=args.frame_stride)
+    dataset = AIR2DemoDataset(Path(args.demos), frame_stride=args.frame_stride,
+                              success_only=not args.include_failed)
     n_val = max(1, int(len(dataset) * args.val_frac))
     n_train = len(dataset) - n_val
     train_ds, val_ds = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))

@@ -36,7 +36,9 @@ _TOOL_RIGID = RigidBodyPropertiesCfg(
     max_angular_velocity=1000.0,
     max_linear_velocity=1000.0,
     max_depenetration_velocity=5.0,
-    disable_gravity=True,
+    disable_gravity=False,
+    linear_damping=0.5,   # mild damping so objects don't shoot off when grasped/released
+    angular_damping=0.5,
 )
 _TOOL_MASS = MassPropertiesCfg(mass=0.05)
 
@@ -49,7 +51,11 @@ class FrankaAIR2LiftEnvCfg(LiftEnvCfg):
         # Spawn a fresh controllable Franka at the same position as the one
         # baked into AIR2.usd (which is frozen/kinematic as part of the scene).
         self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.robot.init_state.pos = (-4.2405, -5.2851, 1.0397)
+        # Moved 20 cm closer to the pegboard (y=-5.2851 -> -5.4851) so the
+        # restricted hook subset (hooks 3-8) is comfortably within the
+        # Franka's ~85 cm reach. AIR2.usd's baked Franka visual stays at the
+        # old pose; the controllable Franka floats ~20 cm forward of it.
+        self.scene.robot.init_state.pos = (-4.2405, -5.4851, 1.0397)
         self.scene.robot.init_state.joint_pos["panda_joint1"] = -1.5708  # 90° rotation at spawn
         self.scene.robot.init_state.joint_pos["panda_joint4"] = -2.26892803   # wrist horizontal
 
@@ -164,6 +170,14 @@ class FrankaAIR2LiftEnvCfg(LiftEnvCfg):
             params={"std": 0.5},
             weight=2.0,
         )
+
+        # Smoothness regularization (Raphael's feedback): bump action_rate +
+        # joint_vel penalties 10x to push PPO toward smoother trajectories.
+        # Base lift_env_cfg has weight=-1e-4 (too small to register against the
+        # ~20 weight on objects_in_basket); the curriculum eventually raises
+        # them to -1e-1 after 10k steps, but we want pressure from the start.
+        self.rewards.action_rate.weight = -1e-3
+        self.rewards.joint_vel.weight = -1e-3
 
         _pinhole = sim_utils.PinholeCameraCfg(
             focal_length=24.0, focus_distance=400.0,

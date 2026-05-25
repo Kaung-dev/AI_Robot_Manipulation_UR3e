@@ -63,15 +63,20 @@ def tag_basket_and_table(env, env_ids=None):
 
 # Hook world positions as reported by inspect_air2_hooks.py.
 HOOK_POSITIONS = [
-    (-3.7500, -5.9, 1.55000),   # hook_01
-    (-3.8850, -5.9, 1.65000),   # hook_02
-    (-4.0600, -5.9, 1.59000),   # hook_03
-    (-4.3656, -5.9, 1.34000),   # hook_04
-    (-4.2620, -5.9, 1.49600),   # hook_05
-    (-4.0910, -5.9, 1.34000),   # hook_06
-    (-3.9220, -5.9, 1.29200),   # hook_07
-    (-4.4330, -5.9, 1.54300),   # hook_08
+    (-3.7500, -5.9, 1.55000),   # hook_01  (~0.81 m from Franka — edge of reach)
+    (-3.8850, -5.9, 1.65000),   # hook_02  (~0.82 m — edge of reach)
+    (-4.0600, -5.9, 1.59000),   # hook_03  (~0.71 m — reachable)
+    (-4.3656, -5.9, 1.34000),   # hook_04  (~0.52 m — reachable)
+    (-4.2620, -5.9, 1.49600),   # hook_05  (~0.62 m — reachable)
+    (-4.0910, -5.9, 1.34000),   # hook_06  (~0.53 m — reachable)
+    (-3.9220, -5.9, 1.29200),   # hook_07  (~0.58 m — reachable)
+    (-4.4330, -5.9, 1.54300),   # hook_08  (~0.68 m — reachable)
 ]
+# Restrict object randomization to the 6 hooks that are comfortably within
+# the Franka's reach (after the Franka is moved 20 cm closer in
+# joint_pos_env_cfg.py). Hooks 1-2 are at the edge of reach and cause the
+# scripted controller to stall.
+REACHABLE_HOOK_INDICES = torch.tensor([2, 3, 4, 5, 6, 7])  # hooks 3..8 (0-indexed)
 
 _OBJECT_NAMES = ["object", "tool_pliers", "tool_scissors", "tool_silicone"]
 
@@ -85,8 +90,12 @@ def reset_objects_on_hooks(env, env_ids: torch.Tensor):
     hooks = torch.tensor(HOOK_POSITIONS, device=env.device)  # [8, 3]
     n = len(env_ids)
 
-    # argsort of uniform noise gives a unique random permutation of 0..7 per env.
-    perms = torch.argsort(torch.rand(n, 8, device=env.device), dim=1)  # [n, 8]
+    # Pick 4 hooks per env from the REACHABLE subset (6 hooks), uniformly
+    # without replacement. argsort of random noise gives a permutation; we
+    # take the first 4 for our 4 objects.
+    reachable = REACHABLE_HOOK_INDICES.to(env.device)  # [6]
+    sub_perm = torch.argsort(torch.rand(n, reachable.numel(), device=env.device), dim=1)  # [n, 6]
+    perms = reachable[sub_perm]  # [n, 6] — only first 4 columns used
 
     # Try each in turn until objects look correct on the hooks:
     #   no rotation:   [1.0, 0.0, 0.0, 0.0]

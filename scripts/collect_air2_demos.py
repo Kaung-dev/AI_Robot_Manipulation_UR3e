@@ -50,6 +50,9 @@ parser.add_argument("--episode_length_s", type=float, default=30.0,
                     help="Override env's episode_length_s. Default Lift env is ~5s which is too short for 4-object pick-place.")
 parser.add_argument("--output", default="datasets/air2_demos")
 parser.add_argument("--save_every_n_steps", type=int, default=2, help="Save every Nth frame to disk (1=all frames).")
+parser.add_argument("--single_object", action="store_true",
+                    help="Per-episode, scripted controller picks ONE random object instead of all 4. "
+                         "Produces cleaner single-pick-place demos for BC training.")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
@@ -144,7 +147,9 @@ def main():
     heartbeat(f"[collect] action shape: {env.unwrapped.action_space.shape}")
     heartbeat(f"[collect] scene keys: {list(env.unwrapped.scene.keys())}")
 
-    controller = PickPlaceController(num_envs, device)
+    controller = PickPlaceController(num_envs, device, single_object=args_cli.single_object)
+    if args_cli.single_object:
+        heartbeat("[collect] single_object mode: each episode picks ONE random object")
     action = torch.zeros(env.unwrapped.action_space.shape, device=device)
 
     saved_episodes = 0

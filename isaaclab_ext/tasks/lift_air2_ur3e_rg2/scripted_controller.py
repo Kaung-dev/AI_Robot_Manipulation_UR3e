@@ -37,7 +37,9 @@ LIFT_OFFSET_Z = 0.20        # lift 20 cm above the object to clear the hook
 BASKET_HOVER = 0.30         # 30 cm above the basket
 GRIPPER_OPEN = 1.0          # +1 = open (matches BinaryJointPositionActionCfg)
 GRIPPER_CLOSE = -1.0        # -1 = close
-POSITION_TOLERANCE = 0.04   # 4 cm tolerance
+POSITION_TOLERANCE = 0.08   # 8 cm — DLS IK won't always converge to <4 cm at edge of reach
+MAX_WAYPOINT_STEPS = 120    # hard timeout per waypoint; advance even if IK hasn't converged
+MAX_STEP_DELTA = 0.10       # clip per-step IK target delta to 10 cm to avoid overshoot/oscillation
 
 ACTION_DIM = 7              # 6-DOF IK-Rel pose + 1 gripper
 
@@ -66,11 +68,18 @@ def make_object_waypoints(obj_xyz: torch.Tensor) -> list[tuple[torch.Tensor, flo
 
 
 class PickPlaceController:
-    """Per-env scripted controller. Stores a waypoint queue per env."""
+    """Per-env scripted controller. Stores a waypoint queue per env.
 
-    def __init__(self, num_envs: int, device: torch.device):
+    `single_object=True` mode: each episode picks ONE random object from the
+    list and ends after that single pick-place. This produces clean,
+    consistently-successful demo trajectories (no per-episode timeouts on
+    objects 3-4 that never get reached). Recommended for BC training.
+    """
+
+    def __init__(self, num_envs: int, device: torch.device, single_object: bool = False):
         self.num_envs = num_envs
         self.device = device
+        self.single_object = single_object
         self.waypoints: list[list] = [[] for _ in range(num_envs)]
         self.wp_idx = torch.zeros(num_envs, dtype=torch.long, device=device)
         self.dwell = torch.zeros(num_envs, dtype=torch.long, device=device)
@@ -79,6 +88,10 @@ class PickPlaceController:
     def reset(self, env_objects: list[list[torch.Tensor]]):
         """Build waypoints for each env from current object positions."""
         for i, objs in enumerate(env_objects):
+            if self.single_object and len(objs) > 0:
+                # Pick ONE random object per episode for clean BC demos.
+                pick_idx = int(torch.randint(0, len(objs), (1,)).item())
+                objs = [objs[pick_idx]]
             wps = []
             for obj_xyz in objs:
                 wps.extend(make_object_waypoints(obj_xyz))
@@ -104,16 +117,21 @@ class PickPlaceController:
             target_xyz = target_xyz.to(self.device)
             d = target_xyz - ee_pos_local[i]
             dist = torch.linalg.norm(d)
+            # Clip per-step delta to avoid IK overshoot / oscillation around
+            # hard-to-reach targets.
+            if dist > MAX_STEP_DELTA:
+                d = d * (MAX_STEP_DELTA / dist)
             delta_pos[i] = d
             gripper[i] = grip_cmd
 
             self.dwell[i] += 1
-            # For gripper-action waypoints (CLOSE / RELEASE), we don't need to
-            # move further — only dwell for min_dwell steps to let physics settle.
-            # For position waypoints, also require reaching the target.
             position_reached = dist < POSITION_TOLERANCE
             dwell_done = self.dwell[i] >= min_dwell
-            if position_reached and dwell_done:
+            # Hard timeout: advance after MAX_WAYPOINT_STEPS even if not
+            # converged. Without this, an unreachable / edge-of-reach
+            # waypoint stalls the entire episode.
+            timed_out = self.dwell[i] >= MAX_WAYPOINT_STEPS
+            if (position_reached and dwell_done) or timed_out:
                 self.wp_idx[i] += 1
                 self.dwell[i] = 0
 
