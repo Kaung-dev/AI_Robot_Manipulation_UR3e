@@ -102,7 +102,7 @@ def reset_objects_on_hooks(env, env_ids: torch.Tensor):
     #   90° around X:  [0.7071, 0.7071, 0.0,   0.0  ]  (tilts forward/back)
     #   90° around Y:  [0.7071, 0.0,   0.7071, 0.0  ]  (spins left/right)
     #   90° around Z:  [0.7071, 0.0,   0.0,   0.7071]  (rolls sideways)
-    object_quat = torch.tensor([0.7071, 0.0,   0.0,   0.7071], device=env.device).expand(n, -1)
+    object_quat = torch.tensor([0.7071, 0.0,   0.0,   -0.7071], device=env.device).expand(n, -1)
 
     if not _debug_printed:
         print(f"[DEBUG hooks] env_origins[env_ids[0]] = {env.scene.env_origins[env_ids[0]].tolist()}")

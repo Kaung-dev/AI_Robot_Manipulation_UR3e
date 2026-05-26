@@ -37,7 +37,7 @@ _TOOL_RIGID = RigidBodyPropertiesCfg(
     max_linear_velocity=1000.0,
     max_depenetration_velocity=5.0,
     disable_gravity=False,
-    linear_damping=0.5,   # mild damping so objects don't shoot off when grasped/released
+    linear_damping=0.5,
     angular_damping=0.5,
 )
 _TOOL_MASS = MassPropertiesCfg(mass=0.05)
@@ -55,7 +55,7 @@ class FrankaAIR2LiftEnvCfg(LiftEnvCfg):
         # restricted hook subset (hooks 3-8) is comfortably within the
         # Franka's ~85 cm reach. AIR2.usd's baked Franka visual stays at the
         # old pose; the controllable Franka floats ~20 cm forward of it.
-        self.scene.robot.init_state.pos = (-4.2405, -5.4851, 1.0397)
+        self.scene.robot.init_state.pos = (-4.2405, -5.2851, 1.0397)
         self.scene.robot.init_state.joint_pos["panda_joint1"] = -1.5708  # 90° rotation at spawn
         self.scene.robot.init_state.joint_pos["panda_joint4"] = -2.26892803   # wrist horizontal
 
@@ -87,7 +87,8 @@ class FrankaAIR2LiftEnvCfg(LiftEnvCfg):
         self.scene.table = AssetBaseCfg(
             prim_path="{ENV_REGEX_NS}/Environment",
             init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 0.0, 0.0]),
-            spawn=UsdFileCfg(usd_path=str(_SCENE / "AIR2.usd")),
+            spawn=UsdFileCfg(usd_path=str(_SCENE / "AIR2.usd"),
+                             rigid_props=RigidBodyPropertiesCfg(kinematic_enabled=True)),
         )
 
         # Main pick target at hook_01.

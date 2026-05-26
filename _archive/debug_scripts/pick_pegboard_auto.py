@@ -46,6 +46,7 @@ import warp as wp
 from isaaclab.assets.rigid_object.rigid_object_data import RigidObjectData
 
 import isaaclab_tasks  # noqa: F401 — registers gym envs
+import isaaclab_ext.tasks.lift_pegboard_ur3e_rg2  # noqa: F401 — registers local pegboard envs
 from isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg import LiftEnvCfg
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
 
