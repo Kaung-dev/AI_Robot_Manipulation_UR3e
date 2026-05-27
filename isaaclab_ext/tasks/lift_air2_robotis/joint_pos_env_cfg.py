@@ -16,7 +16,7 @@ from pathlib import Path
 
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.managers import EventTermCfg as EventTerm
-from isaaclab.sim.schemas.schemas_cfg import MassPropertiesCfg, RigidBodyPropertiesCfg
+from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils import configclass
 
@@ -76,7 +76,7 @@ class FrankaAIR2RobotisLiftEnvCfg(FrankaAIR2LiftEnvCfg):
             prim_path="{ENV_REGEX_NS}/Object",
             init_state=RigidObjectCfg.InitialStateCfg(pos=_SLOTS["L1"], rot=_TOOL_ROT),
             spawn=UsdFileCfg(
-                usd_path=str(_ASSETS / "tooth_brush_green.usd"),
+                usd_path=str(_ASSETS / "brush_ring.usd"),
                 rigid_props=_TOOL_RIGID,
                 mass_props=_TOOL_MASS,
             ),
@@ -86,7 +86,7 @@ class FrankaAIR2RobotisLiftEnvCfg(FrankaAIR2LiftEnvCfg):
         for name, fname, slot in [
             ("tool_pliers",   "pliers_ring_orange.usd",      "L0"),
             ("tool_scissors", "scissors_ring_red.usd",       "R0"),
-            ("tool_silicone", "silicone_tube_ring_blue.usd", "R1"),
+            ("tool_silicone", "screw_driver_ring.usd",       "R1"),
         ]:
             setattr(
                 self.scene, name,
