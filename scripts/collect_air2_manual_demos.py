@@ -17,6 +17,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import time
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
@@ -159,7 +160,7 @@ def make_teleop_interface(env_cfg, callbacks):
     return interface
 
 
-def subscribe_global_keyboard(callback_by_name: dict[str, object]):
+def subscribe_global_keyboard(callback_by_name: dict[str, object], allowed_keys: set[str] | None = None):
     """Subscribe to app-window keyboard events when available.
 
     This lets number-key annotations work while the robot is driven by a
@@ -179,6 +180,10 @@ def subscribe_global_keyboard(callback_by_name: dict[str, object]):
                 return True
             raw_name = str(getattr(event.input, "name", event.input)).upper()
             key_name = raw_name.replace("KEY_", "").replace("NUMPAD_", "")
+            if key_name.startswith("KEYBOARDINPUT."):
+                key_name = key_name.split(".", 1)[1]
+            if allowed_keys is not None and key_name not in allowed_keys:
+                return True
             callback = callback_by_name.get(key_name)
             if callback is not None:
                 callback()
@@ -222,20 +227,43 @@ def main() -> None:
         state["recording"] = not bool(state["recording"])
         print(f"[manual] recording={'on' if state['recording'] else 'paused'}", flush=True)
 
+    last_callback_time: dict[str, float] = {}
+
+    def once(key: str, func, cooldown_s: float = 0.25):
+        now = time.monotonic()
+        if now - last_callback_time.get(key, 0.0) < cooldown_s:
+            return
+        last_callback_time[key] = now
+        func()
+
     callbacks = {
-        "1": lambda: set_target("1"),
-        "2": lambda: set_target("2"),
-        "3": lambda: set_target("3"),
-        "4": lambda: set_target("4"),
-        "L": toggle_recording,
-        "ENTER": lambda: state.__setitem__("accept", True),
-        "RETURN": lambda: state.__setitem__("accept", True),
-        "BACKSPACE": lambda: state.__setitem__("discard", True),
-        "R": lambda: state.__setitem__("reset", True),
-        "RESET": lambda: state.__setitem__("reset", True),
+        "1": lambda: once("1", lambda: set_target("1")),
+        "KEY_1": lambda: once("1", lambda: set_target("1")),
+        "NUMPAD_1": lambda: once("1", lambda: set_target("1")),
+        "2": lambda: once("2", lambda: set_target("2")),
+        "KEY_2": lambda: once("2", lambda: set_target("2")),
+        "NUMPAD_2": lambda: once("2", lambda: set_target("2")),
+        "3": lambda: once("3", lambda: set_target("3")),
+        "KEY_3": lambda: once("3", lambda: set_target("3")),
+        "NUMPAD_3": lambda: once("3", lambda: set_target("3")),
+        "4": lambda: once("4", lambda: set_target("4")),
+        "KEY_4": lambda: once("4", lambda: set_target("4")),
+        "NUMPAD_4": lambda: once("4", lambda: set_target("4")),
+        "L": lambda: once("L", toggle_recording),
+        "ENTER": lambda: once("ENTER", lambda: state.__setitem__("accept", True)),
+        "RETURN": lambda: once("ENTER", lambda: state.__setitem__("accept", True)),
+        "BACKSPACE": lambda: once("BACKSPACE", lambda: state.__setitem__("discard", True)),
+        "R": lambda: once("R", lambda: state.__setitem__("reset", True)),
+        "RESET": lambda: once("R", lambda: state.__setitem__("reset", True)),
     }
     teleop_interface = make_teleop_interface(env_cfg, callbacks)
-    keyboard_subscription = subscribe_global_keyboard(callbacks)
+    # Se3Keyboard does not consistently expose number keys as additional
+    # callbacks, so use a global listener only for annotation/accept/discard
+    # keys. Movement keys plus L/R remain owned by the teleop device.
+    keyboard_subscription = subscribe_global_keyboard(
+        callbacks,
+        allowed_keys={"1", "2", "3", "4", "ENTER", "RETURN", "BACKSPACE"},
+    )
     teleop_interface.reset()
 
     action = torch.zeros(env.action_space.shape, device=device)
