@@ -3,6 +3,8 @@ Startup-time event: tag basket and table prims with dedicated semantic classes
 so the segmentation CNN can distinguish them from generic 'environment'."""
 import torch
 
+from ..objects import OBJECT_NAMES
+
 
 _semantics_done = False
 
@@ -78,7 +80,7 @@ HOOK_POSITIONS = [
 # scripted controller to stall.
 REACHABLE_HOOK_INDICES = torch.tensor([2, 3, 4, 5, 6, 7])  # hooks 3..8 (0-indexed)
 
-_OBJECT_NAMES = ["object", "tool_pliers", "tool_scissors", "tool_silicone"]
+_OBJECT_NAMES = list(OBJECT_NAMES)
 
 
 _debug_printed = False

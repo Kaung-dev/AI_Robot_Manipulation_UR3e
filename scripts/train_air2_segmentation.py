@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CNN_DIR = REPO_ROOT / "isaaclab_ext/tasks/lift_air2_ur3e_rg2/cnn"
+sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(CNN_DIR))
 
 from dataset import AIR2SegmentationDataset, load_class_map
@@ -53,10 +54,10 @@ def save_overlay(image: torch.Tensor, mask: torch.Tensor, pred: torch.Tensor, pa
     palette = np.array(
         [
             [0, 0, 0],         # 0 background
-            [76, 175, 80],     # 1 toothbrush
+            [76, 175, 80],     # 1 brush
             [255, 152, 0],     # 2 pliers
             [244, 67, 54],     # 3 scissors
-            [33, 150, 243],    # 4 silicone
+            [33, 150, 243],    # 4 screwdriver
             [158, 158, 158],   # 5 robot
             [255, 235, 59],    # 6 basket
             [96, 125, 139],    # 7 table

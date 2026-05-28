@@ -19,3 +19,21 @@ gym.register(
     },
     disable_env_checker=True,
 )
+
+gym.register(
+    id="Isaac-Lift-AIR2-Robotis-Segmentation-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.segmentation_env_cfg:AIR2RobotisSegmentationEnvCfg",
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Lift-AIR2-Robotis-Segmentation-Play-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.segmentation_env_cfg:AIR2RobotisSegmentationEnvCfg_PLAY",
+    },
+    disable_env_checker=True,
+)

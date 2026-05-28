@@ -4,7 +4,7 @@ Usage:
     C:\\isaac\\IsaacLab\\isaaclab.bat -p scripts/eval_bc.py ^
         --bc_ckpt checkpoints/policy_bc.pth ^
         --unet_ckpt checkpoints/air2_segmentation_unet.pth ^
-        --task Isaac-Lift-AIR2-UR3e-RG2-Segmentation-Play-v0 ^
+        --task Isaac-Lift-AIR2-Robotis-Segmentation-Play-v0 ^
         --enable_cameras --headless ^
         --num_envs 4 --num_episodes 50 ^
         --out eval_results/bc_rollouts.json
@@ -27,17 +27,23 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+from isaaclab_ext.tasks.lift_air2_ur3e_rg2.objects import OBJECT_BY_LABEL, TARGET_LABELS
+
+# Windows workaround: load h5py's bundled HDF5 DLLs before Isaac Sim extensions.
+import h5py  # noqa: F401
+
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Evaluate a trained BC policy.")
 parser.add_argument("--bc_ckpt", required=True, help="Path to policy_bc.pth from train_bc.py.")
 parser.add_argument("--unet_ckpt", default=None, help="U-Net checkpoint (must match the one used at train time).")
 parser.add_argument("--num_classes", type=int, default=9)
-parser.add_argument("--task", default="Isaac-Lift-AIR2-UR3e-RG2-Segmentation-Play-v0")
+parser.add_argument("--task", default="Isaac-Lift-AIR2-Robotis-Segmentation-Play-v0")
 parser.add_argument("--num_envs", type=int, default=4)
 parser.add_argument("--num_episodes", type=int, default=20)
 parser.add_argument("--max_steps", type=int, default=800)
 parser.add_argument("--episode_length_s", type=float, default=20.0)
+parser.add_argument("--target_object", choices=TARGET_LABELS, default="brush")
 parser.add_argument("--out", default="eval_results/bc_rollouts.json")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -53,10 +59,11 @@ import gymnasium as gym
 
 import isaaclab_tasks  # noqa: F401
 import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
+import isaaclab_ext.tasks.lift_air2_robotis  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
 from isaaclab_ext.tasks.lift_air2_ur3e_rg2.policy import (
-    BCPolicy, load_frozen_encoder, JOINT_DIM, ACTION_DIM,
+    BCPolicy, load_frozen_encoder, JOINT_DIM, ACTION_DIM, COMMAND_DIM,
 )
 
 
@@ -87,6 +94,10 @@ def main():
           f"val_loss {ckpt.get('val_loss', float('nan')):.4f})", flush=True)
 
     last_action = torch.zeros(num_envs, ACTION_DIM, device=device)
+    target_spec = OBJECT_BY_LABEL[args_cli.target_object]
+    target_one_hot = torch.zeros(num_envs, COMMAND_DIM, device=device)
+    target_one_hot[:, target_spec.class_id - 1] = 1.0
+    print(f"[eval] target_object={target_spec.label} class_id={target_spec.class_id}", flush=True)
     basket_pos_dev = BASKET_POS_LOCAL.to(device)
 
     # Per-env episode tracking
@@ -110,7 +121,7 @@ def main():
             # Chunked policy returns (B, chunk, 7); execute the first action.
             # (Could be upgraded to temporal ensembling — average overlapping
             # chunks from the last K steps — see ACT paper.)
-            chunk = policy(wrist_chw, board_chw, state)
+            chunk = policy(wrist_chw, board_chw, state, target_one_hot)
             action = chunk[:, 0, :]   # (B, 7)
 
             # Gripper logit → discrete {-1, +1}
@@ -146,6 +157,8 @@ def main():
                         "reached_basket": reached_basket,
                         "terminated": bool(term[i].item()),
                         "truncated": bool(trunc[i].item()),
+                        "target_object": target_spec.label,
+                        "target_class_id": target_spec.class_id,
                     })
                     print(f"[eval] ep {len(saved_episodes)}/{args_cli.num_episodes}  "
                           f"env={i}  steps={ep_step[i].item()}  "
@@ -169,6 +182,8 @@ def main():
         "std_reward": float(np.std(rewards)) if rewards else 0.0,
         "basket_reach_rate": reached / n if n else 0.0,
         "mean_steps": float(np.mean([e["steps"] for e in saved_episodes])) if n else 0.0,
+        "target_object": target_spec.label,
+        "target_class_id": target_spec.class_id,
         "episodes": saved_episodes,
     }
     out_path.write_text(json.dumps(summary, indent=2))

@@ -7,6 +7,7 @@ from isaaclab.utils import configclass
 
 from . import joint_pos_env_cfg
 from .mdp import events as _air2_events
+from .objects import OBJECT_SPECS
 
 
 SEGMENTATION_DATA_TYPES = [
@@ -17,10 +18,7 @@ SEGMENTATION_DATA_TYPES = [
 ]
 
 SEMANTIC_MAPPING = {
-    "class:toothbrush": (76, 175, 80, 255),
-    "class:pliers": (255, 152, 0, 255),
-    "class:scissors": (244, 67, 54, 255),
-    "class:silicone": (33, 150, 243, 255),
+    **{f"class:{spec.label}": (*spec.color_rgb, 255) for spec in OBJECT_SPECS},
     "class:robot": (158, 158, 158, 255),
     "class:basket": (255, 235, 59, 255),     # bright yellow
     "class:table": (96, 125, 139, 255),      # blue-grey
@@ -43,10 +41,8 @@ def _set_air2_semantics(cfg) -> None:
     """
     cfg.scene.robot.spawn.semantic_tags = [("class", "robot")]
     # cfg.scene.table.spawn.semantic_tags intentionally NOT set — handled by event.
-    cfg.scene.object.spawn.semantic_tags = [("class", "toothbrush")]
-    cfg.scene.tool_pliers.spawn.semantic_tags = [("class", "pliers")]
-    cfg.scene.tool_scissors.spawn.semantic_tags = [("class", "scissors")]
-    cfg.scene.tool_silicone.spawn.semantic_tags = [("class", "silicone")]
+    for spec in OBJECT_SPECS:
+        getattr(cfg.scene, spec.scene_key).spawn.semantic_tags = [("class", spec.label)]
 
 
 def _apply_segmentation_cameras(cfg) -> None:

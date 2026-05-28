@@ -11,39 +11,33 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 
+try:
+    from isaaclab_ext.tasks.lift_air2_ur3e_rg2.objects import OBJECT_SPECS
+except ImportError:
+    import sys
 
-AIR2_CLASS_MAP: dict[int, str] = {
-    0: "background",
-    1: "toothbrush",
-    2: "pliers",
-    3: "scissors",
-    4: "silicone",
-    5: "robot",
-    6: "basket",
-    7: "table",
-    8: "environment",
-}
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from objects import OBJECT_SPECS
 
-# RGB colors → class IDs. Must match SEMANTIC_MAPPING in segmentation_env_cfg.py.
+
+AIR2_CLASS_MAP: dict[int, str] = {0: "background", **{spec.class_id: spec.label for spec in OBJECT_SPECS}}
+AIR2_CLASS_MAP.update({5: "robot", 6: "basket", 7: "table", 8: "environment"})
+
+# RGB colors -> class IDs. Must match SEMANTIC_MAPPING in segmentation_env_cfg.py.
 AIR2_COLOR_TO_CLASS: dict[tuple[int, int, int], int] = {
-    (76, 175, 80): 1,    # green   → toothbrush
-    (255, 152, 0): 2,    # orange  → pliers
-    (244, 67, 54): 3,    # red     → scissors
-    (33, 150, 243): 4,   # blue    → silicone
-    (158, 158, 158): 5,  # grey    → robot
-    (255, 235, 59): 6,   # yellow  → basket
-    (96, 125, 139): 7,   # blue-grey → table (the AIR2 scene walls/floor/pegboard)
-    (121, 85, 72): 8,    # brown   → environment (anything else)
-    (0, 0, 0): 0,        # black   → background
+    **{spec.color_rgb: spec.class_id for spec in OBJECT_SPECS},
+    (158, 158, 158): 5,  # robot
+    (255, 235, 59): 6,   # basket
+    (96, 125, 139): 7,   # table, walls, floor, pegboard, hooks
+    (121, 85, 72): 8,    # environment
+    (0, 0, 0): 0,        # background
 }
 
 _ALIASES = {
-    "toothbrush": 1,
-    "tooth_brush": 1,
-    "pliers": 2,
-    "scissors": 3,
-    "silicone": 4,
-    "silicone_tube": 4,
+    **{spec.label: spec.class_id for spec in OBJECT_SPECS},
+    "brush_ring": 1,
+    "screw_driver": 4,
+    "screw_driver_ring": 4,
     "robot": 5,
     "franka": 5,
     "panda": 5,
@@ -53,7 +47,7 @@ _ALIASES = {
     "boxportable": 6,
     "table": 7,
     "seattlelab": 7,
-    "hook": 7,        # hooks are part of the pegboard surface; lump with table
+    "hook": 7,
     "board": 7,
     "pegboard": 7,
     "environment": 8,

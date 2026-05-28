@@ -79,6 +79,7 @@ def run_live_mode(args) -> None:
 
     import isaaclab_tasks  # noqa: F401
     import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
+    import isaaclab_ext.tasks.lift_air2_robotis  # noqa: F401
     from isaaclab_tasks.utils import parse_env_cfg
 
     device = torch.device(args.device)
@@ -122,7 +123,7 @@ def main() -> None:
     parser.add_argument("--image", help="Saved RGB image path. Omit for live Isaac mode.")
     parser.add_argument("--depth", help="Optional saved depth .npy for image mode.")
     parser.add_argument("--intrinsics", help="Optional camera intrinsics .npy for image mode.")
-    parser.add_argument("--task", default="Isaac-Lift-AIR2-UR3e-RG2-Segmentation-v0")
+    parser.add_argument("--task", default="Isaac-Lift-AIR2-Robotis-Segmentation-v0")
     parser.add_argument("--camera", default="board_camera")
     parser.add_argument("--settle-steps", type=int, default=5)
     parser.add_argument("--image-size", type=int, default=224)

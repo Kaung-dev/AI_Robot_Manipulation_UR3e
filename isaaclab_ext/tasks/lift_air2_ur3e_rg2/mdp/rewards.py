@@ -23,6 +23,8 @@ from isaaclab.assets import RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
 
+from ..objects import OBJECT_NAMES
+
 
 # Basket world-position in env-local frame. Matches BASKET_POS_LOCAL in
 # scripted_controller.py so demo trajectories and reward signal agree.
@@ -33,7 +35,7 @@ BASKET_POS_LOCAL = torch.tensor([-3.560, -5.370, 1.040])
 HOOK_LINE_Y = -5.9
 HOOK_CLEAR = 0.20  # 20 cm
 
-_OBJECT_NAMES = ("object", "tool_pliers", "tool_scissors", "tool_silicone")
+_OBJECT_NAMES = tuple(OBJECT_NAMES)
 
 
 def _object_local_pos(env: ManagerBasedRLEnv, name: str) -> torch.Tensor:

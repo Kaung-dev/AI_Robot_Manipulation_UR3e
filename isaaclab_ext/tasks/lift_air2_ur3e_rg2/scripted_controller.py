@@ -24,9 +24,11 @@ from __future__ import annotations
 
 import torch
 
+from .objects import OBJECT_BY_SCENE_KEY, OBJECT_NAMES as CATALOG_OBJECT_NAMES
+
 
 # Match collect_air2_demos.py expectations.
-OBJECT_NAMES = ["object", "tool_pliers", "tool_scissors", "tool_silicone"]
+OBJECT_NAMES = list(CATALOG_OBJECT_NAMES)
 BASKET_POS_LOCAL = torch.tensor([-3.560, -5.370, 1.040])
 
 # Approach geometry — hooks are at y=-5.9 so objects sit on the -Y side of the
@@ -81,6 +83,7 @@ class PickPlaceController:
         self.device = device
         self.single_object = single_object
         self.waypoints: list[list] = [[] for _ in range(num_envs)]
+        self.wp_class_ids: list[list[int]] = [[] for _ in range(num_envs)]
         self.wp_idx = torch.zeros(num_envs, dtype=torch.long, device=device)
         self.dwell = torch.zeros(num_envs, dtype=torch.long, device=device)
         self.done = torch.zeros(num_envs, dtype=torch.bool, device=device)
@@ -88,14 +91,20 @@ class PickPlaceController:
     def reset(self, env_objects: list[list[torch.Tensor]]):
         """Build waypoints for each env from current object positions."""
         for i, objs in enumerate(env_objects):
+            object_names = list(OBJECT_NAMES[:len(objs)])
             if self.single_object and len(objs) > 0:
                 # Pick ONE random object per episode for clean BC demos.
                 pick_idx = int(torch.randint(0, len(objs), (1,)).item())
                 objs = [objs[pick_idx]]
+                object_names = [object_names[pick_idx]]
             wps = []
-            for obj_xyz in objs:
-                wps.extend(make_object_waypoints(obj_xyz))
+            wp_class_ids = []
+            for obj_name, obj_xyz in zip(object_names, objs):
+                obj_wps = make_object_waypoints(obj_xyz)
+                wps.extend(obj_wps)
+                wp_class_ids.extend([OBJECT_BY_SCENE_KEY[obj_name].class_id] * len(obj_wps))
             self.waypoints[i] = wps
+            self.wp_class_ids[i] = wp_class_ids
         self.wp_idx.zero_()
         self.dwell.zero_()
         self.done.zero_()
@@ -139,3 +148,12 @@ class PickPlaceController:
 
     def all_done(self) -> bool:
         return bool(self.done.all().item())
+
+    def current_class_ids(self) -> torch.Tensor:
+        """Return the class ID associated with each env's current waypoint."""
+        class_ids = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+        for i in range(self.num_envs):
+            idx = int(self.wp_idx[i])
+            if idx < len(self.wp_class_ids[i]):
+                class_ids[i] = int(self.wp_class_ids[i][idx])
+        return class_ids

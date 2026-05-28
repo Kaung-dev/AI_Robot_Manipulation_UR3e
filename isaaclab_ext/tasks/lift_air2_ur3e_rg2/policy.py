@@ -5,7 +5,7 @@ Architecture (matches CNN_PERCEPTION_AND_POLICY.md):
     wrist_rgb (224x224x3) ──► U-Net encoder (frozen) ──► pooled features (256)
     board_rgb (640x360x3) ──► U-Net encoder (frozen) ──► pooled features (256)
                                                               │
-              + joint_pos (9) + joint_vel (9) + last_action (7)
+              + joint_pos (9) + joint_vel (9) + last_action (7) + target object (4)
                                                               │
                                                               ▼
                                                        MLP (state + vision)
@@ -27,6 +27,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from .cnn.model import AIR2UNet
+from .objects import TARGET_DIM
 
 
 # ----- vision encoder -------------------------------------------------------
@@ -86,6 +87,7 @@ JOINT_DIM = 9        # Franka: 7 arm + 2 fingers
 ACTION_DIM = 7       # IK-Rel pose (6) + binary gripper (1)
 CHUNK_SIZE = 16      # ACT-inspired: predict the next CHUNK_SIZE actions in one forward pass
 STATE_DIM = JOINT_DIM * 2 + ACTION_DIM   # joint_pos + joint_vel + last_action
+COMMAND_DIM = TARGET_DIM                  # one-hot target object command
 DEFAULT_VISION_DIM = 256                  # FrozenUNetEncoder feature_dim
 
 
@@ -113,6 +115,7 @@ class BCPolicy(nn.Module):
         encoder: FrozenUNetEncoder,
         vision_dim: int = DEFAULT_VISION_DIM,
         state_dim: int = STATE_DIM,
+        command_dim: int = COMMAND_DIM,
         action_dim: int = ACTION_DIM,
         chunk_size: int = CHUNK_SIZE,
         hidden: tuple[int, int] = (256, 128),
@@ -121,9 +124,10 @@ class BCPolicy(nn.Module):
         self.encoder = encoder
         self.chunk_size = chunk_size
         self.action_dim = action_dim
+        self.command_dim = command_dim
         # one encoder pass per camera (shared weights) — input dim = 2 * vision_dim
         self.fusion = nn.Sequential(
-            nn.Linear(2 * vision_dim + state_dim, hidden[0]),
+            nn.Linear(2 * vision_dim + state_dim + command_dim, hidden[0]),
             nn.ReLU(inplace=True),
             nn.Linear(hidden[0], hidden[1]),
             nn.ReLU(inplace=True),
@@ -147,19 +151,24 @@ class BCPolicy(nn.Module):
         wrist_rgb: torch.Tensor,
         board_rgb: torch.Tensor,
         state: torch.Tensor,
+        target_one_hot: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Returns predicted action chunk: (B, chunk_size, action_dim).
 
         state: (B, STATE_DIM) — joint_pos + joint_vel + last_action.
         """
+        if target_one_hot is None:
+            target_one_hot = torch.zeros(
+                state.shape[0], self.command_dim, dtype=state.dtype, device=state.device
+            )
         vision = self.encode(wrist_rgb, board_rgb)
-        x = torch.cat([vision, state], dim=1)
+        x = torch.cat([vision, state, target_one_hot], dim=1)
         x = self.fusion(x)
         flat = self.action_head(x)                                   # (B, chunk * action_dim)
         return flat.view(-1, self.chunk_size, self.action_dim)       # (B, chunk, action_dim)
 
     @torch.no_grad()
-    def act_first(self, wrist_rgb, board_rgb, state) -> torch.Tensor:
+    def act_first(self, wrist_rgb, board_rgb, state, target_one_hot=None) -> torch.Tensor:
         """Convenience: predict chunk, return first action only. (B, action_dim)."""
-        chunk = self.forward(wrist_rgb, board_rgb, state)
+        chunk = self.forward(wrist_rgb, board_rgb, state, target_one_hot)
         return chunk[:, 0, :]
