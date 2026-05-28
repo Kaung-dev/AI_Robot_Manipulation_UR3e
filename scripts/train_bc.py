@@ -1,8 +1,9 @@
 """Custom PyTorch behaviour-cloning trainer for the AIR2 pick-place task.
 
-Reads PNG+npz episodes produced by scripts/collect_air2_demos.py and trains
+Reads PNG+npz episodes produced by scripts/collect_air2_manual_demos.py or
+scripts/collect_air2_demos.py and trains
 a BCPolicy (frozen U-Net encoder + small MLP) to predict the recorded action
-from (wrist_rgb, board_rgb, joint_pos, joint_vel, last_action).
+from (wrist_rgb, board_rgb, joint_pos, joint_vel, last_action, target_object).
 
 Loss: MSE on the 6 IK-Rel pose-delta dims + BCE on the gripper bit.
 Optim: Adam, lr 1e-4 by default, cosine schedule.
@@ -41,7 +42,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from isaaclab_ext.tasks.lift_air2_ur3e_rg2.policy import (
     BCPolicy, FrozenUNetEncoder, load_frozen_encoder,
-    ACTION_DIM, STATE_DIM, JOINT_DIM, CHUNK_SIZE,
+    ACTION_DIM, STATE_DIM, JOINT_DIM, CHUNK_SIZE, COMMAND_DIM,
 )
 
 
@@ -74,6 +75,8 @@ class AIR2DemoDataset(Dataset):
         self.actions: dict[Path, np.ndarray] = {}
         self.joint_pos: dict[Path, np.ndarray] = {}
         self.joint_vel: dict[Path, np.ndarray] = {}
+        self.target_one_hot: dict[Path, np.ndarray] = {}
+        self.target_valid: dict[Path, np.ndarray] = {}
 
         episodes = sorted(p for p in self.demos_root.iterdir() if p.is_dir() and p.name.startswith("ep_"))
         if not episodes:
@@ -102,9 +105,21 @@ class AIR2DemoDataset(Dataset):
             self.actions[ep] = data["action"].astype(np.float32)
             self.joint_pos[ep] = data["joint_pos"].astype(np.float32)
             self.joint_vel[ep] = data["joint_vel"].astype(np.float32)
+            if "target_one_hot" not in data:
+                raise KeyError(
+                    f"{states_path} does not contain target_one_hot. "
+                    "Record manual object-annotated demos with collect_air2_manual_demos.py."
+                )
+            target = data["target_one_hot"].astype(np.float32)
+            if target.shape != (n, COMMAND_DIM):
+                raise ValueError(f"{states_path} target_one_hot has shape {target.shape}, expected {(n, COMMAND_DIM)}")
+            self.target_one_hot[ep] = target
+            self.target_valid[ep] = data["target_valid"].astype(bool) if "target_valid" in data else target.sum(axis=1) > 0.0
             # Skip very first frame (last_action is meaningless before any action).
             # We DO include frames near the end — padding handles the short tail.
             for i in range(1, n, self.frame_stride):
+                if not bool(self.target_valid[ep][i]):
+                    continue
                 wrist = ep / "wrist_rgb" / f"t_{i:04d}.png"
                 board = ep / "board_rgb" / f"t_{i:04d}.png"
                 if wrist.exists() and board.exists():
@@ -133,6 +148,7 @@ class AIR2DemoDataset(Dataset):
         jv = torch.from_numpy(self.joint_vel[ep][t].copy())     # (9,)
         last_action = torch.from_numpy(self.actions[ep][t - 1].copy())  # (7,)
         state = torch.cat([jp, jv, last_action], dim=0)  # (25,)
+        target_one_hot = torch.from_numpy(self.target_one_hot[ep][t].copy())
 
         # Action chunk + mask
         actions_arr = self.actions[ep]
@@ -147,7 +163,7 @@ class AIR2DemoDataset(Dataset):
             chunk[valid:] = actions_arr[end - 1]
         mask = np.zeros(self.chunk_size, dtype=np.float32)
         mask[:valid] = 1.0
-        return wrist, board, state, torch.from_numpy(chunk), torch.from_numpy(mask)
+        return wrist, board, state, target_one_hot, torch.from_numpy(chunk), torch.from_numpy(mask)
 
 
 # ----- losses ---------------------------------------------------------------
@@ -242,14 +258,15 @@ def main():
         policy.train()
         t0 = time.time()
         epoch_metrics = {"pose_l1": 0.0, "grip_bce": 0.0, "total": 0.0, "n": 0}
-        for wrist, board, state, action, mask in train_loader:
+        for wrist, board, state, target_one_hot, action, mask in train_loader:
             wrist = wrist.to(args.device, non_blocking=True)
             board = board.to(args.device, non_blocking=True)
             state = state.to(args.device, non_blocking=True)
+            target_one_hot = target_one_hot.to(args.device, non_blocking=True)
             action = action.to(args.device, non_blocking=True)
             mask = mask.to(args.device, non_blocking=True)
 
-            pred = policy(wrist, board, state)  # (B, chunk, 7)
+            pred = policy(wrist, board, state, target_one_hot)  # (B, chunk, 7)
             loss, m = bc_loss(pred, action, mask)
             optim.zero_grad()
             loss.backward()
@@ -268,13 +285,14 @@ def main():
         policy.eval()
         val_metrics = {"pose_l1": 0.0, "grip_bce": 0.0, "total": 0.0, "n": 0}
         with torch.no_grad():
-            for wrist, board, state, action, mask in val_loader:
+            for wrist, board, state, target_one_hot, action, mask in val_loader:
                 wrist = wrist.to(args.device, non_blocking=True)
                 board = board.to(args.device, non_blocking=True)
                 state = state.to(args.device, non_blocking=True)
+                target_one_hot = target_one_hot.to(args.device, non_blocking=True)
                 action = action.to(args.device, non_blocking=True)
                 mask = mask.to(args.device, non_blocking=True)
-                pred = policy(wrist, board, state)
+                pred = policy(wrist, board, state, target_one_hot)
                 _, m = bc_loss(pred, action, mask)
                 b = wrist.size(0)
                 for k, v in m.items():

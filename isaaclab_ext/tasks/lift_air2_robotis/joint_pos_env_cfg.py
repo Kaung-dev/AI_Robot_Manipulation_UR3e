@@ -28,6 +28,7 @@ from isaaclab_ext.tasks.lift_air2_ur3e_rg2.joint_pos_env_cfg import (
     _TOOL_RIGID,
     _TOOL_MASS,
 )
+from isaaclab_ext.tasks.lift_air2_ur3e_rg2.objects import OBJECT_SPECS
 
 _HERE = Path(__file__).resolve()
 _REPO_CANDIDATES = [
@@ -77,25 +78,25 @@ class FrankaAIR2RobotisLiftEnvCfg(FrankaAIR2LiftEnvCfg):
             prim_path="{ENV_REGEX_NS}/Object",
             init_state=RigidObjectCfg.InitialStateCfg(pos=_SLOTS["L1"], rot=_TOOL_ROT),
             spawn=UsdFileCfg(
-                usd_path=str(_ASSETS / "brush_ring.usd"),
+                usd_path=str(_ASSETS / OBJECT_SPECS[0].usd_file),
                 rigid_props=_TOOL_RIGID,
                 mass_props=_TOOL_MASS,
             ),
         )
 
         # 3 distractors + main object = 4 total; reset event randomizes slots.
-        for name, fname, slot in [
-            ("tool_pliers",   "pliers_ring_orange.usd",      "L0"),
-            ("tool_scissors", "scissors_ring_red.usd",       "R0"),
-            ("tool_silicone", "screw_driver_ring.usd",       "R1"),
+        for spec, slot in [
+            (OBJECT_SPECS[1], "L0"),
+            (OBJECT_SPECS[2], "R0"),
+            (OBJECT_SPECS[3], "R1"),
         ]:
             setattr(
-                self.scene, name,
+                self.scene, spec.scene_key,
                 RigidObjectCfg(
-                    prim_path=f"{{ENV_REGEX_NS}}/{name.title().replace('_', '')}",
+                    prim_path=f"{{ENV_REGEX_NS}}/{spec.scene_key.title().replace('_', '')}",
                     init_state=RigidObjectCfg.InitialStateCfg(pos=_SLOTS[slot], rot=_TOOL_ROT),
                     spawn=UsdFileCfg(
-                        usd_path=str(_ASSETS / fname),
+                        usd_path=str(_ASSETS / spec.usd_file),
                         rigid_props=_TOOL_RIGID,
                         mass_props=_TOOL_MASS,
                     ),

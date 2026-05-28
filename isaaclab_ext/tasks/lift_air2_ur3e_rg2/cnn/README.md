@@ -2,6 +2,9 @@
 
 This folder contains the AIR2-specific semantic segmentation pipeline.
 
+The object classes are shared with the task object catalog:
+`brush`, `pliers`, `scissors`, and `screwdriver`.
+
 ## Data Collection
 
 Run from the repo root with Isaac Lab:

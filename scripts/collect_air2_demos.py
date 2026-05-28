@@ -38,10 +38,13 @@ import sys
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+# Windows workaround: load h5py's bundled HDF5 DLLs before Isaac Sim extensions.
+import h5py  # noqa: F401
+
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Collect AIR2 demos via scripted controller.")
-parser.add_argument("--task", default="Isaac-Lift-AIR2-UR3e-RG2-Segmentation-Play-v0",
+parser.add_argument("--task", default="Isaac-Lift-AIR2-Robotis-Segmentation-Play-v0",
                     help="Segmentation variants have both wrist_camera + board_camera; non-segmentation only have wrist_camera.")
 parser.add_argument("--num_envs", type=int, default=4)
 parser.add_argument("--num_episodes", type=int, default=20, help="Total episodes to collect across all envs.")
@@ -68,10 +71,14 @@ from PIL import Image
 
 import isaaclab_tasks  # noqa: F401
 import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
+import isaaclab_ext.tasks.lift_air2_robotis  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
 from isaaclab_ext.tasks.lift_air2_ur3e_rg2.scripted_controller import (
     PickPlaceController, OBJECT_NAMES,
+)
+from isaaclab_ext.tasks.lift_air2_ur3e_rg2.objects import (
+    OBJECT_BY_CLASS_ID, catalog_json, target_one_hot,
 )
 
 
@@ -88,8 +95,12 @@ class EpisodeBuffer:
         self.action: list[np.ndarray] = []
         self.gripper: list[float] = []
         self.wp_idx: list[int] = []
+        self.target_class_id: list[int] = []
+        self.target_one_hot: list[list[float]] = []
+        self.target_scene_key: list[str] = []
+        self.target_valid: list[bool] = []
 
-    def append(self, wrist, board, jp, jv, act, grip, wp):
+    def append(self, wrist, board, jp, jv, act, grip, wp, target_class_id):
         if wrist is not None:
             self.wrist_rgb.append(wrist)
         if board is not None:
@@ -99,6 +110,11 @@ class EpisodeBuffer:
         self.action.append(act)
         self.gripper.append(grip)
         self.wp_idx.append(wp)
+        self.target_class_id.append(int(target_class_id))
+        self.target_one_hot.append(target_one_hot(int(target_class_id)))
+        spec = OBJECT_BY_CLASS_ID.get(int(target_class_id))
+        self.target_scene_key.append(spec.scene_key if spec else "")
+        self.target_valid.append(spec is not None)
 
     def save(self, out_dir: Path) -> int:
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -115,6 +131,10 @@ class EpisodeBuffer:
             action=np.array(self.action, dtype=np.float32),
             gripper=np.array(self.gripper, dtype=np.float32),
             wp_idx=np.array(self.wp_idx, dtype=np.int32),
+            target_class_id=np.array(self.target_class_id, dtype=np.int32),
+            target_one_hot=np.array(self.target_one_hot, dtype=np.float32),
+            target_scene_key=np.array(self.target_scene_key),
+            target_valid=np.array(self.target_valid, dtype=np.bool_),
         )
         return len(self.action)
 
@@ -182,6 +202,7 @@ def main():
             origins = env.unwrapped.scene.env_origins
             ee_local = ee_world - origins
 
+            target_ids = controller.current_class_ids()
             delta_pos, grip = controller.step(ee_local)
 
             # Build action: AIR2 uses IK-Rel pose (6) + binary gripper (1).
@@ -204,6 +225,7 @@ def main():
             act_np = action.cpu().numpy()
             grip_np = grip.cpu().numpy()
             wp_np = controller.wp_idx.cpu().numpy()
+            target_np = target_ids.cpu().numpy()
             done_np = controller.done.cpu().numpy()
             for i in range(num_envs):
                 if done_np[i] or not bool(do_save[i].item()):
@@ -212,7 +234,8 @@ def main():
                         continue
                     continue
                 episode_buffers[i].append(
-                    wrist_buf[i], board_buf[i], jp_buf[i], jv_buf[i], act_np[i], float(grip_np[i]), int(wp_np[i])
+                    wrist_buf[i], board_buf[i], jp_buf[i], jv_buf[i], act_np[i],
+                    float(grip_np[i]), int(wp_np[i]), int(target_np[i])
                 )
 
             # Episode termination: any env done OR all controllers done OR cap hit
@@ -234,7 +257,8 @@ def main():
                         "success": success,
                         "controller_completed": bool(controller.done[i].item()),
                         "object_count": len(OBJECT_NAMES),
-                        "waypoints_per_object": 2,
+                        "waypoints_per_object": 7,
+                        "object_catalog": catalog_json(),
                     }
                     (ep_dir / "meta.json").write_text(json.dumps(meta, indent=2))
                     print(f"[collect] saved ep_{saved_episodes:03d} ({n_frames} frames, success={success})", flush=True)

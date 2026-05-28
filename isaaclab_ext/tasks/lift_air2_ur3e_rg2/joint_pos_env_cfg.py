@@ -4,6 +4,10 @@ from pathlib import Path
 
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
+from isaaclab.devices.device_base import DevicesCfg
+from isaaclab.devices.openxr import OpenXRDevice, OpenXRDeviceCfg, XrCfg
+from isaaclab.devices.openxr.retargeters.manipulator.gripper_retargeter import GripperRetargeterCfg
+from isaaclab.devices.openxr.retargeters.manipulator.se3_rel_retargeter import Se3RelRetargeterCfg
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
 from isaaclab.managers import EventTermCfg as EventTerm, RewardTermCfg as RewTerm, SceneEntityCfg
 import isaaclab.sim as sim_utils
@@ -20,6 +24,7 @@ from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG  # isort: skip
 
 from . import mdp
+from .objects import OBJECT_SPECS
 
 _HERE = Path(__file__).resolve()
 _REPO_CANDIDATES = [
@@ -81,6 +86,33 @@ class FrankaAIR2LiftEnvCfg(LiftEnvCfg):
             close_command_expr={"panda_finger_joint.*": 0.0},
         )
 
+        # Optional OpenXR hand-tracking teleop. The manual collector still works
+        # with keyboard/spacemouse/gamepad if XR is not used.
+        self.xr = XrCfg(anchor_pos=(-4.2405, -4.75, 1.25), anchor_rot=(1.0, 0.0, 0.0, 0.0))
+        self.teleop_devices = DevicesCfg(
+            devices={
+                "handtracking": OpenXRDeviceCfg(
+                    retargeters=[
+                        Se3RelRetargeterCfg(
+                            bound_hand=OpenXRDevice.TrackingTarget.HAND_RIGHT,
+                            zero_out_xy_rotation=True,
+                            use_wrist_rotation=False,
+                            use_wrist_position=True,
+                            delta_pos_scale_factor=5.0,
+                            delta_rot_scale_factor=5.0,
+                            sim_device=self.sim.device,
+                        ),
+                        GripperRetargeterCfg(
+                            bound_hand=OpenXRDevice.TrackingTarget.HAND_RIGHT,
+                            sim_device=self.sim.device,
+                        ),
+                    ],
+                    sim_device=self.sim.device,
+                    xr_cfg=self.xr,
+                ),
+            }
+        )
+
         self.commands.object_pose.body_name = "panda_hand"
 
         # AIR2.usd loaded at origin — hooks and Franka at their USD world positions.
@@ -98,25 +130,25 @@ class FrankaAIR2LiftEnvCfg(LiftEnvCfg):
                 pos=[-5.0900, -2.5800, 1.6800], rot=[1, 0, 0, 0]
             ),
             spawn=UsdFileCfg(
-                usd_path=str(_ASSETS / "tooth_brush_green.usd"),
+                usd_path=str(_ASSETS / OBJECT_SPECS[0].usd_file),
                 rigid_props=_TOOL_RIGID,
                 mass_props=_TOOL_MASS,
             ),
         )
 
         # Three distractor objects at hooks 2–4.
-        for name, fname, pos in [
-            ("tool_pliers",   "pliers_ring_orange.usd",      [-5.2250, -2.5800, 1.7800]),
-            ("tool_scissors", "scissors_ring_red.usd",       [-5.4000, -2.5800, 1.7200]),
-            ("tool_silicone", "silicone_tube_ring_blue.usd", [-5.7056, -2.5800, 1.4700]),
+        for spec, pos in [
+            (OBJECT_SPECS[1], [-5.2250, -2.5800, 1.7800]),
+            (OBJECT_SPECS[2], [-5.4000, -2.5800, 1.7200]),
+            (OBJECT_SPECS[3], [-5.7056, -2.5800, 1.4700]),
         ]:
             setattr(
-                self.scene, name,
+                self.scene, spec.scene_key,
                 RigidObjectCfg(
-                    prim_path=f"{{ENV_REGEX_NS}}/{name.title().replace('_', '')}",
+                    prim_path=f"{{ENV_REGEX_NS}}/{spec.scene_key.title().replace('_', '')}",
                     init_state=RigidObjectCfg.InitialStateCfg(pos=pos, rot=[1, 0, 0, 0]),
                     spawn=UsdFileCfg(
-                        usd_path=str(_ASSETS / fname),
+                        usd_path=str(_ASSETS / spec.usd_file),
                         rigid_props=_TOOL_RIGID,
                         mass_props=_TOOL_MASS,
                             ),

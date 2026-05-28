@@ -1,6 +1,8 @@
 """Reset-time event: place 4 objects on 4 randomly chosen slots out of 8."""
 import torch
 
+from isaaclab_ext.tasks.lift_air2_ur3e_rg2.objects import OBJECT_NAMES
+
 SLOT_POSITIONS = [
     [-3.925, -5.960, 1.611],  # L0
     [-4.098, -5.960, 1.611],  # L1
@@ -12,7 +14,7 @@ SLOT_POSITIONS = [
     [-4.445, -5.960, 1.326],  # R3
 ]
 
-_OBJECT_NAMES = ["object", "tool_pliers", "tool_scissors", "tool_silicone"]
+_OBJECT_NAMES = list(OBJECT_NAMES)
 
 _TOOL_QUAT = [0.7071, 0.0, 0.0, -0.7071]
 
@@ -26,7 +28,7 @@ def reset_objects_on_slots(env, env_ids: torch.Tensor):
     perms = torch.argsort(torch.rand(n, 8, device=env.device), dim=1)  # [n, 8]
 
     # object (paintbrush) col 0: avoid R3 (idx 7)
-    # tool_silicone (screwdriver) col 3: avoid L1 (idx 1) and R3 (idx 7)
+    # screwdriver col 3: avoid L1 (idx 1) and R3 (idx 7)
     for col, forbidden_slots in [(0, (7,)), (3, (1, 7))]:
         for forbidden in forbidden_slots:
             mask = perms[:, col] == forbidden
