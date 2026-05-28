@@ -68,6 +68,24 @@ def all_objects_in_basket(env: ManagerBasedRLEnv, radius: float = 0.30) -> torch
     return count
 
 
+def object_in_basket(
+    env: ManagerBasedRLEnv,
+    radius: float = 0.30,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+) -> torch.Tensor:
+    """Bool: the specified object's center is within `radius` m of the basket.
+
+    Used as the success termination for teleop demo recording — the recorder
+    only writes an episode to HDF5 once this fires for num_success_steps
+    consecutive frames.
+    """
+    basket = BASKET_POS_LOCAL.to(env.device)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    obj_pos = asset.data.root_pos_w - env.scene.env_origins
+    dist = torch.linalg.norm(obj_pos - basket, dim=-1)
+    return dist < radius
+
+
 def all_objects_off_hook(env: ManagerBasedRLEnv, clearance: float = HOOK_CLEAR) -> torch.Tensor:
     """Number of objects pulled at least `clearance` m off the hook line.
 
