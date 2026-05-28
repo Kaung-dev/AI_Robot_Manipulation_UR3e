@@ -74,3 +74,8 @@ outputs/
 
 # Local test scratch
 _smoke_test/
+
+# Pipeline-v1 outputs (datasets/, checkpoints/, _mvp_logs/) moved here when
+# adopting Hayden's segmentation+goal-conditioned pipeline. Kept on disk for
+# recovery only.
+_archive/v1_pipeline/

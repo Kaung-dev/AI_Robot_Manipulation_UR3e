@@ -1,3 +1,0 @@
-[plot] wrote eval_results\plots_v2\unet_curves.png  (final: train=0.1274 val=0.3171 mIoU=0.719)
-[plot] wrote eval_results\plots_v2\bc_curves.png  (final val: pose=0.0031 grip=0.0000)
-[plot] wrote eval_results\plots_v2\bc_eval_summary.png  (reach rate: 75%)
