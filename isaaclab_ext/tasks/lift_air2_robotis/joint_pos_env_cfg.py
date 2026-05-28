@@ -15,13 +15,12 @@ robotis_net_table_2 offset (-0.0153, 0, 0.06981):
 from pathlib import Path
 
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
-from isaaclab.managers import EventTermCfg as EventTerm, TerminationTermCfg as DoneTerm
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils import configclass
 
 from . import mdp
-from isaaclab_ext.tasks.lift_air2_ur3e_rg2 import mdp as parent_mdp
 
 from isaaclab_ext.tasks.lift_air2_ur3e_rg2.joint_pos_env_cfg import (
     FrankaAIR2LiftEnvCfg,
@@ -116,14 +115,6 @@ class FrankaAIR2RobotisLiftEnvCfg(FrankaAIR2LiftEnvCfg):
         self.commands.object_pose.ranges.pos_x = (-5.0, -3.5)
         self.commands.object_pose.ranges.pos_y = (-6.5, -5.0)
         self.commands.object_pose.ranges.pos_z = (1.8, 2.2)
-
-        # Demo recording success: main `object` (paintbrush) dropped into basket.
-        # record_demos.py auto-saves the HDF5 episode once this stays True for
-        # `--num_success_steps` consecutive frames.
-        self.terminations.success = DoneTerm(
-            func=parent_mdp.object_in_basket,
-            params={"radius": 0.30},
-        )
 
 
 @configclass
