@@ -79,3 +79,7 @@ _smoke_test/
 # adopting Hayden's segmentation+goal-conditioned pipeline. Kept on disk for
 # recovery only.
 _archive/v1_pipeline/
+
+# Friend's per-target HDF5 dataset (4 files, 80 state-only demos) — archived
+# after adopting Stephen's per-target visual-BC pipeline.
+_archive/v2_friend_hdf5/

@@ -36,7 +36,10 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Evaluate a trained BC policy.")
 parser.add_argument("--bc_ckpt", required=True, help="Path to policy_bc.pth from train_bc.py.")
-parser.add_argument("--unet_ckpt", default=None, help="U-Net checkpoint (must match the one used at train time).")
+parser.add_argument("--backbone", default="resnet18", choices=["resnet18", "unet"],
+                    help="Must match the backbone used at train time (train_bc.py --backbone).")
+parser.add_argument("--unet_ckpt", default=None,
+                    help="Only used when --backbone unet. ResNet-18 loads ImageNet weights from torchvision.")
 parser.add_argument("--num_classes", type=int, default=9)
 parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0")
 parser.add_argument("--num_envs", type=int, default=4)
@@ -63,7 +66,8 @@ import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
 from isaaclab_ext.tasks.air2_franka.policy import (
-    BCPolicy, load_frozen_encoder, JOINT_DIM, ACTION_DIM, COMMAND_DIM,
+    BCPolicy, load_frozen_encoder, load_frozen_resnet_encoder,
+    JOINT_DIM, ACTION_DIM, COMMAND_DIM,
 )
 
 
@@ -84,8 +88,11 @@ def main():
     num_envs = env.unwrapped.num_envs
     print(f"[eval] launched {args_cli.task} with {num_envs} envs", flush=True)
 
-    # Load policy
-    encoder = load_frozen_encoder(args_cli.unet_ckpt, num_classes=args_cli.num_classes)
+    # Load policy — backbone MUST match what train_bc.py used.
+    if args_cli.backbone == "resnet18":
+        encoder = load_frozen_resnet_encoder(args_cli.unet_ckpt, num_classes=args_cli.num_classes)
+    else:
+        encoder = load_frozen_encoder(args_cli.unet_ckpt, num_classes=args_cli.num_classes)
     policy = BCPolicy(encoder).to(device)
     ckpt = torch.load(args_cli.bc_ckpt, map_location=device)
     policy.load_state_dict(ckpt["state_dict"])
