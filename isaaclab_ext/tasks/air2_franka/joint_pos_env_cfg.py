@@ -4,10 +4,6 @@ from pathlib import Path
 
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
-from isaaclab.devices.device_base import DevicesCfg
-from isaaclab.devices.openxr import OpenXRDevice, OpenXRDeviceCfg, XrCfg
-from isaaclab.devices.openxr.retargeters.manipulator.gripper_retargeter import GripperRetargeterCfg
-from isaaclab.devices.openxr.retargeters.manipulator.se3_rel_retargeter import Se3RelRetargeterCfg
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
 from isaaclab.managers import EventTermCfg as EventTerm, RewardTermCfg as RewTerm, SceneEntityCfg
 import isaaclab.sim as sim_utils
@@ -81,32 +77,16 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
             close_command_expr={"panda_finger_joint.*": 0.0},
         )
 
-        # Optional OpenXR hand-tracking teleop. The manual collector still works
-        # with keyboard/spacemouse/gamepad if XR is not used.
-        self.xr = XrCfg(anchor_pos=(-4.2405, -4.75, 1.25), anchor_rot=(1.0, 0.0, 0.0, 0.0))
-        self.teleop_devices = DevicesCfg(
-            devices={
-                "handtracking": OpenXRDeviceCfg(
-                    retargeters=[
-                        Se3RelRetargeterCfg(
-                            bound_hand=OpenXRDevice.TrackingTarget.HAND_RIGHT,
-                            zero_out_xy_rotation=False,
-                            use_wrist_rotation=True,
-                            use_wrist_position=True,
-                            delta_pos_scale_factor=20.0,
-                            delta_rot_scale_factor=10.0,
-                            sim_device=self.sim.device,
-                        ),
-                        GripperRetargeterCfg(
-                            bound_hand=OpenXRDevice.TrackingTarget.HAND_RIGHT,
-                            sim_device=self.sim.device,
-                        ),
-                    ],
-                    sim_device=self.sim.device,
-                    xr_cfg=self.xr,
-                ),
-            }
-        )
+        # NOTE: An OpenXR/handtracking DevicesCfg block lived here. It was removed
+        # because Se3RelRetargeterCfg/GripperRetargeterCfg defaults carry a lambda
+        # that IsaacLab's official rsl_rl/train.py cannot serialize through Hydra
+        # ("ValueError: Could not resolve the input string 'lambda headpose' into
+        #  callable object"), which silently crashed PPO before the first iter.
+        # Keyboard/spacemouse teleop in collect_air2_manual_demos.py and the
+        # built-in record_demos.py both work via their own fallback paths, so this
+        # block was only useful for VR — if you need it back, gate it behind a
+        # CLI flag and construct it OUTSIDE the configclass __post_init__ so
+        # Hydra never sees it.
 
         self.commands.object_pose.body_name = "panda_hand"
 
