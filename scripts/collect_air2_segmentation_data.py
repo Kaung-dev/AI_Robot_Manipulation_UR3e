@@ -23,7 +23,7 @@ folders exist purely so you can eyeball the data to verify it looks right.
 
 Example:
     C:/isaac/IsaacLab/isaaclab.bat -p scripts/collect_air2_segmentation_data.py \
-        --task Isaac-Lift-AIR2-Robotis-Segmentation-Play-v0 \
+        --task Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0 \
         --frames 200 --enable_cameras --headless
 """
 
@@ -45,7 +45,7 @@ import h5py  # noqa: F401
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Collect AIR2 segmentation training data with the robot in motion.")
-parser.add_argument("--task", default="Isaac-Lift-AIR2-Robotis-Segmentation-Play-v0")
+parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0")
 parser.add_argument("--output", default="datasets/air2_segmentation")
 parser.add_argument("--frames", type=int, default=200, help="Target number of saved frames.")
 parser.add_argument("--cameras", nargs="+", default=["board_camera", "wrist_camera"])
@@ -64,15 +64,15 @@ import gymnasium as gym
 from PIL import Image
 
 import isaaclab_tasks  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_robotis  # noqa: F401
+import isaaclab_ext.tasks.air2_franka  # noqa: F401
+import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
-from isaaclab_ext.tasks.lift_air2_ur3e_rg2.scripted_controller import (  # noqa: E402
+from isaaclab_ext.tasks.air2_franka.scripted_controller import (  # noqa: E402
     PickPlaceController, OBJECT_NAMES, ACTION_DIM,
 )
 
-CNN_DIR = REPO_ROOT / "isaaclab_ext/tasks/lift_air2_ur3e_rg2/cnn"
+CNN_DIR = REPO_ROOT / "isaaclab_ext/tasks/air2_franka/cnn"
 sys.path.insert(0, str(CNN_DIR))
 from dataset import remap_isaac_mask, load_class_map  # noqa: E402
 
@@ -144,7 +144,7 @@ def main() -> None:
     root = Path(args_cli.output)
     for subdir in ["images", "depth", "raw_masks", "masks", "masks_color", "overlays", "metadata"]:
         (root / subdir).mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(REPO_ROOT / "isaaclab_ext/tasks/lift_air2_ur3e_rg2/cnn/class_map.json",
+    shutil.copyfile(REPO_ROOT / "isaaclab_ext/tasks/air2_franka/cnn/class_map.json",
                     root / "class_map.json")
     print(f"[seg-collect] output: {root}", flush=True)
 

@@ -7,7 +7,7 @@ plot_training_curves.py can plot a BC-vs-PPO comparison.
 Usage:
     isaaclab.bat -p scripts/eval_ppo.py \
         --ppo_ckpt logs/rsl_rl/air2_ppo/<run>/model_final.pt \
-        --task Isaac-Lift-AIR2-UR3e-RG2-v0 \
+        --task Isaac-AIR2-Franka-v0 \
         --headless --num_envs 4 --num_episodes 20 \
         --out eval_results/ppo.json
 """
@@ -26,7 +26,7 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Evaluate a trained PPO policy.")
 parser.add_argument("--ppo_ckpt", required=True, help="Path to rsl_rl model_*.pt from bc_to_ppo.py.")
-parser.add_argument("--task", default="Isaac-Lift-AIR2-UR3e-RG2-v0")
+parser.add_argument("--task", default="Isaac-AIR2-Franka-v0")
 parser.add_argument("--num_envs", type=int, default=4)
 parser.add_argument("--num_episodes", type=int, default=20)
 parser.add_argument("--max_steps", type=int, default=800)
@@ -47,7 +47,7 @@ import gymnasium as gym
 from rsl_rl.runners import OnPolicyRunner
 
 import isaaclab_tasks  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
+import isaaclab_ext.tasks.air2_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab_tasks.utils.parse_cfg import load_cfg_from_registry
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper

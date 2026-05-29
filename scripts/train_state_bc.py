@@ -15,7 +15,7 @@ can `load_state_dict()` the whole thing — not just the head.
 
 Usage:
     C:/isaac/IsaacLab/isaaclab.bat -p scripts/train_state_bc.py ^
-        --task Isaac-Lift-AIR2-UR3e-RG2-Play-v0 ^
+        --task Isaac-AIR2-Franka-Play-v0 ^
         --num_envs 4 --num_episodes 40 ^
         --max_episode_steps 800 --episode_length_s 20 ^
         --enable_cameras --headless ^
@@ -36,7 +36,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Collect + train a state-only BC matching rsl_rl actor.")
-parser.add_argument("--task", default="Isaac-Lift-AIR2-UR3e-RG2-Play-v0")
+parser.add_argument("--task", default="Isaac-AIR2-Franka-Play-v0")
 parser.add_argument("--num_envs", type=int, default=4)
 parser.add_argument("--num_episodes", type=int, default=40)
 parser.add_argument("--max_episode_steps", type=int, default=800)
@@ -69,10 +69,10 @@ import gymnasium as gym
 from rsl_rl.networks import MLP
 
 import isaaclab_tasks  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
+import isaaclab_ext.tasks.air2_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
-from isaaclab_ext.tasks.lift_air2_ur3e_rg2.scripted_controller import (
+from isaaclab_ext.tasks.air2_franka.scripted_controller import (
     PickPlaceController, OBJECT_NAMES,
 )
 

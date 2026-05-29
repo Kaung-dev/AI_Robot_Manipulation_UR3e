@@ -10,7 +10,7 @@ Optim: Adam, lr 1e-4 by default, cosine schedule.
 
 Usage:
     python scripts/train_bc.py \
-        --demos C:/Users/Administrator/Desktop/air2_demos_test \
+        --demos datasets/air2_demos_test \
         --unet_ckpt checkpoints/air2_segmentation_unet.pth \
         --epochs 50 --batch_size 32 \
         --out checkpoints/policy_bc.pth
@@ -40,7 +40,7 @@ from PIL import Image
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from isaaclab_ext.tasks.lift_air2_ur3e_rg2.policy import (
+from isaaclab_ext.tasks.air2_franka.policy import (
     BCPolicy, FrozenUNetEncoder, load_frozen_encoder,
     ACTION_DIM, STATE_DIM, JOINT_DIM, CHUNK_SIZE, COMMAND_DIM,
 )

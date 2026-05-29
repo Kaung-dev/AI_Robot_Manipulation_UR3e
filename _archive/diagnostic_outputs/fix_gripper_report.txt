@@ -1,7 +1,0 @@
-[OK] /World/rg2 already present
-[OK] removed /World/rg2/root_joint
-[OK] removed ArticulationRootAPI from /World/rg2/root_joint
-[OK] /World/rg2 positioned. wrist=(0.45607689023017883, 0.22285380959510803, 0.062356285750865936) bracket_after=(0.4560768902301784, 0.22285380959510803, 0.062356285750864604) |delta|=0.000000
-[OK] (re)created /World/wrist_to_rg2: /World/ur3e/wrist_3_link -> /World/rg2/world/rg2_gripper_bracket
-
-Done. Ctrl+S to save scene.usd, then Play.

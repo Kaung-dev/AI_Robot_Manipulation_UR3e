@@ -3,14 +3,14 @@
 Two modes:
 
 1. **PPO from scratch** (default):
-       python scripts/bc_to_ppo.py --task Isaac-Lift-AIR2-UR3e-RG2-v0 \\
+       python scripts/bc_to_ppo.py --task Isaac-AIR2-Franka-v0 \\
            --num_envs 16 --max_iterations 1000 --headless
 
    Trains PPO with rsl_rl's standard `OnPolicyRunner` using the AIR2 task's
    `rsl_rl_cfg_entry_point` (defined in agents/rsl_rl_ppo_cfg.py).
 
 2. **PPO warm-started from a BC checkpoint**:
-       python scripts/bc_to_ppo.py --task Isaac-Lift-AIR2-UR3e-RG2-v0 \\
+       python scripts/bc_to_ppo.py --task Isaac-AIR2-Franka-v0 \\
            --bc_ckpt checkpoints/policy_bc.pth \\
            --num_envs 16 --max_iterations 1000 --headless
 
@@ -37,7 +37,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="PPO trainer for AIR2 task (with optional BC warm-start).")
-parser.add_argument("--task", default="Isaac-Lift-AIR2-UR3e-RG2-v0")
+parser.add_argument("--task", default="Isaac-AIR2-Franka-v0")
 parser.add_argument("--bc_ckpt", default=None,
                     help="DEPRECATED: vision+chunked BC ckpt. Only the head shape is checked — almost never compatible. "
                          "Use --state_bc_ckpt for a real warm-start.")
@@ -67,7 +67,7 @@ import gymnasium as gym
 from rsl_rl.runners import OnPolicyRunner
 
 import isaaclab_tasks  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
+import isaaclab_ext.tasks.air2_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab_tasks.utils.parse_cfg import load_cfg_from_registry
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper

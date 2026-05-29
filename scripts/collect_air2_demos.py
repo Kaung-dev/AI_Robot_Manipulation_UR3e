@@ -23,9 +23,9 @@ robomimic-style training is wanted.
 Usage (Windows):
   conda deactivate
   C:\\isaac\\IsaacLab\\isaaclab.bat -p scripts/collect_air2_demos.py ^
-      --task Isaac-Lift-AIR2-UR3e-RG2-Play-v0 ^
+      --task Isaac-AIR2-Franka-Play-v0 ^
       --enable_cameras --headless --num_envs 4 --num_episodes 20 ^
-      --output C:\\Users\\Administrator\\Desktop\\air2_demos
+      --output datasets/air2_demos
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ import h5py  # noqa: F401
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Collect AIR2 demos via scripted controller.")
-parser.add_argument("--task", default="Isaac-Lift-AIR2-Robotis-Segmentation-Play-v0",
+parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0",
                     help="Segmentation variants have both wrist_camera + board_camera; non-segmentation only have wrist_camera.")
 parser.add_argument("--num_envs", type=int, default=4)
 parser.add_argument("--num_episodes", type=int, default=20, help="Total episodes to collect across all envs.")
@@ -70,14 +70,14 @@ import gymnasium as gym
 from PIL import Image
 
 import isaaclab_tasks  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_robotis  # noqa: F401
+import isaaclab_ext.tasks.air2_franka  # noqa: F401
+import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
-from isaaclab_ext.tasks.lift_air2_ur3e_rg2.scripted_controller import (
+from isaaclab_ext.tasks.air2_franka.scripted_controller import (
     PickPlaceController, OBJECT_NAMES,
 )
-from isaaclab_ext.tasks.lift_air2_ur3e_rg2.objects import (
+from isaaclab_ext.tasks.air2_franka.objects import (
     OBJECT_BY_CLASS_ID, catalog_json, target_one_hot,
 )
 

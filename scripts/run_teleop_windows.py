@@ -20,8 +20,8 @@ def main() -> None:
     # Register local Gym task IDs before Isaac Lab's upstream teleop script
     # calls parse_env_cfg(). The upstream script imports isaaclab_tasks, but it
     # does not know about project-local isaaclab_ext tasks by itself.
-    import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
-    import isaaclab_ext.tasks.lift_air2_robotis  # noqa: F401
+    import isaaclab_ext.tasks.air2_franka  # noqa: F401
+    import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401
 
     isaaclab_root = Path(os.environ.get("ISAACLAB_PATH", r"D:\IsaacLab"))
     os.environ.setdefault("UR3E_RG2_USD", str(repo_root / "scene" / "scene_isaaclab.usd"))

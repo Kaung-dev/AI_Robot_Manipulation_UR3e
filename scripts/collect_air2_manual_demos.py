@@ -28,7 +28,7 @@ import h5py  # noqa: F401
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Collect AIR2 manual demos with object annotations.")
-parser.add_argument("--task", default="Isaac-Lift-AIR2-Robotis-Segmentation-Play-v0")
+parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0")
 parser.add_argument("--num_envs", type=int, default=1, help="Manual recording supports 1 env; kept for CLI parity.")
 parser.add_argument("--teleop_device", default="keyboard", choices=["keyboard", "spacemouse", "gamepad", "handtracking"])
 parser.add_argument("--num_demos", type=int, default=10)
@@ -54,11 +54,11 @@ from isaaclab.devices import Se3Gamepad, Se3GamepadCfg, Se3Keyboard, Se3Keyboard
 from isaaclab.devices.teleop_device_factory import create_teleop_device
 
 import isaaclab_tasks  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_robotis  # noqa: F401
+import isaaclab_ext.tasks.air2_franka  # noqa: F401
+import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
-from isaaclab_ext.tasks.lift_air2_ur3e_rg2.objects import (
+from isaaclab_ext.tasks.air2_franka.objects import (
     OBJECT_BY_CLASS_ID,
     OBJECT_BY_HOTKEY,
     catalog_json,

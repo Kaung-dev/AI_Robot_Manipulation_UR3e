@@ -53,19 +53,20 @@ scripts/remove_air_robotics_ref.py
 # Nested ros2 workspace (duplicate of ros2_ws/)
 ros2_ws/ros2_ws/
 
-# Local dev log (machine-specific notes, not for repo)
-DEVLOG.md
 WHATIWANT.md
+DEVLOG.md
 
 # IDE / OS
 .vscode/
 .idea/
 .DS_Store
 
-# Datasets / checkpoints (keep out of git; use Git LFS or external storage if needed)
+# Datasets / checkpoints / eval results (keep out of git; use Git LFS or external storage if needed)
 datasets/
 logs/
 runs/
+checkpoints/
+eval_results/
 *.hdf5
 *.pth
 

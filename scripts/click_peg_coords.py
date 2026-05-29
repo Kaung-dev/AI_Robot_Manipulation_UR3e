@@ -4,7 +4,6 @@ the value to paste into HOOK_POSITIONS in mdp/events.py.
 
 Run:
     conda deactivate
-    cd C:\\Users\\Administrator\\Desktop\\AI_Robot_Manipulation_UR3e
     C:\\isaac\\IsaacLab\\isaaclab.bat -p scripts/click_peg_coords.py
 
 In the Isaac Sim viewport:
@@ -27,7 +26,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--task", default="Isaac-Lift-AIR2-UR3e-RG2-Segmentation-Play-v0")
+parser.add_argument("--task", default="Isaac-AIR2-Franka-Segmentation-Play-v0")
 AppLauncher.add_app_launcher_args(parser)
 # Force GUI mode regardless of CLI defaults.
 sys.argv += ["--enable_cameras"]
@@ -45,7 +44,7 @@ import omni.usd
 from pxr import Usd, UsdGeom
 
 import isaaclab_tasks  # noqa: F401 -- needed for task-registry side effect
-import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401 -- registers AIR2 task IDs
+import isaaclab_ext.tasks.air2_franka  # noqa: F401 -- registers AIR2 task IDs
 from isaaclab_tasks.utils import parse_env_cfg
 
 

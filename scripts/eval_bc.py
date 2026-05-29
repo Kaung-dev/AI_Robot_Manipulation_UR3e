@@ -4,7 +4,7 @@ Usage:
     C:\\isaac\\IsaacLab\\isaaclab.bat -p scripts/eval_bc.py ^
         --bc_ckpt checkpoints/policy_bc.pth ^
         --unet_ckpt checkpoints/air2_segmentation_unet.pth ^
-        --task Isaac-Lift-AIR2-Robotis-Segmentation-Play-v0 ^
+        --task Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0 ^
         --enable_cameras --headless ^
         --num_envs 4 --num_episodes 50 ^
         --out eval_results/bc_rollouts.json
@@ -27,7 +27,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from isaaclab_ext.tasks.lift_air2_ur3e_rg2.objects import OBJECT_BY_LABEL, TARGET_LABELS
+from isaaclab_ext.tasks.air2_franka.objects import OBJECT_BY_LABEL, TARGET_LABELS
 
 # Windows workaround: load h5py's bundled HDF5 DLLs before Isaac Sim extensions.
 import h5py  # noqa: F401
@@ -38,7 +38,7 @@ parser = argparse.ArgumentParser(description="Evaluate a trained BC policy.")
 parser.add_argument("--bc_ckpt", required=True, help="Path to policy_bc.pth from train_bc.py.")
 parser.add_argument("--unet_ckpt", default=None, help="U-Net checkpoint (must match the one used at train time).")
 parser.add_argument("--num_classes", type=int, default=9)
-parser.add_argument("--task", default="Isaac-Lift-AIR2-Robotis-Segmentation-Play-v0")
+parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0")
 parser.add_argument("--num_envs", type=int, default=4)
 parser.add_argument("--num_episodes", type=int, default=20)
 parser.add_argument("--max_steps", type=int, default=800)
@@ -58,11 +58,11 @@ import torch
 import gymnasium as gym
 
 import isaaclab_tasks  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_robotis  # noqa: F401
+import isaaclab_ext.tasks.air2_franka  # noqa: F401
+import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
-from isaaclab_ext.tasks.lift_air2_ur3e_rg2.policy import (
+from isaaclab_ext.tasks.air2_franka.policy import (
     BCPolicy, load_frozen_encoder, JOINT_DIM, ACTION_DIM, COMMAND_DIM,
 )
 

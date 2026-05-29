@@ -14,7 +14,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CNN_DIR = REPO_ROOT / "isaaclab_ext/tasks/lift_air2_ur3e_rg2/cnn"
+CNN_DIR = REPO_ROOT / "isaaclab_ext/tasks/air2_franka/cnn"
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(CNN_DIR))
 

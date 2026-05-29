@@ -12,7 +12,7 @@ from PIL import Image
 import torch
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CNN_DIR = REPO_ROOT / "isaaclab_ext/tasks/lift_air2_ur3e_rg2/cnn"
+CNN_DIR = REPO_ROOT / "isaaclab_ext/tasks/air2_franka/cnn"
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(CNN_DIR))
 
@@ -78,8 +78,8 @@ def run_live_mode(args) -> None:
     import gymnasium as gym
 
     import isaaclab_tasks  # noqa: F401
-    import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
-    import isaaclab_ext.tasks.lift_air2_robotis  # noqa: F401
+    import isaaclab_ext.tasks.air2_franka  # noqa: F401
+    import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401
     from isaaclab_tasks.utils import parse_env_cfg
 
     device = torch.device(args.device)
@@ -123,7 +123,7 @@ def main() -> None:
     parser.add_argument("--image", help="Saved RGB image path. Omit for live Isaac mode.")
     parser.add_argument("--depth", help="Optional saved depth .npy for image mode.")
     parser.add_argument("--intrinsics", help="Optional camera intrinsics .npy for image mode.")
-    parser.add_argument("--task", default="Isaac-Lift-AIR2-Robotis-Segmentation-v0")
+    parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Segmentation-v0")
     parser.add_argument("--camera", default="board_camera")
     parser.add_argument("--settle-steps", type=int, default=5)
     parser.add_argument("--image-size", type=int, default=224)

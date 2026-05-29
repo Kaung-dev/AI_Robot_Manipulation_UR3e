@@ -8,14 +8,14 @@ can plot a state-BC line on the same axes.
 Use in GUI (drop --headless to watch):
     C:\\isaac\\IsaacLab\\isaaclab.bat -p scripts/eval_state_bc.py ^
         --state_bc_ckpt checkpoints/policy_state_bc.pth ^
-        --task Isaac-Lift-AIR2-UR3e-RG2-Play-v0 ^
+        --task Isaac-AIR2-Franka-Play-v0 ^
         --enable_cameras ^
         --num_envs 1 --num_episodes 5
 
 Headless eval (for metrics + JSON):
     C:\\isaac\\IsaacLab\\isaaclab.bat -p scripts/eval_state_bc.py ^
         --state_bc_ckpt checkpoints/policy_state_bc.pth ^
-        --task Isaac-Lift-AIR2-UR3e-RG2-v0 ^
+        --task Isaac-AIR2-Franka-v0 ^
         --headless --enable_cameras ^
         --num_envs 4 --num_episodes 20 ^
         --out eval_results/state_bc.json
@@ -36,7 +36,7 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description="Evaluate a trained STATE-only BC policy.")
 parser.add_argument("--state_bc_ckpt", required=True,
                     help="Path to checkpoints/policy_state_bc.pth from train_state_bc.py.")
-parser.add_argument("--task", default="Isaac-Lift-AIR2-UR3e-RG2-Play-v0")
+parser.add_argument("--task", default="Isaac-AIR2-Franka-Play-v0")
 parser.add_argument("--num_envs", type=int, default=1)
 parser.add_argument("--num_episodes", type=int, default=5)
 parser.add_argument("--max_steps", type=int, default=800)
@@ -57,7 +57,7 @@ import gymnasium as gym
 from rsl_rl.networks import MLP
 
 import isaaclab_tasks  # noqa: F401
-import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
+import isaaclab_ext.tasks.air2_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
 
