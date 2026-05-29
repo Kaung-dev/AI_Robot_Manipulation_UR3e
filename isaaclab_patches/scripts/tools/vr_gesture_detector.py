@@ -5,9 +5,9 @@ the OpenXR device). Each gesture must be held for HOLD_FRAMES consecutive
 frames before firing, preventing accidental triggers.
 
 Gesture mappings:
-    pinch      (thumb+index close)  — accept episode + reset
-    fist       (all fingers closed) — discard episode + reset
-    open_palm  (all fingers extended, held) — toggle pause/resume recording
+    open_palm  (all fingers extended, hold 3s) — toggle pause/resume recording
+    pinch      (thumb+middle close, hold 3s)   — accept episode + reset
+    fist       (all fingers closed, hold 3s)   — discard episode + reset
 """
 
 from __future__ import annotations
@@ -16,17 +16,16 @@ import numpy as np
 
 
 class LeftHandGestureDetector:
-    PINCH_THRESHOLD = 0.03   # m — thumb-tip to index-tip
+    PINCH_THRESHOLD = 0.03   # m — thumb-tip to middle-tip
     FIST_THRESHOLD  = 0.10   # m — avg fingertip distance from wrist (closed)
     OPEN_THRESHOLD  = 0.13   # m — avg fingertip distance from wrist (open)
-    HOLD_FRAMES     = 15     # frames gesture must be held before firing (~0.5 s at 30 Hz)
+    HOLD_FRAMES     = 90     # frames gesture must be held before firing (3s at 30 Hz)
 
     _GESTURES = ("pinch", "fist", "open_palm")
 
     def __init__(self):
         self._counts:    dict[str, int]  = {g: 0 for g in self._GESTURES}
         self._triggered: dict[str, bool] = {g: False for g in self._GESTURES}
-        self.open_palm_active: bool = False  # continuous state: True while hand is spread open
 
     def update(self, left_poses: dict[str, np.ndarray]) -> dict[str, bool]:
         """Return which gestures fired this frame (True = just triggered).
@@ -50,10 +49,9 @@ class LeftHandGestureDetector:
 
         tips = [t for t in [thumb_tip, index_tip, middle_tip, ring_tip, little_tip] if t is not None]
         avg_dist = float(np.mean([np.linalg.norm(t[:3] - wrist[:3]) for t in tips]))
-        is_fist     = avg_dist < self.FIST_THRESHOLD and not is_pinching
-        is_open     = avg_dist > self.OPEN_THRESHOLD and not is_pinching
+        is_fist = avg_dist < self.FIST_THRESHOLD and not is_pinching
+        is_open = avg_dist > self.OPEN_THRESHOLD and not is_pinching
 
-        self.open_palm_active = is_open
         active = {"pinch": is_pinching, "fist": is_fist, "open_palm": is_open}
         return {g: self._debounce(g, active[g]) for g in self._GESTURES}
 

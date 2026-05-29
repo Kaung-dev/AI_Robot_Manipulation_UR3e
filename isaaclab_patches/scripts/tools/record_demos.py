@@ -524,11 +524,10 @@ def run_simulation_loop(
                 left_poses = teleop_interface.get_hand_poses(OpenXRDevice.TrackingTarget.HAND_LEFT)
                 gestures = gesture_detector.update(left_poses)
 
-                prev = running_recording_instance
-                running_recording_instance = gesture_detector.open_palm_active
-                if running_recording_instance != prev:
+                if gestures["open_palm"]:
+                    running_recording_instance = not running_recording_instance
                     state = "resumed" if running_recording_instance else "paused"
-                    print(f"Recording {state} (hand {'open' if running_recording_instance else 'closed'})")
+                    print(f"Recording {state} (open palm toggle)")
 
                 if gestures["pinch"]:
                     # Accept: export current episode as successful then reset

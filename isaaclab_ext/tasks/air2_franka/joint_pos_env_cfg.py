@@ -90,11 +90,11 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
                     retargeters=[
                         Se3RelRetargeterCfg(
                             bound_hand=OpenXRDevice.TrackingTarget.HAND_RIGHT,
-                            zero_out_xy_rotation=True,
-                            use_wrist_rotation=False,
+                            zero_out_xy_rotation=False,
+                            use_wrist_rotation=True,
                             use_wrist_position=True,
-                            delta_pos_scale_factor=5.0,
-                            delta_rot_scale_factor=5.0,
+                            delta_pos_scale_factor=20.0,
+                            delta_rot_scale_factor=10.0,
                             sim_device=self.sim.device,
                         ),
                         GripperRetargeterCfg(
