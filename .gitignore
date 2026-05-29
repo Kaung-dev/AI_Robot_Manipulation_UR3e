@@ -63,7 +63,6 @@ DEVLOG.md
 
 # Datasets / checkpoints / eval results (keep out of git; use Git LFS or external storage if needed)
 datasets/
-logs/
 runs/
 checkpoints/
 eval_results/
