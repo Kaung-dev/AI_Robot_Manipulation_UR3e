@@ -6,6 +6,8 @@ from .rewards import (
     target_to_basket,
     target_in_basket,
     wrong_object_moved,
+    object_slipped,
+    grasp_lost,
     progress_stall,
 )
 from .terminations import target_reached_basket

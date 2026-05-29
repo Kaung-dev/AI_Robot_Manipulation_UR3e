@@ -21,6 +21,16 @@ def _to_numpy(value: torch.Tensor | np.ndarray | None) -> np.ndarray | None:
     return np.asarray(value)
 
 
+def _quat_to_rot(q: np.ndarray) -> np.ndarray:
+    """Quaternion (w, x, y, z) → 3×3 rotation matrix (camera → world)."""
+    w, x, y, z = q.astype(float)
+    return np.array([
+        [1 - 2*(y*y + z*z),     2*(x*y - w*z),     2*(x*z + w*y)],
+        [    2*(x*y + w*z), 1 - 2*(x*x + z*z),     2*(y*z - w*x)],
+        [    2*(x*z - w*y),     2*(y*z + w*x), 1 - 2*(x*x + y*y)],
+    ])
+
+
 def pixel_to_camera(
     centroid_px: tuple[float, float],
     depth: float,
@@ -43,11 +53,19 @@ def extract_detections(
     logits: torch.Tensor | np.ndarray,
     depth: torch.Tensor | np.ndarray | None = None,
     intrinsic_matrix: torch.Tensor | np.ndarray | None = None,
+    pos_w: torch.Tensor | np.ndarray | None = None,
+    rot_w_quat: torch.Tensor | np.ndarray | None = None,
     class_map: dict[int, str] | None = None,
     min_area: int = 32,
     min_confidence: float = 0.35,
 ) -> list[dict[str, Any]]:
-    """Convert model logits to robot-facing object records."""
+    """Convert model logits to robot-facing object records.
+
+    pos_w: camera world position (3,) — from camera.data.pos_w[env_idx].
+    rot_w_quat: camera world rotation as quaternion (w,x,y,z) (4,) —
+        from camera.data.quat_w_ros[env_idx] in Isaac Lab.
+    When both are provided, position_world is populated for each detection.
+    """
     class_map = class_map or AIR2_CLASS_MAP
     if isinstance(logits, np.ndarray):
         logits_tensor = torch.from_numpy(logits)
@@ -62,6 +80,10 @@ def extract_detections(
     if depth_np is not None and depth_np.ndim == 3:
         depth_np = depth_np[..., 0]
     intrinsics_np = _to_numpy(intrinsic_matrix)
+
+    pos_w_np = _to_numpy(pos_w)
+    rot_w_np = _to_numpy(rot_w_quat)
+    R_cam_to_world = _quat_to_rot(rot_w_np) if rot_w_np is not None else None
 
     detections: list[dict[str, Any]] = []
     for class_id, label in class_map.items():
@@ -96,6 +118,11 @@ def extract_detections(
                 depth_value = float(np.median(finite))
                 position_camera = pixel_to_camera((centroid_x, centroid_y), depth_value, intrinsics_np)
 
+        position_world = None
+        if position_camera is not None and R_cam_to_world is not None and pos_w_np is not None:
+            p_cam = np.array(position_camera, dtype=float)
+            position_world = (pos_w_np + R_cam_to_world @ p_cam).tolist()
+
         detections.append(
             {
                 "class_id": int(class_id),
@@ -105,7 +132,7 @@ def extract_detections(
                 "centroid_px": [centroid_x, centroid_y],
                 "depth": depth_value,
                 "position_camera": position_camera,
-                "position_world": None,
+                "position_world": position_world,
             }
         )
 

@@ -52,12 +52,11 @@ def _apply_segmentation_cameras(cfg) -> None:
     # Keep the wrist camera for close object/gripper views, but request all
     # annotators needed for supervised segmentation datasets.
     cfg.scene.wrist_camera.data_types = list(SEGMENTATION_DATA_TYPES)
-    # Isaac Sim 5.1 can return RGBA segmentation buffers even when the
-    # non-colorized annotator is requested. Keep colorized output stable and
-    # remap known colors back to class IDs in the dataset collector.
-    cfg.scene.wrist_camera.colorize_semantic_segmentation = True
-    cfg.scene.wrist_camera.colorize_instance_segmentation = True
-    cfg.scene.wrist_camera.semantic_segmentation_mapping = SEMANTIC_MAPPING
+    # Non-colorized: Isaac Sim returns integer instance IDs. The collect script
+    # extracts the first channel and uses semantic_info text labels for remapping.
+    # This correctly handles post-load semantic tags (e.g. basket tagging).
+    cfg.scene.wrist_camera.colorize_semantic_segmentation = False
+    cfg.scene.wrist_camera.colorize_instance_segmentation = False
 
     # Wider 18 mm lens (≈60° HFOV) so the whole work cell fits in one frame:
     # robot, pegboard with hooks, tools, and the basket.
@@ -83,12 +82,11 @@ def _apply_segmentation_cameras(cfg) -> None:
         height=360,
         width=640,
         data_types=list(SEGMENTATION_DATA_TYPES),
-        colorize_semantic_segmentation=True,
-        colorize_instance_segmentation=True,
-        semantic_segmentation_mapping=SEMANTIC_MAPPING,
+        colorize_semantic_segmentation=False,
+        colorize_instance_segmentation=False,
         spawn=pinhole_wide,
         offset=CameraCfg.OffsetCfg(
-            pos=(-2.0, -3.5, 2.2),
+            pos=(-1.0, -3.5, 1.8),
             rot=(-0.2068, 0.2807, 0.7545, -0.5560),
             convention="ros",
         ),

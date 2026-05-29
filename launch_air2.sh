@@ -23,20 +23,27 @@ MODE="${1:-}"
 case "$MODE" in
 
   collect-seg)
-    FRAMES="${2:-500}"
-    echo "[INFO] Collecting $FRAMES segmentation frames → datasets/air2_segmentation"
+    FRAMES="${2:-0}"
+    FRAMES_ARG=""
+    [ "$FRAMES" -gt 0 ] && FRAMES_ARG="--frames $FRAMES"
+    echo "[INFO] Collecting segmentation frames → datasets/air2_segmentation (Ctrl+C to stop)"
     "$ISAACLAB_PATH/isaaclab.sh" -p "$REPO_ROOT/scripts/collect_air2_segmentation_data.py" \
-      --task "$TASK" --enable_cameras --frames "$FRAMES" \
+      --task "$TASK" --enable_cameras $FRAMES_ARG \
       --output "$REPO_ROOT/datasets/air2_segmentation"
     ;;
 
   train-seg)
-    EPOCHS="${2:-30}"
-    echo "[INFO] Training segmentation model ($EPOCHS epochs)"
+    EPOCHS="${2:-60}"
+    BACKBONE="${3:-resnet18}"
+    LR_ARG=""
+    [ "$BACKBONE" = "unet" ] && LR_ARG="--lr 1e-3"
+    echo "[INFO] Training segmentation model ($BACKBONE, $EPOCHS epochs)"
     "$ISAACLAB_PATH/isaaclab.sh" -p "$REPO_ROOT/scripts/train_air2_segmentation.py" \
+      --backbone "$BACKBONE" \
       --data "$REPO_ROOT/datasets/air2_segmentation" \
       --epochs "$EPOCHS" \
-      --output "$REPO_ROOT/checkpoints/air2_segmentation_unet.pth"
+      --output "$REPO_ROOT/checkpoints/air2_segmentation_${BACKBONE}.pth" \
+      $LR_ARG
     ;;
 
   collect-demos)

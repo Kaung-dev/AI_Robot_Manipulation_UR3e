@@ -26,7 +26,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from .cnn.model import AIR2UNet
+from .cnn.model import AIR2UNet, AIR2ResNetSeg
 from .objects import TARGET_DIM
 
 
@@ -63,6 +63,58 @@ class FrozenUNetEncoder(nn.Module):
         return x
 
 
+class FrozenResNetEncoder(nn.Module):
+    """ResNet-18 encoder frozen after segmentation training.
+
+    Applies ImageNet normalisation internally so callers can pass raw uint8
+    images — same interface as FrozenUNetEncoder.
+    """
+
+    feature_dim = 512  # ResNet-18 layer4: 512 channels
+
+    # ImageNet normalisation constants
+    _MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+    _STD  = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+
+    def __init__(self, resnet_seg: AIR2ResNetSeg, freeze: bool = True):
+        super().__init__()
+        self.enc0 = resnet_seg.enc0
+        self.pool = resnet_seg.pool
+        self.enc1 = resnet_seg.enc1
+        self.enc2 = resnet_seg.enc2
+        self.enc3 = resnet_seg.enc3
+        self.enc4 = resnet_seg.enc4
+        if freeze:
+            for p in self.parameters():
+                p.requires_grad_(False)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dtype == torch.uint8:
+            x = x.float() / 255.0
+        mean = self._MEAN.to(x.device)
+        std  = self._STD.to(x.device)
+        x = (x - mean) / std
+        x = self.enc0(x)
+        x = self.enc1(self.pool(x))
+        x = self.enc2(x)
+        x = self.enc3(x)
+        x = self.enc4(x)
+        return F.adaptive_avg_pool2d(x, 1).flatten(1)  # (B, 512)
+
+
+def load_frozen_resnet_encoder(ckpt_path: str | Path | None, num_classes: int = 9) -> FrozenResNetEncoder:
+    """Build a FrozenResNetEncoder from a ResNet-18 segmentation checkpoint (or pretrained ImageNet if None)."""
+    model = AIR2ResNetSeg(num_classes=num_classes, pretrained=(ckpt_path is None))
+    if ckpt_path is not None:
+        state = torch.load(str(ckpt_path), map_location="cpu")
+        if isinstance(state, dict) and "model_state_dict" in state:
+            state = state["model_state_dict"]
+        missing, unexpected = model.load_state_dict(state, strict=False)
+        print(f"[encoder] loaded ResNet-18 ckpt, missing={len(missing)} unexpected={len(unexpected)}")
+    model.eval()
+    return FrozenResNetEncoder(model, freeze=True)
+
+
 def load_frozen_encoder(unet_ckpt: str | Path | None, num_classes: int = 9) -> FrozenUNetEncoder:
     """Build a FrozenUNetEncoder from a U-Net checkpoint (or random weights if None)."""
     unet = AIR2UNet(num_classes=num_classes)
@@ -88,32 +140,22 @@ ACTION_DIM = 7       # IK-Rel pose (6) + binary gripper (1)
 CHUNK_SIZE = 16      # ACT-inspired: predict the next CHUNK_SIZE actions in one forward pass
 STATE_DIM = JOINT_DIM * 2 + ACTION_DIM   # joint_pos + joint_vel + last_action
 COMMAND_DIM = TARGET_DIM                  # one-hot target object command
-DEFAULT_VISION_DIM = 256                  # FrozenUNetEncoder feature_dim
+DEFAULT_VISION_DIM = 256  # FrozenUNetEncoder feature_dim (U-Net)
+RESNET_VISION_DIM  = 512  # FrozenResNetEncoder feature_dim (ResNet-18)
 
 
 class BCPolicy(nn.Module):
     """Action-chunked actor: (wrist_img, board_img, state) → (chunk, 7).
 
-    Predicts the next `chunk_size` actions per forward pass. At inference,
-    execute only the first action of the chunk (or use temporal ensembling
-    by averaging overlapping chunks — see eval_bc.py).
-
-    Inspired by ACT (Action Chunking Transformer; Zhao et al. 2023) but uses
-    a frozen U-Net encoder + MLP fusion instead of ResNet + Transformer.
-    Reasons: simpler to train, matches our staged CNN/IL/RL design doc, and
-    the AIR2 task is short-horizon so we don't need long-range temporal
-    context from a Transformer.
-
-    The PPO actor (bc_to_ppo.py) does NOT use chunking — it predicts one
-    action per step. The action-head weights are still copied over for the
-    last linear layer; chunked outputs are flattened and only the first
-    action_dim slice is transferred.
+    Works with either FrozenUNetEncoder (vision_dim=256) or
+    FrozenResNetEncoder (vision_dim=512) — pass the encoder and the policy
+    auto-detects the feature dim via encoder.feature_dim.
     """
 
     def __init__(
         self,
         encoder: FrozenUNetEncoder,
-        vision_dim: int = DEFAULT_VISION_DIM,
+        vision_dim: int | None = None,
         state_dim: int = STATE_DIM,
         command_dim: int = COMMAND_DIM,
         action_dim: int = ACTION_DIM,
@@ -125,6 +167,8 @@ class BCPolicy(nn.Module):
         self.chunk_size = chunk_size
         self.action_dim = action_dim
         self.command_dim = command_dim
+        if vision_dim is None:
+            vision_dim = getattr(encoder, "feature_dim", DEFAULT_VISION_DIM)
         # one encoder pass per camera (shared weights) — input dim = 2 * vision_dim
         self.fusion = nn.Sequential(
             nn.Linear(2 * vision_dim + state_dim + command_dim, hidden[0]),

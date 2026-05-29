@@ -165,6 +165,16 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
         params={"target_key": target_key},
         weight=-5.0,
     )
+    cfg.rewards.object_slipped = RewTerm(
+        func=air2_mdp.object_slipped,
+        params={"target_key": target_key},
+        weight=-3.0,
+    )
+    cfg.rewards.grasp_lost = RewTerm(
+        func=air2_mdp.grasp_lost,
+        params={"target_key": target_key},
+        weight=-3.0,
+    )
     cfg.rewards.progress_stall = RewTerm(
         func=air2_mdp.progress_stall,
         params={"target_key": target_key},

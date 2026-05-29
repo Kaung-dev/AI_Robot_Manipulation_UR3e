@@ -117,8 +117,72 @@ def wrong_object_moved(
     return total
 
 
-# Module-level state for progress tracking. Keyed by id(env).
+# Module-level state for step-to-step tracking. Keyed by id(env).
 _prev_progress: dict[int, torch.Tensor] = {}
+_was_off_slot: dict[int, torch.Tensor] = {}
+_was_in_hand: dict[int, torch.Tensor] = {}
+
+
+def object_slipped(
+    env: ManagerBasedRLEnv,
+    target_key: str,
+    slot_line_y: float = SLOT_LINE_Y,
+    clearance: float = SLOT_CLEAR,
+) -> torch.Tensor:
+    """Penalty: target fell back onto its slot after previously being off it.
+
+    Fires once per slip event (edge-triggered, not level). Does not fire
+    when the object moves from off-slot directly into the basket.
+    """
+    obj_pos = _obj_local_pos(env, target_key)
+    currently_off = obj_pos[..., 1] > slot_line_y + clearance
+
+    env_id = id(env)
+    is_reset = env.episode_length_buf <= 1
+
+    if env_id not in _was_off_slot:
+        _was_off_slot[env_id] = currently_off.clone()
+        return torch.zeros(env.num_envs, device=env.device)
+
+    was_off = _was_off_slot[env_id].to(env.device)
+    was_off = torch.where(is_reset, currently_off, was_off)
+    slipped = (was_off & ~currently_off).float()
+    _was_off_slot[env_id] = currently_off.clone()
+    return slipped
+
+
+def grasp_lost(
+    env: ManagerBasedRLEnv,
+    target_key: str,
+    grasp_radius: float = 0.08,
+    basket_radius: float = 0.30,
+) -> torch.Tensor:
+    """Penalty: target was in gripper last step and dropped this step.
+
+    Does not fire when the object lands in the basket (intentional release).
+    Edge-triggered — one penalty per drop event.
+    """
+    dist_to_ee = torch.linalg.norm(_obj_local_pos(env, target_key) - _ee_local_pos(env), dim=-1)
+    robot = env.scene["robot"]
+    finger_sum = robot.data.joint_pos[:, -2:].sum(dim=-1)
+    gripper_closed = finger_sum < 0.04
+    currently_in_hand = (dist_to_ee < grasp_radius) & gripper_closed
+
+    basket = BASKET_POS_LOCAL.to(env.device)
+    in_basket = torch.linalg.norm(_obj_local_pos(env, target_key) - basket, dim=-1) < basket_radius
+
+    env_id = id(env)
+    is_reset = env.episode_length_buf <= 1
+
+    if env_id not in _was_in_hand:
+        _was_in_hand[env_id] = currently_in_hand.clone()
+        return torch.zeros(env.num_envs, device=env.device)
+
+    was_in_hand = _was_in_hand[env_id].to(env.device)
+    was_in_hand = torch.where(is_reset, currently_in_hand, was_in_hand)
+    lost = (was_in_hand & ~currently_in_hand & ~in_basket).float()
+    _was_in_hand[env_id] = currently_in_hand.clone()
+    return lost
 
 
 def progress_stall(env: ManagerBasedRLEnv, target_key: str) -> torch.Tensor:

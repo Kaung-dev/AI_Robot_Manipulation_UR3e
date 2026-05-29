@@ -47,7 +47,7 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description="Collect AIR2 segmentation training data with the robot in motion.")
 parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0")
 parser.add_argument("--output", default="datasets/air2_segmentation")
-parser.add_argument("--frames", type=int, default=200, help="Target number of saved frames.")
+parser.add_argument("--frames", type=int, default=0, help="Target number of saved frames. 0 = run until Ctrl+C.")
 parser.add_argument("--cameras", nargs="+", default=["board_camera", "wrist_camera"])
 parser.add_argument("--save-every-n-steps", type=int, default=3, help="Save a frame every Nth sim step.")
 parser.add_argument("--episode-length-s", type=float, default=20.0)
@@ -173,7 +173,8 @@ def main() -> None:
     sample_ids: list[str] = []
     step_counter = 0
     saved_in_episode = 0
-    while len(sample_ids) < args_cli.frames and simulation_app.is_running():
+    target_frames = args_cli.frames
+    while (target_frames == 0 or len(sample_ids) < target_frames) and simulation_app.is_running():
         with torch.inference_mode():
             ee = env.unwrapped.scene["ee_frame"]
             ee_local = ee.data.target_pos_w[..., 0, :] - env.unwrapped.scene.env_origins
@@ -197,7 +198,12 @@ def main() -> None:
                 camera = env.unwrapped.scene[camera_name]
                 rgb = _squeeze_image(camera.data.output["rgb"]).astype(np.uint8)
                 depth = _squeeze_image(camera.data.output["distance_to_image_plane"]).astype(np.float32)
-                raw_mask = _squeeze_image(camera.data.output["semantic_segmentation"]).astype(np.int32)
+                raw_mask = _squeeze_image(camera.data.output["semantic_segmentation"])
+                # Isaac Sim 5.1 returns (H, W, 4) even for non-colorized annotators.
+                # First channel holds the integer instance ID; extract it.
+                if raw_mask.ndim == 3:
+                    raw_mask = raw_mask[..., 0]
+                raw_mask = raw_mask.astype(np.int32)
                 semantic_info = _camera_info(camera, "semantic_segmentation")
                 instance_info = _camera_info(camera, "instance_segmentation_fast")
                 remapped = remap_isaac_mask(raw_mask, semantic_info).astype(np.uint8)

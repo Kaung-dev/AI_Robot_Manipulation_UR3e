@@ -85,14 +85,38 @@ Full term list agreed on after discussion. Replacing current barebones rewards e
 
 Weight order: target_in_basket (highest) → target_off_hook / target_in_hand → ee_to_target / target_to_basket → penalties (tune last).
 
-### Design decisions still open
-- Per-object tasks (4 separate envs) vs single env with target command?
-- Does each episode spawn only the target object or all 4?
-- PPO from scratch vs diffusion warm start vs diffusion → PPO fine-tune?
-- Time penalty: decided against raw time penalty. Progress stall penalty preferred — penalises steps where scene state doesn't advance, not just elapsed time.
+### Design decisions
+- **Per-object tasks** — 4 separate envs (one per object), each episode spawns all 4 objects on slots. No target command input needed.
+- **Sequence plan** — later, object gathering will run tasks in sequence (e.g. 4→2→3→1 order), but each individual task is still single-object.
+- PPO from scratch vs diffusion warm start — still open.
+- Time penalty: decided against raw time penalty. Progress stall penalty preferred.
 
 ### Dependencies
 - CNN `position_world` fix required before CNN confirmation terms can be implemented (see logs/cnn.md)
 - Reward redesign blocked until env architecture decisions are made
 
 **Status:** design complete, not implemented
+
+---
+
+## 2026-05-30 — Rewards implemented
+**Who:** Steph
+**Changed:** rewards.py — added `object_slipped` and `grasp_lost` penalty terms. Both edge-triggered (fire once per event). Wired up all terms in `_apply_target_rewards()` in air2_robotis_franka/joint_pos_env_cfg.py.
+
+### Final implemented weights
+| Term | Weight | Notes |
+|---|---|---|
+| `ee_to_target` | +2.0 | Gaussian, std=0.5 |
+| `target_off_slot` | +5.0 | Binary — Y > SLOT_LINE_Y + clearance |
+| `target_in_hand` | +3.0 | Physics: dist < 0.08m AND finger_sum < 0.04 |
+| `target_to_basket` | +1.0 | Gaussian, std=0.5 |
+| `target_in_basket` | +20.0 | Binary — dist < 0.30m from basket |
+| `wrong_object_moved` | -5.0 | Count of displaced non-target objects |
+| `object_slipped` | -3.0 | Edge: target returned to slot after being off |
+| `grasp_lost` | -3.0 | Edge: dropped while carrying (not in basket) |
+| `progress_stall` | -0.5 | Per step where min(ee→target, target→basket) didn't improve |
+| `task_success` | termination | dist < 0.30m from basket |
+
+CNN confirmation skipped — physics-based approximations used throughout. Weights are initial estimates, expect tuning after first PPO runs.
+
+**Status:** implemented, not yet tested

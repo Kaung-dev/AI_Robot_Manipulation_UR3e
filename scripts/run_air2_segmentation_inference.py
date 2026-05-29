@@ -16,16 +16,20 @@ CNN_DIR = REPO_ROOT / "isaaclab_ext/tasks/air2_franka/cnn"
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(CNN_DIR))
 
-from model import build_model
+from model import build_model, build_resnet_model
 from postprocess import extract_detections
 
 
 def _load_checkpoint(path: Path, device: torch.device):
     checkpoint = torch.load(path, map_location=device)
+    backbone = checkpoint.get("backbone", "unet")
     num_classes = int(checkpoint.get("num_classes", 7))
-    base_channels = int(checkpoint.get("base_channels", 32))
     class_map = {int(key): value for key, value in checkpoint.get("class_map", {}).items()}
-    model = build_model(num_classes=num_classes, base_channels=base_channels).to(device)
+    if backbone == "resnet18":
+        model = build_resnet_model(num_classes=num_classes, pretrained=False).to(device)
+    else:
+        base_channels = int(checkpoint.get("base_channels", 32))
+        model = build_model(num_classes=num_classes, base_channels=base_channels).to(device)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
     return model, class_map
@@ -99,6 +103,8 @@ def run_live_mode(args) -> None:
     if depth.ndim == 3 and depth.shape[-1] == 1:
         depth = depth[..., 0]
     intrinsics = camera.data.intrinsic_matrices[0].detach().cpu().numpy()
+    pos_w = camera.data.pos_w[0].detach().cpu().numpy()
+    rot_w_quat = camera.data.quat_w_ros[0].detach().cpu().numpy()
 
     with torch.no_grad():
         logits = model(image)
@@ -106,6 +112,8 @@ def run_live_mode(args) -> None:
         logits,
         depth=depth,
         intrinsic_matrix=intrinsics,
+        pos_w=pos_w,
+        rot_w_quat=rot_w_quat,
         class_map=class_map,
         min_area=args.min_area,
         min_confidence=args.min_confidence,

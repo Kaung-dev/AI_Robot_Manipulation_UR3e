@@ -48,3 +48,23 @@ Pipeline: collect_air2_segmentation_data.py → train_air2_segmentation.py → f
 **Result:** 50 frames collected cleanly to datasets/air2_segmentation/. Images, masks, overlays all present.
 **Status:** working
 **Note:** 50 frames is smoke test only. Real collection needs 500+ frames for meaningful training.
+
+---
+
+## 2026-05-30 — Full dataset collection + retraining
+**Who:** Steph
+**Changed:** Collected 757 good frames (758 raw, 1 corrupt at boundary removed). Split: 606 train / 151 val. Regenerated train.txt/val.txt from all images on disk (previous split files were stale from 50-frame run — Ctrl+C killed the write).
+**Tried:** Trained both ResNet-18 and U-Net for 60 epochs with: encoder freeze (ResNet-18, first 10 epochs), cosine LR decay, dice loss weight 0.5, data augmentation.
+**Result:**
+- ResNet-18: best tool_miou = 0.793, smooth training
+- U-Net: best tool_miou = 0.919, noisy early training but stabilised from epoch 50
+**Status:** working — U-Net checkpoint in use (checkpoints/air2_segmentation_unet.pth)
+
+---
+
+## 2026-05-30 — position_world fix
+**Who:** Steph
+**Changed:** postprocess.py — added `pos_w` and `rot_w_quat` params to `extract_detections()`. Added `_quat_to_rot()` helper. Computes `position_world = pos_w + R_cam_to_world @ position_camera` when extrinsics provided. run_air2_segmentation_inference.py updated to pass `camera.data.pos_w[0]` and `camera.data.quat_w_ros[0]` in live mode.
+**Result:** position_world now populated when camera extrinsics are passed. Backward compatible — callers that omit extrinsics still get None.
+**Status:** working (code only — not yet wired into reward functions)
+**Note:** Reward functions will need to pass extrinsics when calling extract_detections. That's part of the reward redesign step.

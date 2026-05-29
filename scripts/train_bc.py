@@ -42,6 +42,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from isaaclab_ext.tasks.air2_franka.policy import (
     BCPolicy, FrozenUNetEncoder, load_frozen_encoder,
+    FrozenResNetEncoder, load_frozen_resnet_encoder,
     ACTION_DIM, STATE_DIM, JOINT_DIM, CHUNK_SIZE, COMMAND_DIM,
 )
 
@@ -207,9 +208,11 @@ def bc_loss(
 def main():
     parser = argparse.ArgumentParser(description="BC trainer for AIR2 pick-place.")
     parser.add_argument("--demos", required=True, help="Root dir containing ep_*/ subdirs.")
-    parser.add_argument("--unet_ckpt", default=None, help="Path to trained U-Net .pth (optional).")
+    parser.add_argument("--backbone", default="resnet18", choices=["resnet18", "unet"],
+                        help="Visual encoder backbone. Must match the segmentation checkpoint.")
+    parser.add_argument("--unet_ckpt", default=None, help="Path to segmentation .pth checkpoint.")
     parser.add_argument("--out", default="checkpoints/policy_bc.pth", help="Output BC checkpoint.")
-    parser.add_argument("--num_classes", type=int, default=9, help="U-Net output classes (must match the ckpt).")
+    parser.add_argument("--num_classes", type=int, default=9, help="Segmentation model output classes.")
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-4)
@@ -240,7 +243,10 @@ def main():
     val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False,
                             num_workers=args.num_workers, pin_memory=(args.device == "cuda"))
 
-    encoder = load_frozen_encoder(args.unet_ckpt, num_classes=args.num_classes)
+    if args.backbone == "resnet18":
+        encoder = load_frozen_resnet_encoder(args.unet_ckpt, num_classes=args.num_classes)
+    else:
+        encoder = load_frozen_encoder(args.unet_ckpt, num_classes=args.num_classes)
     policy = BCPolicy(encoder).to(args.device)
     # Only fusion + action_head have grads (encoder is frozen by load_frozen_encoder).
     trainable = [p for p in policy.parameters() if p.requires_grad]

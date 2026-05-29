@@ -144,46 +144,19 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
         self.commands.object_pose.ranges.pos_y = (-3.0, -2.0)
         self.commands.object_pose.ranges.pos_z = (1.0, 1.5)
 
+        # Viewport camera — default orientation, centred on scene origin.
+        self.viewer.eye = (7.5, 7.5, 7.5)
+        self.viewer.lookat = (0.0, 0.0, 0.0)
+
         # --- AIR2-scene reward overrides ---------------------------------
-        # The base lift rewards are broken for this scene; see mdp/rewards.py
-        # for the diagnosis. We disable the broken terms and add AIR2-aware
-        # ones that actually reward pick-and-place into the basket.
-        self.rewards.lifting_object = None                  # always-on noise (objects spawn on hooks)
-        self.rewards.object_goal_tracking = None            # goal in wrong frame, gives 0
+        # Disable broken base lift rewards (see mdp/rewards.py for diagnosis).
+        # Target-specific rewards are applied by _apply_target_rewards() in
+        # per-object subclasses (air2_robotis_franka/joint_pos_env_cfg.py).
+        self.rewards.lifting_object = None
+        self.rewards.object_goal_tracking = None
         self.rewards.object_goal_tracking_fine_grained = None
-        self.rewards.reaching_object.params["std"] = 0.5    # rescale from 10cm → 50cm for AIR2
+        self.rewards.reaching_object = None
 
-        # New: dense gradient pulling each object toward the basket.
-        self.rewards.objects_to_basket = RewTerm(
-            func=mdp.all_objects_to_basket,
-            params={"std": 0.5},
-            weight=1.0,
-        )
-        # New: early "progress" signal — fires once an object is pulled off the hook.
-        self.rewards.objects_off_hook = RewTerm(
-            func=mdp.all_objects_off_hook,
-            params={"clearance": 0.20},
-            weight=5.0,
-        )
-        # New: big bonus per object actually inside the basket.
-        self.rewards.objects_in_basket = RewTerm(
-            func=mdp.all_objects_in_basket,
-            params={"radius": 0.30},
-            weight=20.0,
-        )
-        # New: replace the broken reaching reward with one keyed to the nearest
-        # *remaining-on-hook* object, so the EE is always pulled toward unfinished work.
-        self.rewards.ee_to_object = RewTerm(
-            func=mdp.ee_to_nearest_object,
-            params={"std": 0.5},
-            weight=2.0,
-        )
-
-        # Smoothness regularization (Raphael's feedback): bump action_rate +
-        # joint_vel penalties 10x to push PPO toward smoother trajectories.
-        # Base lift_env_cfg has weight=-1e-4 (too small to register against the
-        # ~20 weight on objects_in_basket); the curriculum eventually raises
-        # them to -1e-1 after 10k steps, but we want pressure from the start.
         self.rewards.action_rate.weight = -1e-3
         self.rewards.joint_vel.weight = -1e-3
 
