@@ -70,6 +70,53 @@ def target_in_hand(
     return ((dist < grasp_radius) & gripper_closed).float()
 
 
+def grasp_shaping(
+    env: ManagerBasedRLEnv,
+    target_key: str,
+    near_radius: float = 0.15,
+) -> torch.Tensor:
+    """Dense per-step reward for closing the gripper while near the target.
+
+    Bridges the gap between `ee_to_target` (always-on Gaussian near object) and
+    `target_in_hand` (binary AND-of-two-conditions). Without this, PPO finds
+    the local optimum of "hover near target, do not move" — `target_in_hand`
+    never fires because closing the gripper temporarily reduces `ee_to_target`
+    (the body moves a tiny bit) and incurs `action_rate` penalty.
+
+    Returns (num_envs,) in [0, 1]:
+        near    = 1 if EE within near_radius of target, smoothly decays outside
+        closure = 1 when fingers fully closed (sum=0), 0 when fully open (sum=0.08)
+        score   = near * closure
+    """
+    dist = torch.linalg.norm(_obj_local_pos(env, target_key) - _ee_local_pos(env), dim=-1)
+    near = torch.exp(-(dist / near_radius) ** 2)              # Gaussian, std=near_radius
+    robot = env.scene["robot"]
+    finger_sum = robot.data.joint_pos[:, -2:].sum(dim=-1)     # 0 closed, 0.08 open
+    closure = torch.clamp((0.08 - finger_sum) / 0.08, 0.0, 1.0)
+    return near * closure
+
+
+def lift_progress(
+    env: ManagerBasedRLEnv,
+    target_key: str,
+    base_z: float = 1.61,
+    max_lift: float = 0.30,
+) -> torch.Tensor:
+    """Continuous reward for raising the target object above its spawn z.
+
+    Slot z is ~1.61 m (see _SLOTS in air2_robotis_franka cfg). Reward climbs
+    linearly from 0 (at spawn height) to 1.0 (when target is 30 cm above).
+
+    Implicitly conditions on grasp: only a truly grasped object stays in the
+    air; bumped/swatted objects fall back down within a few steps. This is the
+    missing gradient between "grasp briefly" and "carry to basket" — without
+    it, PPO has no incentive to LIFT after grasping.
+    """
+    target_pos = _obj_local_pos(env, target_key)
+    height_above = torch.clamp(target_pos[..., 2] - base_z, 0.0, max_lift)
+    return height_above / max_lift
+
+
 def target_to_basket(
     env: ManagerBasedRLEnv,
     target_key: str,

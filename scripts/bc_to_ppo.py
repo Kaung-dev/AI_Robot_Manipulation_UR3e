@@ -68,6 +68,7 @@ from rsl_rl.runners import OnPolicyRunner
 
 import isaaclab_tasks  # noqa: F401
 import isaaclab_ext.tasks.air2_franka  # noqa: F401
+import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401 — registers per-target Brush/Pliers/Scissors/Screwdriver task IDs
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab_tasks.utils.parse_cfg import load_cfg_from_registry
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper

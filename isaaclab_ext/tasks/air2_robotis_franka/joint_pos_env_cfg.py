@@ -150,10 +150,33 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
         params={"target_key": target_key},
         weight=3.0,
     )
+    # v3 reward design: build a continuous gradient from "near target" through
+    # "closing on it" through "lifted" through "near basket" through "in basket".
+    # v2 had no signal between "grasped" (binary) and "in basket" (binary), so
+    # PPO learned to grasp briefly but never carried.
+
+    # Strong dense grasp signal — primary anchor for the grasp skill.
+    cfg.rewards.grasp_shaping = RewTerm(
+        func=air2_mdp.grasp_shaping,
+        params={"target_key": target_key, "near_radius": 0.15},
+        weight=5.0,                       # was 2.0
+    )
+    # NEW: lift_progress — continuous reward as target rises above its spawn z.
+    # The 0.30 m cap means reward saturates once the object is roughly at the
+    # height the operator carries it during the demos. Implicitly conditions
+    # on grasp (bumped objects fall back down).
+    cfg.rewards.lift_progress = RewTerm(
+        func=air2_mdp.lift_progress,
+        params={"target_key": target_key, "base_z": 1.61, "max_lift": 0.30},
+        weight=3.0,
+    )
+    # Stronger basket pull — once the object is lifted, this drags it toward
+    # the basket. Increased from 1.0 so the carrying-phase signal can compete
+    # with `ee_to_target` (weight 2.0) which keeps pulling the EE backwards.
     cfg.rewards.target_to_basket = RewTerm(
         func=air2_mdp.target_to_basket,
         params={"target_key": target_key, "std": 0.5},
-        weight=1.0,
+        weight=3.0,                       # was 1.0
     )
     cfg.rewards.target_in_basket = RewTerm(
         func=air2_mdp.target_in_basket,
@@ -175,15 +198,28 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
         params={"target_key": target_key},
         weight=-3.0,
     )
+    # Reduced from -0.5 to -0.02. At -0.5, with ~95% no-progress steps per
+    # episode the penalty was ~-95 reward, which dominated everything else
+    # and caused the policy to "freeze" to minimize action_rate / joint_vel
+    # / progress_stall instead of exploring grasping.
     cfg.rewards.progress_stall = RewTerm(
         func=air2_mdp.progress_stall,
         params={"target_key": target_key},
-        weight=-0.5,
+        weight=-0.02,
     )
     cfg.terminations.task_success = TerminationTermCfg(
         func=air2_mdp.target_reached_basket,
         params={"target_key": target_key, "radius": 0.30},
     )
+
+    # The base lift_env_cfg curriculum ramps action_rate / joint_vel weights
+    # from -1e-3 to -1e-1 over 10000 env steps (=~25 PPO iters at 16 envs ×
+    # 24 steps). By iter 400 these are at -1e-1, dominating positive reward
+    # and forcing policy collapse. Disable the curriculum entirely — keep
+    # the small base weights (-1e-3) which were already enough smoothness.
+    if hasattr(cfg, "curriculum"):
+        cfg.curriculum.action_rate = None
+        cfg.curriculum.joint_vel = None
 
 
 @configclass
