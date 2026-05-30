@@ -57,6 +57,19 @@ case "$MODE" in
       --num_demos "$NUM" --output "$REPO_ROOT/datasets/air2_manual_demos"
     ;;
 
+  train-diffusion)
+    EPOCHS="${2:-200}"
+    BACKBONE="${3:-unet}"
+    SEG_CKPT="$REPO_ROOT/checkpoints/air2_segmentation_${BACKBONE}.pth"
+    echo "[INFO] Training diffusion policy ($BACKBONE encoder, $EPOCHS epochs)"
+    "$ISAACLAB_PATH/isaaclab.sh" -p "$REPO_ROOT/scripts/train_diffusion.py" \
+      --demos "$REPO_ROOT/datasets/air2_manual_demos" \
+      --seg_ckpt "$SEG_CKPT" \
+      --backbone "$BACKBONE" \
+      --epochs "$EPOCHS" \
+      --out "$REPO_ROOT/checkpoints/policy_diffusion_${BACKBONE}.pth"
+    ;;
+
   train-bc)
     EPOCHS="${2:-50}"
     echo "[INFO] Training BC policy ($EPOCHS epochs)"
@@ -106,7 +119,7 @@ case "$MODE" in
     ;;
 
   *)
-    echo "Usage: $0 collect-seg | train-seg | collect-demos | train-bc | eval [object] | teleop"
+    echo "Usage: $0 collect-seg | train-seg | collect-demos | train-diffusion | train-bc | eval [object] | teleop"
     exit 1
     ;;
 

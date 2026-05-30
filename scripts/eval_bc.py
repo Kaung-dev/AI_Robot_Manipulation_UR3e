@@ -73,7 +73,7 @@ from isaaclab_ext.tasks.air2_franka.policy import (
 
 # Basket position in env-local frame (matches collect_air2_demos.py).
 BASKET_POS_LOCAL = torch.tensor([-3.560, -5.370, 1.040])
-BASKET_REACH_RADIUS = 0.40  # 40 cm — proxy success metric
+BASKET_REACH_RADIUS = 0.70  # 70 cm — XY radius above basket opening
 
 
 def main():
@@ -148,13 +148,14 @@ def main():
             ee_local = ee_world - origins
             dist_to_basket = torch.linalg.norm(ee_local - basket_pos_dev, dim=1)
             ep_min_basket_dist = torch.minimum(ep_min_basket_dist, dist_to_basket)
+            above_basket = ee_local[:, 2] >= (basket_pos_dev[2] - 0.05)
 
             done = term | trunc | (ep_step >= args_cli.max_steps)
             if done.any():
                 for i in done.nonzero(as_tuple=False).squeeze(-1).cpu().tolist():
                     if len(saved_episodes) >= args_cli.num_episodes:
                         break
-                    reached_basket = bool(ep_min_basket_dist[i].item() < BASKET_REACH_RADIUS)
+                    reached_basket = bool(ep_min_basket_dist[i].item() < BASKET_REACH_RADIUS and above_basket[i].item())
                     saved_episodes.append({
                         "ep_idx": len(saved_episodes),
                         "env_idx": int(i),
