@@ -76,28 +76,34 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, handl
 
 
 def warm_start_actor_from_state_bc(runner: OnPolicyRunner, ckpt_path: str) -> None:
-    """Load the full state-only BC actor into rsl_rl's actor.
+    """Load the state-BC MLP weights into rsl_rl's actor.mlp sub-module.
 
-    Architectures match by construction ([train_state_bc.py](train_state_bc.py)
-    builds the same `rsl_rl.networks.MLP`), so this is a strict `load_state_dict`.
+    New rsl_rl (>=4.0) wraps the MLP inside MLPModel(.mlp), so BC keys
+    like '0.weight' must be remapped to 'mlp.0.weight'.
     """
     print(f"[bc->ppo] loading STATE-BC ckpt: {ckpt_path}", flush=True)
-    blob = torch.load(ckpt_path, map_location="cpu")
+    blob = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     sd = blob["state_dict"] if isinstance(blob, dict) and "state_dict" in blob else blob
-    actor = runner.alg.policy.actor
-    # Verify shape compatibility before loading
+
+    # Remap plain Sequential keys → mlp.* (new rsl_rl MLPModel structure)
+    remapped = {f"mlp.{k}": v for k, v in sd.items()}
+
+    actor = runner.alg.actor
     actor_sd = actor.state_dict()
-    for key, val in sd.items():
+
+    # Verify shapes for the keys we're loading
+    for key, val in remapped.items():
         if key not in actor_sd:
-            raise RuntimeError(f"[bc->ppo] state_bc key '{key}' not in actor")
+            raise RuntimeError(f"[bc->ppo] remapped key '{key}' not found in actor. "
+                               f"Actor keys: {list(actor_sd.keys())}")
         if actor_sd[key].shape != val.shape:
-            raise RuntimeError(
-                f"[bc->ppo] shape mismatch for '{key}': "
-                f"state_bc={tuple(val.shape)} vs actor={tuple(actor_sd[key].shape)}. "
-                f"Rebuild state-BC with matching --hidden_dims / --activation."
-            )
-    actor.load_state_dict(sd, strict=True)
-    print(f"[bc->ppo] full actor state_dict loaded ({len(sd)} tensors)", flush=True)
+            raise RuntimeError(f"[bc->ppo] shape mismatch '{key}': "
+                               f"bc={tuple(val.shape)} actor={tuple(actor_sd[key].shape)}")
+
+    # Non-strict: only loads mlp.* weights, leaves obs_normalizer/distribution alone
+    missing, unexpected = actor.load_state_dict(remapped, strict=False)
+    print(f"[bc->ppo] loaded {len(remapped)} tensors into actor.mlp  "
+          f"(missing={missing}, unexpected={unexpected})", flush=True)
 
 
 def warm_start_actor_from_bc(runner: OnPolicyRunner, bc_ckpt_path: str) -> None:

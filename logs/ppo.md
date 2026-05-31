@@ -142,5 +142,8 @@ CNN confirmation skipped — physics-based approximations used throughout. Weigh
 - Task: `Isaac-AIR2-Robotis-Franka-Brush-v0` (has grasp_shaping + lift_progress + progress_stall rewards)
 - Warm-start settings: init_noise_std=0.5 (low), fixed LR=1e-5, no empirical normalisation, entropy_coef=0.01
 - rsl_rl API fix: added `handle_deprecated_rsl_rl_cfg()` call (new rsl_rl requires `class_name` in actor cfg)
+- rsl_rl API fix 2: `runner.alg.policy.actor` → `runner.alg.actor`, BC keys remapped `N.weight` → `mlp.N.weight`
+- Warm-start verified: max weight diff between BC ckpt and PPO model_0 = 2e-4 (float precision only, not a load failure)
+- Logs saved to: `logs/rsl_rl/air2_ppo/`
 - Command: `./launch_air2.sh ppo-warm-start`
-**Status:** setting up / first run
+**Status:** running (2026-05-31)
