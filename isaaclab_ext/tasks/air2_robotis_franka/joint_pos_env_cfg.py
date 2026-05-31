@@ -128,6 +128,14 @@ class AIR2RobotisFrankaEnvCfg_PLAY(AIR2RobotisFrankaEnvCfg):
 
 def _apply_target_rewards(cfg, target_key: str) -> None:
     """Replace generic AIR2 rewards with target-specific ones."""
+    # PPO tasks use GT positions for rewards — no camera needed.
+    cfg.scene.wrist_camera = None
+
+    # Disable the base lift curriculum — it ramps action_rate/joint_vel weights
+    # from -0.0001 to -0.1 over 10k steps, which overwhelms task rewards.
+    cfg.curriculum.action_rate = None
+    cfg.curriculum.joint_vel = None
+
     # Remove old generic rewards from AIR2FrankaEnvCfg
     cfg.rewards.objects_to_basket = None
     cfg.rewards.objects_off_hook = None
@@ -147,8 +155,8 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
     )
     cfg.rewards.target_in_hand = RewTerm(
         func=air2_mdp.target_in_hand,
-        params={"target_key": target_key},
-        weight=3.0,
+        params={"target_key": target_key, "grasp_radius": 0.15},
+        weight=30.0,
     )
     # v3 reward design: build a continuous gradient from "near target" through
     # "closing on it" through "lifted" through "near basket" through "in basket".
@@ -183,7 +191,7 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
     cfg.rewards.wrong_object_moved = RewTerm(
         func=air2_mdp.wrong_object_moved,
         params={"target_key": target_key},
-        weight=-5.0,
+        weight=-1.0,
     )
     cfg.rewards.object_slipped = RewTerm(
         func=air2_mdp.object_slipped,

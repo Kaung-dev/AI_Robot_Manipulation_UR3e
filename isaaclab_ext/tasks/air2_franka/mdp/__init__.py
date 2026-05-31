@@ -1,4 +1,5 @@
 from .events import reset_objects_on_hooks
+from .subtask import grasped
 from .rewards import (
     ee_to_target,
     target_off_slot,

@@ -122,6 +122,8 @@ def load_frozen_encoder(unet_ckpt: str | Path | None, num_classes: int = 9) -> F
         state = torch.load(str(unet_ckpt), map_location="cpu")
         if isinstance(state, dict) and "state_dict" in state:
             state = state["state_dict"]
+        elif isinstance(state, dict) and "model_state_dict" in state:
+            state = state["model_state_dict"]
         # Tolerate num_classes mismatch on the head: head weights are not used
         # by the encoder anyway.
         missing, unexpected = unet.load_state_dict(state, strict=False)
@@ -137,11 +139,16 @@ def load_frozen_encoder(unet_ckpt: str | Path | None, num_classes: int = 9) -> F
 
 JOINT_DIM = 9        # Franka: 7 arm + 2 fingers
 ACTION_DIM = 7       # IK-Rel pose (6) + binary gripper (1)
+CENTROID_DIM = 2     # (cx, cy) of target object in board_camera, normalized [0,1]; (-1,-1) if not detected
+BASKET_DIM = 3       # basket position in env-local frame (constant across episodes)
 CHUNK_SIZE = 16      # ACT-inspired: predict the next CHUNK_SIZE actions in one forward pass
-STATE_DIM = JOINT_DIM * 2 + ACTION_DIM   # joint_pos + joint_vel + last_action
+STATE_DIM = JOINT_DIM * 2 + ACTION_DIM + CENTROID_DIM + BASKET_DIM  # 30
 COMMAND_DIM = TARGET_DIM                  # one-hot target object command
 DEFAULT_VISION_DIM = 256  # FrozenUNetEncoder feature_dim (U-Net)
 RESNET_VISION_DIM  = 512  # FrozenResNetEncoder feature_dim (ResNet-18)
+
+# Basket position in env-local frame (subtract env_origins from world pos to get this).
+BASKET_POS_LOCAL = torch.tensor([-3.560, -5.370, 1.040])
 
 
 class BCPolicy(nn.Module):

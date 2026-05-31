@@ -36,6 +36,12 @@ parser.add_argument("--output", default="datasets/air2_manual_demos")
 parser.add_argument("--save_every_n_steps", type=int, default=2)
 parser.add_argument("--episode_length_s", type=float, default=60.0)
 parser.add_argument("--sensitivity", type=float, default=1.0)
+parser.add_argument("--default_target", default=None,
+                    choices=["brush", "pliers", "scissors", "screwdriver"],
+                    help="Pre-select this object at the start of each episode. "
+                         "Still overridable with 1/2/3/4 hotkeys.")
+parser.add_argument("--hdf5_output", default=None,
+                    help="If set, also save demos in HDF5 format (for Mimic pipeline) at this path.")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
@@ -50,6 +56,9 @@ import torch
 import gymnasium as gym
 from PIL import Image
 
+from isaaclab.utils.datasets import HDF5DatasetFileHandler
+from isaaclab.utils.datasets.episode_data import EpisodeData
+
 from isaaclab.devices import Se3Gamepad, Se3GamepadCfg, Se3Keyboard, Se3KeyboardCfg, Se3SpaceMouse, Se3SpaceMouseCfg
 from isaaclab.devices.teleop_device_factory import create_teleop_device
 
@@ -61,6 +70,7 @@ from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab_ext.tasks.air2_franka.objects import (
     OBJECT_BY_CLASS_ID,
     OBJECT_BY_HOTKEY,
+    OBJECT_BY_LABEL,
     catalog_json,
     target_one_hot,
 )
@@ -72,6 +82,9 @@ class EpisodeBuffer:
         self.board_rgb: list[np.ndarray] = []
         self.joint_pos: list[np.ndarray] = []
         self.joint_vel: list[np.ndarray] = []
+        self.eef_pos: list[np.ndarray] = []
+        self.eef_quat: list[np.ndarray] = []
+        self.object_position: list[np.ndarray] = []
         self.action: list[np.ndarray] = []
         self.gripper: list[float] = []
         self.target_class_id: list[int] = []
@@ -79,6 +92,7 @@ class EpisodeBuffer:
         self.target_scene_key: list[str] = []
         self.target_valid: list[bool] = []
         self.annotation_events: list[dict[str, object]] = []
+        self.initial_state: dict | None = None  # scene state at episode start (for Mimic)
 
     def add_annotation_event(self, step: int, class_id: int) -> None:
         spec = OBJECT_BY_CLASS_ID.get(class_id)
@@ -91,11 +105,18 @@ class EpisodeBuffer:
             }
         )
 
-    def append(self, wrist, board, jp, jv, act, grip, target_class_id: int) -> None:
+    def append(self, wrist, board, jp, jv, act, grip, target_class_id: int,
+               eef_pos=None, eef_quat=None, object_position=None) -> None:
         self.wrist_rgb.append(wrist)
         self.board_rgb.append(board)
         self.joint_pos.append(jp)
         self.joint_vel.append(jv)
+        if eef_pos is not None:
+            self.eef_pos.append(eef_pos)
+        if eef_quat is not None:
+            self.eef_quat.append(eef_quat)
+        if object_position is not None:
+            self.object_position.append(object_position)
         self.action.append(act)
         self.gripper.append(float(grip))
         self.target_class_id.append(int(target_class_id))
@@ -104,18 +125,18 @@ class EpisodeBuffer:
         self.target_scene_key.append(spec.scene_key if spec else "")
         self.target_valid.append(spec is not None)
 
-    def save(self, out_dir: Path, meta: dict[str, object]) -> int:
+    def save(self, out_dir: Path, meta: dict[str, object], hdf5_handler: "HDF5DatasetFileHandler | None" = None) -> int:
         out_dir.mkdir(parents=True, exist_ok=True)
-        wrist_dir = out_dir / "wrist_rgb"
-        board_dir = out_dir / "board_rgb"
-        wrist_dir.mkdir(exist_ok=True)
-        board_dir.mkdir(exist_ok=True)
-        for t, img in enumerate(self.wrist_rgb):
-            Image.fromarray(img).save(wrist_dir / f"t_{t:04d}.png")
-        for t, img in enumerate(self.board_rgb):
-            Image.fromarray(img).save(board_dir / f"t_{t:04d}.png")
-        np.savez_compressed(
-            out_dir / "states.npz",
+        if self.wrist_rgb:
+            wrist_dir = out_dir / "wrist_rgb"
+            board_dir = out_dir / "board_rgb"
+            wrist_dir.mkdir(exist_ok=True)
+            board_dir.mkdir(exist_ok=True)
+            for t, img in enumerate(self.wrist_rgb):
+                Image.fromarray(img).save(wrist_dir / f"t_{t:04d}.png")
+            for t, img in enumerate(self.board_rgb):
+                Image.fromarray(img).save(board_dir / f"t_{t:04d}.png")
+        npz_kwargs = dict(
             joint_pos=np.array(self.joint_pos, dtype=np.float32),
             joint_vel=np.array(self.joint_vel, dtype=np.float32),
             action=np.array(self.action, dtype=np.float32),
@@ -125,6 +146,13 @@ class EpisodeBuffer:
             target_scene_key=np.array(self.target_scene_key),
             target_valid=np.array(self.target_valid, dtype=np.bool_),
         )
+        if self.eef_pos:
+            npz_kwargs["eef_pos"] = np.array(self.eef_pos, dtype=np.float32)
+        if self.eef_quat:
+            npz_kwargs["eef_quat"] = np.array(self.eef_quat, dtype=np.float32)
+        if self.object_position:
+            npz_kwargs["object_position"] = np.array(self.object_position, dtype=np.float32)
+        np.savez_compressed(out_dir / "states.npz", **npz_kwargs)
         meta = {
             **meta,
             "num_frames": len(self.action),
@@ -132,6 +160,25 @@ class EpisodeBuffer:
             "annotation_events": self.annotation_events,
         }
         (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+
+        # Also write HDF5 for Mimic pipeline if handler provided.
+        if hdf5_handler is not None and self.eef_pos:
+            ep = EpisodeData()
+            ep.success = True
+            if self.initial_state is not None:
+                ep.add("initial_state", self.initial_state)
+            actions_t = torch.tensor(np.array(self.action, dtype=np.float32))
+            for i in range(len(self.action)):
+                ep.add("actions", actions_t[i])
+                ep.add("obs/joint_pos", torch.tensor(self.joint_pos[i]))
+                ep.add("obs/joint_vel", torch.tensor(self.joint_vel[i]))
+                ep.add("obs/eef_pos",   torch.tensor(self.eef_pos[i]))
+                ep.add("obs/eef_quat",  torch.tensor(self.eef_quat[i]))
+                ep.add("obs/object_position", torch.tensor(self.object_position[i]))
+            ep.pre_export()
+            hdf5_handler.write_episode(ep)
+            hdf5_handler.flush()
+
         return len(self.action)
 
 
@@ -142,6 +189,16 @@ def make_teleop_interface(env_cfg, callbacks):
     sensitivity = args_cli.sensitivity
     if args_cli.teleop_device == "keyboard":
         interface = Se3Keyboard(Se3KeyboardCfg(pos_sensitivity=0.05 * sensitivity, rot_sensitivity=0.05 * sensitivity))
+        # Remap WASD: D=-X, A=+X, W=-Y, S=+Y (rotated 90° from Isaac Lab default, negated)
+        s = 0.05 * sensitivity
+        interface._INPUT_KEY_MAPPING["W"] = np.asarray([0.0, -1.0, 0.0]) * s
+        interface._INPUT_KEY_MAPPING["S"] = np.asarray([0.0,  1.0, 0.0]) * s
+        interface._INPUT_KEY_MAPPING["A"] = np.asarray([1.0,  0.0, 0.0]) * s
+        interface._INPUT_KEY_MAPPING["D"] = np.asarray([-1.0, 0.0, 0.0]) * s
+        # C/V yaw at 1.5x rotation sensitivity
+        r = 0.05 * sensitivity * 1.5
+        interface._INPUT_KEY_MAPPING["C"] = np.asarray([0.0, 0.0,  1.0]) * r
+        interface._INPUT_KEY_MAPPING["V"] = np.asarray([0.0, 0.0, -1.0]) * r
     elif args_cli.teleop_device == "spacemouse":
         interface = Se3SpaceMouse(Se3SpaceMouseCfg(pos_sensitivity=0.05 * sensitivity, rot_sensitivity=0.05 * sensitivity))
     elif args_cli.teleop_device == "gamepad":
@@ -196,6 +253,12 @@ def main() -> None:
     if args_cli.num_envs != 1:
         raise ValueError("collect_air2_manual_demos.py records one manual environment; use --num_envs 1.")
 
+    default_class_id = 0
+    if args_cli.default_target:
+        spec = OBJECT_BY_LABEL[args_cli.default_target]
+        default_class_id = spec.class_id
+        print(f"[manual] default target locked to: {spec.label} (class_id={spec.class_id})", flush=True)
+
     env_cfg = parse_env_cfg(args_cli.task, device="cuda:0", num_envs=args_cli.num_envs)
     env_cfg.episode_length_s = args_cli.episode_length_s
     env = gym.make(args_cli.task, cfg=env_cfg).unwrapped
@@ -207,7 +270,8 @@ def main() -> None:
         "accept": False,
         "discard": False,
         "reset": False,
-        "target_class_id": 0,
+        "target_class_id": default_class_id,
+        "default_target_class_id": default_class_id,
         "step": 0,
     }
     buffer = EpisodeBuffer()
@@ -239,8 +303,28 @@ def main() -> None:
     teleop_interface.reset()
 
     action = torch.zeros(env.action_space.shape, device=device)
-    saved = 0
+    existing = [p for p in out_root.iterdir() if p.is_dir() and p.name.startswith("ep_")]
+    saved = max((int(p.name.split("_")[1]) + 1 for p in existing), default=0)
+    if saved > 0:
+        print(f"[manual] Resuming from ep_{saved:03d} ({len(existing)} existing episodes)", flush=True)
     print("[manual] Press 1/2/3/4 to annotate the object, Enter to save, Backspace to discard.", flush=True)
+
+    # HDF5 handler for Mimic pipeline (optional).
+    hdf5_handler = None
+    if args_cli.hdf5_output:
+        hdf5_path = Path(args_cli.hdf5_output)
+        hdf5_path.parent.mkdir(parents=True, exist_ok=True)
+        hdf5_handler = HDF5DatasetFileHandler()
+        if hdf5_path.exists():
+            hdf5_handler.open(str(hdf5_path), mode="a")
+            print(f"[manual] appending to HDF5: {hdf5_path} ({hdf5_handler.get_num_episodes()} existing)", flush=True)
+        else:
+            hdf5_handler.create(str(hdf5_path), env_name=args_cli.task)
+            print(f"[manual] creating HDF5: {hdf5_path}", flush=True)
+
+    # Check which cameras are available.
+    has_cameras = "wrist_camera" in env.scene.sensors and "board_camera" in env.scene.sensors
+    first_step_of_episode = True
 
     while saved < args_cli.num_demos and simulation_app.is_running():
         with torch.inference_mode():
@@ -249,13 +333,25 @@ def main() -> None:
             env.step(action)
             state["step"] += 1
 
+            # Capture initial scene state for Mimic after first physics step.
+            if first_step_of_episode and hdf5_handler is not None:
+                buffer.initial_state = env.scene.get_state(is_relative=True)
+                first_step_of_episode = False
+
             if state["recording"] and state["step"] % args_cli.save_every_n_steps == 0:
-                wrist = env.scene["wrist_camera"].data.output["rgb"][0].detach().cpu().numpy().astype(np.uint8)
-                board = env.scene["board_camera"].data.output["rgb"][0].detach().cpu().numpy().astype(np.uint8)
+                wrist = env.scene["wrist_camera"].data.output["rgb"][0].detach().cpu().numpy().astype(np.uint8) if has_cameras else np.zeros((1,1,3), dtype=np.uint8)
+                board = env.scene["board_camera"].data.output["rgb"][0].detach().cpu().numpy().astype(np.uint8) if has_cameras else np.zeros((1,1,3), dtype=np.uint8)
                 jp = env.scene["robot"].data.joint_pos[0].detach().cpu().numpy()
                 jv = env.scene["robot"].data.joint_vel[0].detach().cpu().numpy()
                 act = action[0].detach().cpu().numpy()
-                buffer.append(wrist, board, jp, jv, act, float(act[6]), int(state["target_class_id"]))
+
+                # Extra fields for Mimic.
+                eef_pos = env.scene["ee_frame"].data.target_pos_w[0, 0].detach().cpu().numpy() - env.scene.env_origins[0].cpu().numpy()
+                eef_quat = env.scene["ee_frame"].data.target_quat_w[0, 0].detach().cpu().numpy()
+                obj_pos = env.scene["object"].data.root_pos_w[0].detach().cpu().numpy() - env.scene.env_origins[0].cpu().numpy()
+
+                buffer.append(wrist, board, jp, jv, act, float(act[6]), int(state["target_class_id"]),
+                               eef_pos=eef_pos, eef_quat=eef_quat, object_position=obj_pos)
 
             if state["accept"]:
                 if not buffer.action:
@@ -275,6 +371,7 @@ def main() -> None:
                         "success": True,
                         "object_catalog": catalog_json(),
                     },
+                    hdf5_handler=hdf5_handler,
                 )
                 print(f"[manual] saved ep_{saved:03d} ({n_frames} frames)", flush=True)
                 saved += 1
@@ -288,8 +385,9 @@ def main() -> None:
 
             if state["reset"]:
                 buffer = EpisodeBuffer()
-                state["target_class_id"] = 0
+                state["target_class_id"] = state["default_target_class_id"]
                 state["step"] = 0
+                first_step_of_episode = True
                 env.reset()
                 teleop_interface.reset()
                 state["reset"] = False

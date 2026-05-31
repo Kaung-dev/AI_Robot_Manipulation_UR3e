@@ -44,6 +44,7 @@ from isaaclab_ext.tasks.air2_franka.policy import (
     BCPolicy, FrozenUNetEncoder, load_frozen_encoder,
     FrozenResNetEncoder, load_frozen_resnet_encoder,
     ACTION_DIM, STATE_DIM, JOINT_DIM, CHUNK_SIZE, COMMAND_DIM,
+    BASKET_POS_LOCAL,
 )
 
 
@@ -54,9 +55,14 @@ class AIR2DemoDataset(Dataset):
     """Per-frame samples with action *chunks* (ACT-style).
 
     Each sample = (wrist_rgb_chw, board_rgb_chw, state_vec, action_chunk, mask).
-      state_vec    = concat[joint_pos(9), joint_vel(9), last_action(7)] = (25,)
+      state_vec    = concat[joint_pos(9), joint_vel(9), last_action(7),
+                            centroid(2), basket_pos(3)] = (30,)
       action_chunk = next CHUNK_SIZE actions starting at this step       = (CHUNK_SIZE, 7)
       mask         = 1.0 for valid actions, 0.0 for padded                = (CHUNK_SIZE,)
+
+    centroid is (cx, cy) of the target object in board_camera, normalised [0,1].
+    (-1, -1) is used when the object is not detected. Run precompute_centroids.py
+    before training to generate ep_XXX/centroids.npy files.
 
     For frames within `chunk_size` of the episode end, the remaining
     positions are padded with the last action and `mask=0` so the loss
@@ -78,6 +84,7 @@ class AIR2DemoDataset(Dataset):
         self.joint_vel: dict[Path, np.ndarray] = {}
         self.target_one_hot: dict[Path, np.ndarray] = {}
         self.target_valid: dict[Path, np.ndarray] = {}
+        self.centroids: dict[Path, np.ndarray] = {}
 
         episodes = sorted(p for p in self.demos_root.iterdir() if p.is_dir() and p.name.startswith("ep_"))
         if not episodes:
@@ -116,6 +123,11 @@ class AIR2DemoDataset(Dataset):
                 raise ValueError(f"{states_path} target_one_hot has shape {target.shape}, expected {(n, COMMAND_DIM)}")
             self.target_one_hot[ep] = target
             self.target_valid[ep] = data["target_valid"].astype(bool) if "target_valid" in data else target.sum(axis=1) > 0.0
+            centroids_path = ep / "centroids.npy"
+            if centroids_path.exists():
+                self.centroids[ep] = np.load(str(centroids_path)).astype(np.float32)
+            else:
+                self.centroids[ep] = np.full((n, 2), -1.0, dtype=np.float32)
             # Skip very first frame (last_action is meaningless before any action).
             # We DO include frames near the end — padding handles the short tail.
             for i in range(1, n, self.frame_stride):
@@ -145,10 +157,12 @@ class AIR2DemoDataset(Dataset):
         ep, t = self.index[idx]
         wrist = self._load_rgb(ep / "wrist_rgb" / f"t_{t:04d}.png", self.WRIST_H, self.WRIST_W)
         board = self._load_rgb(ep / "board_rgb" / f"t_{t:04d}.png", self.BOARD_H, self.BOARD_W)
-        jp = torch.from_numpy(self.joint_pos[ep][t].copy())     # (9,)
-        jv = torch.from_numpy(self.joint_vel[ep][t].copy())     # (9,)
-        last_action = torch.from_numpy(self.actions[ep][t - 1].copy())  # (7,)
-        state = torch.cat([jp, jv, last_action], dim=0)  # (25,)
+        jp = torch.from_numpy(self.joint_pos[ep][t].copy())          # (9,)
+        jv = torch.from_numpy(self.joint_vel[ep][t].copy())          # (9,)
+        last_action = torch.from_numpy(self.actions[ep][t - 1].copy())   # (7,)
+        centroid = torch.from_numpy(self.centroids[ep][t].copy())    # (2,) — (-1,-1) if not detected
+        basket = BASKET_POS_LOCAL.clone()                             # (3,)
+        state = torch.cat([jp, jv, last_action, centroid, basket], dim=0)  # (30,)
         target_one_hot = torch.from_numpy(self.target_one_hot[ep][t].copy())
 
         # Action chunk + mask
@@ -194,7 +208,7 @@ def bc_loss(
     )  # (B, chunk)
     grip_loss = (grip_per * mask).sum() / mask.sum().clamp(min=1.0)
 
-    loss = pose_loss + 0.1 * grip_loss
+    loss = pose_loss + 1.0 * grip_loss
     return loss, {
         "pose_l1": float(pose_loss.item()),
         "grip_bce": float(grip_loss.item()),

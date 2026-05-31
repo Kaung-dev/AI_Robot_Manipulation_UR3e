@@ -80,6 +80,11 @@ HOOK_POSITIONS = [
 # scripted controller to stall.
 REACHABLE_HOOK_INDICES = torch.tensor([2, 3, 4, 5, 6, 7])  # hooks 3..8 (0-indexed)
 
+# Brush spawns only on the 3 right-side hooks where all current demos were
+# collected: hook_03 (idx 2), hook_06 (idx 5), hook_07 (idx 6).
+# Distractors still draw from the full REACHABLE set.
+BRUSH_HOOK_INDICES = torch.tensor([2, 5, 6])
+
 _OBJECT_NAMES = list(OBJECT_NAMES)
 
 
@@ -92,12 +97,20 @@ def reset_objects_on_hooks(env, env_ids: torch.Tensor):
     hooks = torch.tensor(HOOK_POSITIONS, device=env.device)  # [8, 3]
     n = len(env_ids)
 
-    # Pick 4 hooks per env from the REACHABLE subset (6 hooks), uniformly
-    # without replacement. argsort of random noise gives a permutation; we
-    # take the first 4 for our 4 objects.
-    reachable = REACHABLE_HOOK_INDICES.to(env.device)  # [6]
-    sub_perm = torch.argsort(torch.rand(n, reachable.numel(), device=env.device), dim=1)  # [n, 6]
-    perms = reachable[sub_perm]  # [n, 6] — only first 4 columns used
+    reachable = REACHABLE_HOOK_INDICES.to(env.device)   # [6]
+    brush_pool = BRUSH_HOOK_INDICES.to(env.device)       # [3]
+
+    # Brush gets a random hook from its restricted 3-hook pool.
+    brush_sub = torch.argsort(torch.rand(n, brush_pool.numel(), device=env.device), dim=1)
+    brush_hooks = brush_pool[brush_sub[:, 0]]  # [n]
+
+    # Distractors draw from remaining reachable hooks (excluding brush's hook).
+    perms = torch.zeros(n, 4, dtype=torch.long, device=env.device)
+    perms[:, 0] = brush_hooks
+    for b in range(n):
+        remaining = reachable[reachable != brush_hooks[b]]  # [5]
+        perm = remaining[torch.argsort(torch.rand(remaining.numel(), device=env.device))]
+        perms[b, 1:] = perm[:3]
 
     # Try each in turn until objects look correct on the hooks:
     #   no rotation:   [1.0, 0.0, 0.0, 0.0]
@@ -108,6 +121,7 @@ def reset_objects_on_hooks(env, env_ids: torch.Tensor):
 
     if not _debug_printed:
         print(f"[DEBUG hooks] env_origins[env_ids[0]] = {env.scene.env_origins[env_ids[0]].tolist()}")
+        print(f"[DEBUG hooks] brush pool restricted to hook indices {BRUSH_HOOK_INDICES.tolist()}")
         for i, name in enumerate(_OBJECT_NAMES):
             chosen = hooks[perms[0, i]].tolist()
             world = (env.scene.env_origins[env_ids[0]] + hooks[perms[0, i]]).tolist()

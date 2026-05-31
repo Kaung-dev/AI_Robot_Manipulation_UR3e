@@ -1,6 +1,8 @@
 """AIR2 scene with robotis_net_table as functional pegboard."""
 
 import gymnasium as gym
+from . import agents
+from .mimic_env import AIR2RobotisFrankaMimicEnv
 
 # Reuse the parent AIR2 task's PPO runner config (same actor/critic shape,
 # same algorithm hyperparams) — Stephen's air2_franka.agents.rsl_rl_ppo_cfg.
@@ -48,12 +50,14 @@ gym.register(
 
 # --- Per-object tasks (4 pick targets) ------------------------------------
 
+_RSL_RL_CFG = f"{agents.__name__}.rsl_rl_ppo_cfg:AIR2RobotisPPORunnerCfg"
+
 gym.register(
     id="Isaac-AIR2-Robotis-Franka-Brush-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.joint_pos_env_cfg:AIR2RobotisBrushEnvCfg",
-        "rsl_rl_cfg_entry_point": _PPO_ENTRY,
+        "rsl_rl_cfg_entry_point": _RSL_RL_CFG,
     },
     disable_env_checker=True,
 )
@@ -62,19 +66,7 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.joint_pos_env_cfg:AIR2RobotisBrushEnvCfg_PLAY",
-        "rsl_rl_cfg_entry_point": _PPO_ENTRY,
-    },
-    disable_env_checker=True,
-)
-
-# Mimic data-generation variant for the brush task — wraps the brush env with
-# extra obs (eef_pos/quat + subtask_terms) and a SubTaskConfig list that
-# annotate_demos.py / generate_dataset.py consume.
-gym.register(
-    id="Isaac-AIR2-Robotis-Franka-Brush-Mimic-v0",
-    entry_point=f"{__name__}.mimic_env:AIR2RobotisFrankaMimicEnv",
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.mimic_env_cfg:AIR2RobotisBrushMimicEnvCfg",
+        "rsl_rl_cfg_entry_point": _RSL_RL_CFG,
     },
     disable_env_checker=True,
 )
@@ -84,7 +76,7 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.joint_pos_env_cfg:AIR2RobotisPliersFrankaEnvCfg",
-        "rsl_rl_cfg_entry_point": _PPO_ENTRY,
+        "rsl_rl_cfg_entry_point": _RSL_RL_CFG,
     },
     disable_env_checker=True,
 )
@@ -93,7 +85,7 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.joint_pos_env_cfg:AIR2RobotisPliersFrankaEnvCfg_PLAY",
-        "rsl_rl_cfg_entry_point": _PPO_ENTRY,
+        "rsl_rl_cfg_entry_point": _RSL_RL_CFG,
     },
     disable_env_checker=True,
 )
@@ -103,7 +95,7 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.joint_pos_env_cfg:AIR2RobotisScissorsFrankaEnvCfg",
-        "rsl_rl_cfg_entry_point": _PPO_ENTRY,
+        "rsl_rl_cfg_entry_point": _RSL_RL_CFG,
     },
     disable_env_checker=True,
 )
@@ -112,7 +104,7 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.joint_pos_env_cfg:AIR2RobotisScissorsFrankaEnvCfg_PLAY",
-        "rsl_rl_cfg_entry_point": _PPO_ENTRY,
+        "rsl_rl_cfg_entry_point": _RSL_RL_CFG,
     },
     disable_env_checker=True,
 )
@@ -122,7 +114,7 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.joint_pos_env_cfg:AIR2RobotisScrewdriverFrankaEnvCfg",
-        "rsl_rl_cfg_entry_point": _PPO_ENTRY,
+        "rsl_rl_cfg_entry_point": _RSL_RL_CFG,
     },
     disable_env_checker=True,
 )
@@ -131,7 +123,18 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.joint_pos_env_cfg:AIR2RobotisScrewdriverFrankaEnvCfg_PLAY",
-        "rsl_rl_cfg_entry_point": _PPO_ENTRY,
+        "rsl_rl_cfg_entry_point": _RSL_RL_CFG,
+    },
+    disable_env_checker=True,
+)
+
+# --- Mimic task (brush only) -----------------------------------------------
+
+gym.register(
+    id="Isaac-AIR2-Robotis-Franka-Brush-Mimic-v0",
+    entry_point=f"{__name__}.mimic_env:AIR2RobotisFrankaMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.mimic_env_cfg:AIR2RobotisBrushMimicEnvCfg",
     },
     disable_env_checker=True,
 )

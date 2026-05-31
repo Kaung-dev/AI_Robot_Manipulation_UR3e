@@ -52,8 +52,7 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
         # Franka's ~85 cm reach. AIR2.usd's baked Franka visual stays at the
         # old pose; the controllable Franka floats ~20 cm forward of it.
         self.scene.robot.init_state.pos = (-4.2405, -5.2851, 1.0397)
-        self.scene.robot.init_state.joint_pos["panda_joint1"] = -1.5708  # 90° rotation at spawn
-        self.scene.robot.init_state.joint_pos["panda_joint4"] = -2.26892803   # wrist horizontal
+        self.scene.robot.init_state.joint_pos["panda_joint1"] = -1.5708  # 90° rotation to face pegboard
 
         self.sim.physx.gpu_max_rigid_patch_count = 524288
         self.sim.physx.gpu_max_rigid_contact_count = 2_097_152
@@ -144,9 +143,10 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
         self.commands.object_pose.ranges.pos_y = (-3.0, -2.0)
         self.commands.object_pose.ranges.pos_z = (1.0, 1.5)
 
-        # Viewport camera — default orientation, centred on scene origin.
-        self.viewer.eye = (7.5, 7.5, 7.5)
-        self.viewer.lookat = (0.0, 0.0, 0.0)
+        # Viewport camera — positioned in front of the pegboard, elevated.
+        # Robot is at (-4.24, -5.29, 1.04); hooks at Y≈-5.9.
+        self.viewer.eye = (-3.5, -2.5, 2.5)
+        self.viewer.lookat = (-4.0, -5.5, 1.2)
 
         # --- AIR2-scene reward overrides ---------------------------------
         # Disable broken base lift rewards (see mdp/rewards.py for diagnosis).
