@@ -70,3 +70,11 @@ Robot: Franka Panda
 **Tried:** ./launch_air2.sh teleop
 **Result:** Scene correct — objects on slots, robot in position, arm moves with keyboard, gripper opens/closes. Ready for demo collection.
 **Status:** working
+
+---
+
+## 2026-06-01 — SM_BoxPortableD adjusted
+**Who:** Declan
+**Changed:** scene/AIR2.usd — raised SM_BoxPortableD height and moved it in front of the robot
+**Result:** Basket now positioned correctly for drop-in task
+**Status:** working
