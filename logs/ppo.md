@@ -120,3 +120,13 @@ Weight order: target_in_basket (highest) → target_off_hook / target_in_hand �
 CNN confirmation skipped — physics-based approximations used throughout. Weights are initial estimates, expect tuning after first PPO runs.
 
 **Status:** implemented, not yet tested
+
+---
+
+## 2026-05-31 — PPO deprioritised in favour of Mimic → state-BC
+**Who:** Steph
+**Decision:** Not running PPO for now. Switched to Mimic data augmentation → state-BC policy.
+**Root cause of PPO failure:** After 3000 iterations, `ee_to_target ≈ 1.0` (reaches object) but never carries — no reward gradient between grasp and basket. Missing `lift_progress` reward.
+**Fix available but not applied:** experimental branch has `grasp_shaping + lift_progress + progress_stall=-0.02` which should fix the carry problem.
+**Plan:** If state-BC also fails, apply the PPO reward fix from experimental and run PPO.
+**Status:** on hold
