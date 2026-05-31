@@ -67,6 +67,18 @@ gym.register(
     disable_env_checker=True,
 )
 
+# Mimic data-generation variant for the brush task — wraps the brush env with
+# extra obs (eef_pos/quat + subtask_terms) and a SubTaskConfig list that
+# annotate_demos.py / generate_dataset.py consume.
+gym.register(
+    id="Isaac-AIR2-Robotis-Franka-Brush-Mimic-v0",
+    entry_point=f"{__name__}.mimic_env:AIR2RobotisFrankaMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.mimic_env_cfg:AIR2RobotisBrushMimicEnvCfg",
+    },
+    disable_env_checker=True,
+)
+
 gym.register(
     id="Isaac-AIR2-Robotis-Franka-Pliers-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",

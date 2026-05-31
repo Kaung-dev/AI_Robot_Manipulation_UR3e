@@ -145,6 +145,15 @@ def warm_start_actor_from_bc(runner: OnPolicyRunner, bc_ckpt_path: str) -> None:
 def main():
     # Env cfg + agent cfg
     env_cfg = parse_env_cfg(args_cli.task, device="cuda:0", num_envs=args_cli.num_envs)
+
+    # PPO doesn't use camera obs (rsl_rl is flat-state only). Cameras add
+    # ~35s/iter of rendering overhead on T4 and require --enable_cameras flag.
+    # Strip them from the scene so PPO runs at ~10s/iter and doesn't need
+    # the flag. (Mimic data-gen and BC eval still spawn cameras as needed.)
+    for cam_attr in ("wrist_camera", "board_camera"):
+        if hasattr(env_cfg.scene, cam_attr) and getattr(env_cfg.scene, cam_attr) is not None:
+            setattr(env_cfg.scene, cam_attr, None)
+            print(f"[bc->ppo] stripped scene.{cam_attr} (PPO doesn't need cameras)", flush=True)
     agent_cfg: RslRlOnPolicyRunnerCfg = load_cfg_from_registry(args_cli.task, "rsl_rl_cfg_entry_point")
     if args_cli.max_iterations is not None:
         agent_cfg.max_iterations = args_cli.max_iterations
@@ -159,8 +168,21 @@ def main():
     is_warm_start = bool(args_cli.state_bc_ckpt or args_cli.bc_ckpt)
     if is_warm_start:
         agent_cfg.policy.init_noise_std = args_cli.warm_start_noise_std
+        agent_cfg.policy.noise_std_type = "log"
         agent_cfg.empirical_normalization = False
+        # Adaptive LR + a warm-started actor = KL spike on iter 1 (the prior is
+        # far from the freshly-init critic's value estimates), which adaptive
+        # then jacks LR up by 1.5x repeatedly until grads explode and log_std
+        # goes NaN ("normal expects std >= 0"). Fixed schedule with a smaller
+        # LR keeps the warm-started behaviour intact while PPO learns the
+        # critic.
+        agent_cfg.algorithm.schedule = "fixed"
+        agent_cfg.algorithm.learning_rate = 1.0e-5
+        agent_cfg.algorithm.entropy_coef = 0.01
+        agent_cfg.algorithm.max_grad_norm = 0.5
         print(f"[bc->ppo] warm-start mode: init_noise_std={agent_cfg.policy.init_noise_std}, "
+              f"noise_std_type=log, schedule=fixed, lr={agent_cfg.algorithm.learning_rate}, "
+              f"entropy_coef={agent_cfg.algorithm.entropy_coef}, "
               f"empirical_normalization=False", flush=True)
 
     # Logging
@@ -172,12 +194,17 @@ def main():
     print(f"[bc->ppo] logging to {log_dir}", flush=True)
 
     # Make env + wrap for rsl_rl
+    print("[debug] before gym.make", flush=True)
     env = gym.make(args_cli.task, cfg=env_cfg)
+    print("[debug] after gym.make, before RslRlVecEnvWrapper", flush=True)
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
+    print("[debug] after RslRlVecEnvWrapper, before OnPolicyRunner", flush=True)
 
     # Build runner
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=str(log_dir), device=agent_cfg.device)
+    print("[debug] after OnPolicyRunner", flush=True)
     runner.add_git_repo_to_log(__file__)
+    print("[debug] after add_git_repo_to_log", flush=True)
 
     # Optional warm-start
     if args_cli.state_bc_ckpt:
@@ -202,5 +229,10 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+    except BaseException as e:
+        import traceback
+        print(f"[debug] FATAL: {type(e).__name__}: {e}", flush=True)
+        traceback.print_exc()
+        raise
     finally:
         simulation_app.close()

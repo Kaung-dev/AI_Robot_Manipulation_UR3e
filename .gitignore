@@ -75,11 +75,11 @@ outputs/
 # Local test scratch
 _smoke_test/
 
-# Pipeline-v1 outputs (datasets/, checkpoints/, _mvp_logs/) moved here when
-# adopting Hayden's segmentation+goal-conditioned pipeline. Kept on disk for
-# recovery only.
-_archive/v1_pipeline/
+# Archive of older pipeline iterations + scene backups + debug scripts —
+# kept on disk for recovery only, never pushed.
+_archive/
 
-# Friend's per-target HDF5 dataset (4 files, 80 state-only demos) — archived
-# after adopting Stephen's per-target visual-BC pipeline.
-_archive/v2_friend_hdf5/
+# Training / experiment scratch (logs, raw demo zips, PPO checkpoint dirs)
+_mvp_logs/
+logs/
+*_demos.zip
