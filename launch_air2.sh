@@ -165,14 +165,37 @@ case "$MODE" in
       --num_envs 4 --headless
     ;;
 
-  train-bc)
+  train-state-bc)
     HDF5="${2:-$REPO_ROOT/datasets/air2_mimic_generated.hdf5}"
     OUT="${3:-$REPO_ROOT/checkpoints/policy_state_bc_mimic.pth}"
     EPOCHS="${4:-300}"
     echo "[INFO] Training state-BC from $HDF5 → $OUT  (${EPOCHS} epochs)"
-    PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" python3 \
+    PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
       "$REPO_ROOT/scripts/train_state_bc_from_hdf5.py" \
       --hdf5 "$HDF5" --out "$OUT" --epochs "$EPOCHS"
+    ;;
+
+  ppo-warm-start)
+    BC_CKPT="${2:-$REPO_ROOT/checkpoints/policy_state_bc_mimic.pth}"
+    ITERS="${3:-2000}"
+    echo "[INFO] PPO warm-start from $BC_CKPT  ($ITERS iterations)"
+    PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
+      "$REPO_ROOT/scripts/bc_to_ppo.py" \
+      --task "Isaac-AIR2-Robotis-Franka-Brush-v0" \
+      --state_bc_ckpt "$BC_CKPT" \
+      --num_envs 4 --max_iterations "$ITERS" --headless
+    ;;
+
+  eval-state-bc)
+    CKPT="${2:-$REPO_ROOT/checkpoints/policy_state_bc_mimic.pth}"
+    EPISODES="${3:-20}"
+    MAX_STEPS="${4:-1600}"
+    echo "[INFO] Evaluating state-BC — $CKPT  ($EPISODES episodes, max $MAX_STEPS steps)"
+    PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
+      "$REPO_ROOT/scripts/eval_state_bc.py" \
+      --state_bc_ckpt "$CKPT" \
+      --task "Isaac-AIR2-Robotis-Franka-Brush-Play-v0" \
+      --num_envs 1 --num_episodes "$EPISODES" --max_steps "$MAX_STEPS"
     ;;
 
   ppo-play)

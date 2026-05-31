@@ -71,7 +71,8 @@ import isaaclab_ext.tasks.air2_franka  # noqa: F401
 import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401 — registers per-target Brush/Pliers/Scissors/Screwdriver task IDs
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab_tasks.utils.parse_cfg import load_cfg_from_registry
-from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+import importlib.metadata as metadata
+from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, handle_deprecated_rsl_rl_cfg
 
 
 def warm_start_actor_from_state_bc(runner: OnPolicyRunner, ckpt_path: str) -> None:
@@ -199,6 +200,10 @@ def main():
     print("[debug] after gym.make, before RslRlVecEnvWrapper", flush=True)
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
     print("[debug] after RslRlVecEnvWrapper, before OnPolicyRunner", flush=True)
+
+    # Upgrade cfg to new rsl_rl API (adds class_name fields expected by newer rsl_rl)
+    installed_rsl_rl_version = metadata.version("rsl-rl-lib")
+    agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, installed_rsl_rl_version)
 
     # Build runner
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=str(log_dir), device=agent_cfg.device)

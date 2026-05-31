@@ -64,7 +64,8 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
             joint_names=["panda_joint.*"],
             body_name="panda_hand",
             controller=DifferentialIKControllerCfg(
-                command_type="pose", use_relative_mode=True, ik_method="dls"
+                command_type="pose", use_relative_mode=True, ik_method="dls",
+                ik_params={"lambda_val": 0.1},
             ),
             scale=0.5,
             body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
