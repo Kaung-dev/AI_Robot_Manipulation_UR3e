@@ -253,7 +253,6 @@ class EpisodeBuffer:
                 ep.add("obs/datagen_info/object_pose/object",               torch.tensor(obj_poses[i]))
                 ep.add("obs/datagen_info/target_eef_pose/franka",           torch.tensor(tgt_poses[i]))
                 ep.add("obs/datagen_info/subtask_term_signals/grasp_brush", torch.tensor([grasp_signal[i]]))
-            ep.pre_export()
             hdf5_handler.write_episode(ep)
             hdf5_handler.flush()
 
