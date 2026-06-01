@@ -81,5 +81,5 @@ _archive/
 
 # Training / experiment scratch (logs, raw demo zips, PPO checkpoint dirs)
 _mvp_logs/
-logs/
+DEVLOG.md
 *_demos.zip
