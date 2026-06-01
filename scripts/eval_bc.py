@@ -65,15 +65,49 @@ import isaaclab_ext.tasks.air2_franka  # noqa: F401
 import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
+import torch.nn.functional as F
+
+from isaaclab_ext.tasks.air2_franka.cnn.model import AIR2UNet
 from isaaclab_ext.tasks.air2_franka.policy import (
     BCPolicy, load_frozen_encoder, load_frozen_resnet_encoder,
-    JOINT_DIM, ACTION_DIM, COMMAND_DIM,
+    JOINT_DIM, ACTION_DIM, COMMAND_DIM, BASKET_POS_LOCAL,
 )
 
 
-# Basket position in env-local frame (matches collect_air2_demos.py).
-BASKET_POS_LOCAL = torch.tensor([-3.560, -5.370, 1.040])
 BASKET_REACH_RADIUS = 0.70  # 70 cm — XY radius above basket opening
+BRUSH_CLASS_ID = 1
+UNET_INPUT_SIZE = 224
+MIN_BRUSH_PIXELS = 32
+
+
+def load_seg_model(ckpt_path: str, num_classes: int, device: str) -> AIR2UNet:
+    model = AIR2UNet(num_classes=num_classes)
+    ckpt = torch.load(ckpt_path, map_location="cpu")
+    if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
+        ckpt = ckpt["model_state_dict"]
+    model.load_state_dict(ckpt, strict=True)
+    return model.eval().to(device)
+
+
+@torch.no_grad()
+def extract_centroids(wrist_rgb: torch.Tensor, seg_model: AIR2UNet) -> torch.Tensor:
+    """wrist_rgb: (B, H, W, 3) uint8 → centroids (B, 2) float32 in [0,1]; (-1,-1) if not detected."""
+    x = wrist_rgb.float() / 255.0                          # (B, H, W, 3)
+    x = x.permute(0, 3, 1, 2)                              # (B, 3, H, W)
+    if x.shape[-2] != UNET_INPUT_SIZE or x.shape[-1] != UNET_INPUT_SIZE:
+        x = F.interpolate(x, size=(UNET_INPUT_SIZE, UNET_INPUT_SIZE),
+                          mode="bilinear", align_corners=False)
+    logits = seg_model(x)                                   # (B, C, 224, 224)
+    pred = logits.argmax(dim=1)                             # (B, 224, 224)
+    B = wrist_rgb.shape[0]
+    centroids = torch.full((B, 2), -1.0, device=wrist_rgb.device)
+    for b in range(B):
+        mask = pred[b] == BRUSH_CLASS_ID
+        if mask.sum() >= MIN_BRUSH_PIXELS:
+            ys, xs = mask.nonzero(as_tuple=True)
+            centroids[b, 0] = xs.float().mean() / (UNET_INPUT_SIZE - 1)
+            centroids[b, 1] = ys.float().mean() / (UNET_INPUT_SIZE - 1)
+    return centroids
 
 
 def main():
@@ -87,6 +121,14 @@ def main():
     device = env.unwrapped.device
     num_envs = env.unwrapped.num_envs
     print(f"[eval] launched {args_cli.task} with {num_envs} envs", flush=True)
+
+    # Load segmentation model for live centroid extraction (requires unet_ckpt).
+    if args_cli.unet_ckpt is None:
+        raise ValueError("--unet_ckpt is required for centroid extraction")
+    seg_model = load_seg_model(args_cli.unet_ckpt, args_cli.num_classes, device)
+    print(f"[eval] loaded seg model for centroid extraction from {args_cli.unet_ckpt}", flush=True)
+
+    basket_pos = BASKET_POS_LOCAL.to(device).unsqueeze(0).expand(num_envs, -1)  # (B, 3)
 
     # Load policy — backbone MUST match what train_bc.py used.
     if args_cli.backbone == "resnet18":
@@ -113,23 +155,35 @@ def main():
     ep_min_basket_dist = torch.full((num_envs,), float("inf"), device=device)
     saved_episodes: list[dict] = []
 
+    # Action chunking: re-query every EVAL_CHUNK_STRIDE steps.
+    # Full chunk_size (16) compounds rotation drift with a shallow MLP — stride 4 is safer.
+    EVAL_CHUNK_STRIDE = 4
+    chunk_buffer: torch.Tensor | None = None
+    chunk_idx = EVAL_CHUNK_STRIDE  # expired — forces a query on the first step
+
     while len(saved_episodes) < args_cli.num_episodes and simulation_app.is_running():
         with torch.inference_mode():
             wrist = env.unwrapped.scene["wrist_camera"].data.output["rgb"]
             board = env.unwrapped.scene["board_camera"].data.output["rgb"]
             jp = env.unwrapped.scene["robot"].data.joint_pos
             jv = env.unwrapped.scene["robot"].data.joint_vel
-            state = torch.cat([jp[:, :JOINT_DIM], jv[:, :JOINT_DIM], last_action], dim=1)
+
+            centroids = extract_centroids(wrist, seg_model)  # (B, 2) — wrist cam sees ring clearly
+            state = torch.cat(
+                [jp[:, :JOINT_DIM], jv[:, :JOINT_DIM], last_action, centroids, basket_pos],
+                dim=1,
+            )  # (B, 30)
 
             # Channel-first uint8 for BCPolicy
             wrist_chw = wrist.permute(0, 3, 1, 2).contiguous()
             board_chw = board.permute(0, 3, 1, 2).contiguous()
 
-            # Chunked policy returns (B, chunk, 7); execute the first action.
-            # (Could be upgraded to temporal ensembling — average overlapping
-            # chunks from the last K steps — see ACT paper.)
-            chunk = policy(wrist_chw, board_chw, state, target_one_hot)
-            action = chunk[:, 0, :]   # (B, 7)
+            if chunk_idx >= EVAL_CHUNK_STRIDE:
+                chunk_buffer = policy(wrist_chw, board_chw, state, target_one_hot)
+                chunk_idx = 0
+
+            action = chunk_buffer[:, chunk_idx, :]   # (B, 7)
+            chunk_idx += 1
 
             # Gripper logit → discrete {-1, +1}
             grip = torch.where(action[:, 6] > 0, 1.0, -1.0)
@@ -174,11 +228,12 @@ def main():
                           f"min_basket_dist={ep_min_basket_dist[i].item():.3f}m  "
                           f"reached_basket={reached_basket}", flush=True)
 
-                # Reset trackers for finished envs
+                # Reset trackers for finished envs; expire chunk so next step re-queries.
                 ep_step[done] = 0
                 ep_reward[done] = 0.0
                 ep_min_basket_dist[done] = float("inf")
                 last_action[done] = 0.0
+                chunk_idx = EVAL_CHUNK_STRIDE
 
     # Summary
     n = len(saved_episodes)

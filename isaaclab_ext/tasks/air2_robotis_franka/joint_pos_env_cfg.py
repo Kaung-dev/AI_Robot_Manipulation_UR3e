@@ -128,6 +128,14 @@ class AIR2RobotisFrankaEnvCfg_PLAY(AIR2RobotisFrankaEnvCfg):
 
 def _apply_target_rewards(cfg, target_key: str) -> None:
     """Replace generic AIR2 rewards with target-specific ones."""
+    # PPO tasks use GT positions for rewards — no camera needed.
+    cfg.scene.wrist_camera = None
+
+    # Disable the base lift curriculum — it ramps action_rate/joint_vel weights
+    # from -0.0001 to -0.1 over 10k steps, which overwhelms task rewards.
+    cfg.curriculum.action_rate = None
+    cfg.curriculum.joint_vel = None
+
     # Remove old generic rewards from AIR2FrankaEnvCfg
     cfg.rewards.objects_to_basket = None
     cfg.rewards.objects_off_hook = None
@@ -147,36 +155,33 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
     )
     cfg.rewards.target_in_hand = RewTerm(
         func=air2_mdp.target_in_hand,
-        params={"target_key": target_key},
-        weight=3.0,
+        params={"target_key": target_key, "grasp_radius": 0.15},
+        weight=30.0,
     )
     # v3 reward design: build a continuous gradient from "near target" through
     # "closing on it" through "lifted" through "near basket" through "in basket".
     # v2 had no signal between "grasped" (binary) and "in basket" (binary), so
     # PPO learned to grasp briefly but never carried.
 
-    # Strong dense grasp signal — primary anchor for the grasp skill.
+    # v4 reward rebalance: grasp_shaping dropped 5→2, lift_progress 3→10,
+    # target_to_basket 3→6. Previous 5.0 grasp weight made PPO converge to
+    # "grasp and stop" — lift_progress signal was drowned out and task_success
+    # decayed iter 400 → 800 (1.56% → 0%). Inverting the gradient: grasp is now
+    # a touch-and-go bonus, lift is the dominant ongoing signal.
     cfg.rewards.grasp_shaping = RewTerm(
         func=air2_mdp.grasp_shaping,
         params={"target_key": target_key, "near_radius": 0.15},
-        weight=5.0,                       # was 2.0
+        weight=2.0,                       # v3=5.0, v4=2.0 (de-emphasize)
     )
-    # NEW: lift_progress — continuous reward as target rises above its spawn z.
-    # The 0.30 m cap means reward saturates once the object is roughly at the
-    # height the operator carries it during the demos. Implicitly conditions
-    # on grasp (bumped objects fall back down).
     cfg.rewards.lift_progress = RewTerm(
         func=air2_mdp.lift_progress,
         params={"target_key": target_key, "base_z": 1.61, "max_lift": 0.30},
-        weight=3.0,
+        weight=10.0,                      # v3=3.0, v4=10.0 (dominant carry signal)
     )
-    # Stronger basket pull — once the object is lifted, this drags it toward
-    # the basket. Increased from 1.0 so the carrying-phase signal can compete
-    # with `ee_to_target` (weight 2.0) which keeps pulling the EE backwards.
     cfg.rewards.target_to_basket = RewTerm(
         func=air2_mdp.target_to_basket,
         params={"target_key": target_key, "std": 0.5},
-        weight=3.0,                       # was 1.0
+        weight=6.0,                       # v3=3.0, v4=6.0 (stronger pull)
     )
     cfg.rewards.target_in_basket = RewTerm(
         func=air2_mdp.target_in_basket,
@@ -186,7 +191,7 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
     cfg.rewards.wrong_object_moved = RewTerm(
         func=air2_mdp.wrong_object_moved,
         params={"target_key": target_key},
-        weight=-5.0,
+        weight=-1.0,
     )
     cfg.rewards.object_slipped = RewTerm(
         func=air2_mdp.object_slipped,

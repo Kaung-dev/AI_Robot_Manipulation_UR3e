@@ -1,178 +1,185 @@
-"""State-only BC from friend's per-target HDF5 — produces a checkpoint that
-bc_to_ppo.py --state_bc_ckpt can load via strict load_state_dict() into the
-rsl_rl actor.
+"""Train a state-BC policy from Mimic-generated HDF5 demos.
 
-Obs layout MATCHES Stephen's air2_franka env (LiftEnvCfg.PolicyCfg order),
-term-by-term:
-    [joint_pos(9), joint_vel(9), object_position(3),
-     target_object_position(7), actions(7)] = 35-D
+Obs:  joint_pos(9) + joint_vel(9) + object_position(3) +
+      target_object_position(7) + last_action(7)  = 35-D
+Action: 7-D (matches PPO actor layout — checkpoint is load_state_dict compatible)
 
-Architecture: rsl_rl.networks.MLP(35 -> 256 -> 128 -> 64 -> 7, elu) —
-exactly matching air2_franka/agents/rsl_rl_ppo_cfg.UR3eRG2AIR2LiftPPORunnerCfg.
-
-Loss: smooth-L1 across all 7 dims.
-
-No Isaac Sim boot. Plain torch + h5py + numpy. Trains in ~3-5 min on a T4.
+No Isaac Sim required — pure PyTorch.
 
 Usage:
-    C:\\isaac\\IsaacLab\\isaaclab.bat -p scripts\\train_state_bc_from_hdf5.py `
-        --hdf5 _archive\\v2_friend_hdf5\\teleop_air2_robotis.hdf5 `
-        --epochs 200 `
-        --out checkpoints\\policy_state_bc_brush.pth
+    python scripts/train_state_bc_from_hdf5.py \
+        --hdf5 datasets/air2_mimic_generated.hdf5 \
+        --epochs 300 --lr 3e-4 \
+        --out checkpoints/policy_state_bc_mimic.pth
 """
 from __future__ import annotations
 
 import argparse
 import json
-import math
-import sys
-import time
 from pathlib import Path
 
 import h5py
 import numpy as np
 import torch
-from torch import nn
-from torch.utils.data import DataLoader, TensorDataset
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
-
-from rsl_rl.networks import MLP
-
-JOINT_DIM = 9
-OBJECT_POS_DIM = 3
-TARGET_POSE_DIM = 7
-ACTION_DIM = 7
-OBS_DIM = JOINT_DIM * 2 + OBJECT_POS_DIM + TARGET_POSE_DIM + ACTION_DIM   # = 35
-HIDDEN_DIMS = [256, 128, 64]
-ACTIVATION = "elu"
+import torch.nn as nn
 
 
-def load_hdf5(fp: Path) -> tuple[np.ndarray, np.ndarray]:
-    """One HDF5 file -> (obs (N, 35), actions (N, 7)) concatenated across all demos."""
-    obs_all, act_all = [], []
-    n_demos = 0
-    with h5py.File(fp, "r") as f:
-        demo_names = sorted(
-            f["data"].keys(),
-            key=lambda n: int(n.split("_")[-1]) if n.split("_")[-1].isdigit() else 0,
-        )
-        for d in demo_names:
-            grp = f["data"][d]
-            actions = grp["actions"][...].astype(np.float32)              # (T, 7)
-            joint_pos = grp["obs/joint_pos"][...].astype(np.float32)      # (T, 9)
-            joint_vel = grp["obs/joint_vel"][...].astype(np.float32)      # (T, 9)
-            object_pos = grp["obs/object_position"][...].astype(np.float32)        # (T, 3)
-            target = grp["obs/target_object_position"][...].astype(np.float32)     # (T, 7)
-            T = actions.shape[0]
-            last_action = np.zeros_like(actions)
-            last_action[1:] = actions[:-1]
-            obs = np.concatenate([joint_pos, joint_vel, object_pos, target, last_action], axis=-1)
-            if obs.shape[-1] != OBS_DIM:
-                raise ValueError(f"{fp.name}/{d}: obs dim {obs.shape[-1]} != {OBS_DIM}")
-            obs_all.append(obs)
-            act_all.append(actions)
-        n_demos = len(demo_names)
-    obs_cat = np.concatenate(obs_all, axis=0)
-    act_cat = np.concatenate(act_all, axis=0)
-    print(f"[hdf5] {fp.name}: {n_demos} demos / {obs_cat.shape[0]} frames")
-    return obs_cat, act_cat
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--hdf5", default="datasets/air2_mimic_generated.hdf5")
+parser.add_argument("--epochs", type=int, default=300)
+parser.add_argument("--batch_size", type=int, default=512)
+parser.add_argument("--lr", type=float, default=3e-4)
+parser.add_argument("--val_ratio", type=float, default=0.1)
+parser.add_argument("--hidden_dims", type=int, nargs="+", default=[256, 128, 64])
+parser.add_argument("--out", default="checkpoints/policy_state_bc_mimic.pth")
+parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+args = parser.parse_args()
+
+# ---------------------------------------------------------------------------
+# Data loading
+# ---------------------------------------------------------------------------
+
+OBS_KEYS = ["joint_pos", "joint_vel", "object_position", "target_object_position", "actions"]
+# "actions" in the obs group = last_action recorded at that timestep
+
+def load_dataset(hdf5_path: str):
+    obs_list, act_list = [], []
+    with h5py.File(hdf5_path, "r") as f:
+        demos = sorted(f["data"].keys(), key=lambda x: int(x.split("_")[1]))
+        print(f"Loading {len(demos)} demos from {hdf5_path}")
+        for demo_key in demos:
+            d = f["data"][demo_key]
+            obs_parts = [d["obs"][k][:] for k in OBS_KEYS]
+            obs = np.concatenate(obs_parts, axis=-1).astype(np.float32)  # (T, 35)
+            act = d["actions"][:].astype(np.float32)                     # (T, 7)
+            obs_list.append(obs)
+            act_list.append(act)
+
+    obs_all = np.concatenate(obs_list, axis=0)
+    act_all = np.concatenate(act_list, axis=0)
+    print(f"Dataset: {obs_all.shape[0]} steps, obs_dim={obs_all.shape[1]}, act_dim={act_all.shape[1]}")
+    return obs_all, act_all
 
 
-def train(args: argparse.Namespace) -> None:
-    device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
-    print(f"[train] device={device}")
+# ---------------------------------------------------------------------------
+# Model — matches rsl_rl actor (ELU activations, no BN)
+# ---------------------------------------------------------------------------
 
-    obs_np, act_np = load_hdf5(Path(args.hdf5))
+def make_mlp(input_dim: int, output_dim: int, hidden_dims: list[int]) -> nn.Sequential:
+    layers: list[nn.Module] = []
+    in_d = input_dim
+    for h in hidden_dims:
+        layers += [nn.Linear(in_d, h), nn.ELU()]
+        in_d = h
+    layers.append(nn.Linear(in_d, output_dim))
+    return nn.Sequential(*layers)
 
-    obs_t = torch.from_numpy(obs_np).float()
-    act_t = torch.from_numpy(act_np).float()
-    n = obs_t.shape[0]
-    n_val = max(1, int(n * args.val_frac))
-    perm = torch.randperm(n, generator=torch.Generator().manual_seed(args.seed))
+
+# ---------------------------------------------------------------------------
+# Training
+# ---------------------------------------------------------------------------
+
+def train(obs_np: np.ndarray, act_np: np.ndarray):
+    n = obs_np.shape[0]
+    n_val = max(1, int(n * args.val_ratio))
+    perm = np.random.permutation(n)
     val_idx, train_idx = perm[:n_val], perm[n_val:]
-    train_dl = DataLoader(TensorDataset(obs_t[train_idx], act_t[train_idx]),
-                          batch_size=args.batch_size, shuffle=True, pin_memory=True)
-    val_dl = DataLoader(TensorDataset(obs_t[val_idx], act_t[val_idx]),
-                        batch_size=args.batch_size, shuffle=False, pin_memory=True)
-    print(f"[train] split: train={len(train_idx)}  val={len(val_idx)}")
 
-    model = MLP(OBS_DIM, ACTION_DIM, HIDDEN_DIMS, ACTIVATION).to(device)
-    print(f"[train] MLP {OBS_DIM} -> {HIDDEN_DIMS} -> {ACTION_DIM}, activation={ACTIVATION}")
+    # Pin entire dataset on GPU — ~55MB total, avoids 641 CPU→GPU transfers per epoch
+    dev = args.device
+    obs_t = torch.from_numpy(obs_np).to(dev)
+    act_t = torch.from_numpy(act_np).to(dev)
+    obs_train, act_train = obs_t[train_idx], act_t[train_idx]
+    obs_val,   act_val   = obs_t[val_idx],   act_t[val_idx]
+    n_train = len(train_idx)
+    print(f"Device: {dev}  |  train={n_train}  val={len(val_idx)}")
 
-    opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs, eta_min=1e-6)
+    input_dim  = obs_np.shape[1]
+    action_dim = act_np.shape[1]
+    model = make_mlp(input_dim, action_dim, args.hidden_dims).to(dev)
+    print(f"MLP: {input_dim} → {args.hidden_dims} → {action_dim}  (ELU)")
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Parameters: {total_params:,}")
 
+    opt = torch.optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs, eta_min=1e-5)
     log = []
-    best_val = math.inf
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    best_val = float("inf")
+    best_state = None
 
     for epoch in range(1, args.epochs + 1):
-        t0 = time.time()
         model.train()
-        tr_sum, tr_n = 0.0, 0
-        for xb, yb in train_dl:
-            xb, yb = xb.to(device, non_blocking=True), yb.to(device, non_blocking=True)
+        # Shuffle on GPU
+        perm_t = torch.randperm(n_train, device=dev)
+        obs_shuf, act_shuf = obs_train[perm_t], act_train[perm_t]
+        tr_loss = 0.0
+        for i in range(0, n_train, args.batch_size):
+            xb = obs_shuf[i:i + args.batch_size]
+            yb = act_shuf[i:i + args.batch_size]
             pred = model(xb)
             loss = nn.functional.smooth_l1_loss(pred, yb)
-            opt.zero_grad(set_to_none=True)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.grad_clip)
-            opt.step()
-            tr_sum += loss.item() * xb.size(0)
-            tr_n += xb.size(0)
-        tr_loss = tr_sum / max(1, tr_n)
+            opt.zero_grad(); loss.backward(); opt.step()
+            tr_loss += loss.item() * xb.size(0)
+        tr_loss /= n_train
 
         model.eval()
-        vl_sum, vl_n = 0.0, 0
         with torch.no_grad():
-            for xb, yb in val_dl:
-                xb, yb = xb.to(device), yb.to(device)
-                vl_sum += nn.functional.smooth_l1_loss(model(xb), yb).item() * xb.size(0)
-                vl_n += xb.size(0)
-        vl_loss = vl_sum / max(1, vl_n)
-        sched.step()
-        dt = time.time() - t0
-        log.append({"epoch": epoch, "train_loss": tr_loss, "val_loss": vl_loss, "lr": sched.get_last_lr()[0]})
-        if epoch % 10 == 0 or epoch == 1 or epoch == args.epochs:
-            print(f"epoch {epoch:3d}/{args.epochs}  train={tr_loss:.5f}  val={vl_loss:.5f}  lr={sched.get_last_lr()[0]:.2e}  {dt:.1f}s", flush=True)
+            pred_val = model(obs_val)
+            vl_loss = nn.functional.smooth_l1_loss(model(obs_val), act_val).item()
+        scheduler.step()
+
+        log.append({"epoch": epoch, "train": tr_loss, "val": vl_loss})
+        if epoch % 25 == 0 or epoch == 1:
+            print(f"  ep {epoch:>3}/{args.epochs}  train={tr_loss:.5f}  val={vl_loss:.5f}")
 
         if vl_loss < best_val:
             best_val = vl_loss
-            torch.save({
-                "state_dict": model.state_dict(),
-                "input_dim": OBS_DIM,
-                "action_dim": ACTION_DIM,
-                "hidden_dims": HIDDEN_DIMS,
-                "activation": ACTIVATION,
-                "input_layout": ["joint_pos(9)", "joint_vel(9)", "object_position(3)",
-                                  "target_object_position(7)", "actions(7)"],
-                "trained_on": str(Path(args.hdf5).resolve()),
-                "num_pairs": int(obs_np.shape[0]),
-            }, out_path)
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
 
-    (out_path.with_suffix(".log.json")).write_text(json.dumps(
-        {"epochs": log, "input_dim": OBS_DIM, "hidden_dims": HIDDEN_DIMS,
-         "activation": ACTIVATION, "best_val": best_val}, indent=2))
-    print(f"[train] best val={best_val:.5f};  checkpoint -> {out_path}")
+    print(f"Best val loss: {best_val:.5f}")
+    return model, best_state, log, input_dim, action_dim
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--hdf5", required=True, help="Single per-target HDF5 (from friend).")
-    ap.add_argument("--epochs", type=int, default=200)
-    ap.add_argument("--batch_size", type=int, default=256)
-    ap.add_argument("--lr", type=float, default=3e-4)
-    ap.add_argument("--weight_decay", type=float, default=1e-4)
-    ap.add_argument("--grad_clip", type=float, default=1.0)
-    ap.add_argument("--val_frac", type=float, default=0.1)
-    ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--cpu", action="store_true")
-    train(ap.parse_args())
-
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    main()
+    import time
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    print(f"[diag] device arg: {args.device}")
+    import torch as _t
+    print(f"[diag] CUDA available: {_t.cuda.is_available()}")
+    if _t.cuda.is_available():
+        print(f"[diag] GPU: {_t.cuda.get_device_name(0)}")
+
+    t0 = time.time()
+    obs_np, act_np = load_dataset(args.hdf5)
+    print(f"[diag] data load: {time.time()-t0:.1f}s")
+
+    t1 = time.time()
+    model, best_state, log, input_dim, action_dim = train(obs_np, act_np)
+    print(f"[diag] total train time: {time.time()-t1:.1f}s")
+
+    torch.save({
+        "state_dict": best_state,
+        "input_dim": input_dim,
+        "action_dim": action_dim,
+        "hidden_dims": args.hidden_dims,
+        "activation": "elu",
+        "obs_keys": OBS_KEYS,
+        "num_steps": int(obs_np.shape[0]),
+    }, out_path)
+
+    log_path = out_path.with_suffix(".log.json")
+    log_path.write_text(json.dumps(log, indent=2))
+
+    print(f"Saved → {out_path}")
+    print(f"Log   → {log_path}")

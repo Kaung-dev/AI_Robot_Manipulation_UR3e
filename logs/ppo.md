@@ -120,3 +120,30 @@ Weight order: target_in_basket (highest) → target_off_hook / target_in_hand �
 CNN confirmation skipped — physics-based approximations used throughout. Weights are initial estimates, expect tuning after first PPO runs.
 
 **Status:** implemented, not yet tested
+
+---
+
+## 2026-05-31 — PPO deprioritised in favour of Mimic → state-BC
+**Who:** Steph
+**Decision:** Not running PPO for now. Switched to Mimic data augmentation → state-BC policy.
+**Root cause of PPO failure:** After 3000 iterations, `ee_to_target ≈ 1.0` (reaches object) but never carries — no reward gradient between grasp and basket. Missing `lift_progress` reward.
+**Fix available but not applied:** experimental branch has `grasp_shaping + lift_progress + progress_stall=-0.02` which should fix the carry problem.
+**Plan:** If state-BC also fails, apply the PPO reward fix from experimental and run PPO.
+**Status:** on hold
+
+---
+
+## 2026-05-31 — PPO warm-start from state-BC checkpoint
+**Who:** Steph
+**Decision:** State-BC arm navigation works but carry is unreliable (covariate shift, gripper issues). Warm-starting PPO from BC checkpoint to fix both.
+**Setup:**
+- Script: `scripts/bc_to_ppo.py` (ported from experimental, patched for newer rsl_rl API)
+- BC checkpoint: `checkpoints/policy_state_bc_mimic.pth` (35-D obs, MLP 256/128/64, ELU)
+- Task: `Isaac-AIR2-Robotis-Franka-Brush-v0` (has grasp_shaping + lift_progress + progress_stall rewards)
+- Warm-start settings: init_noise_std=0.5 (low), fixed LR=1e-5, no empirical normalisation, entropy_coef=0.01
+- rsl_rl API fix: added `handle_deprecated_rsl_rl_cfg()` call (new rsl_rl requires `class_name` in actor cfg)
+- rsl_rl API fix 2: `runner.alg.policy.actor` → `runner.alg.actor`, BC keys remapped `N.weight` → `mlp.N.weight`
+- Warm-start verified: max weight diff between BC ckpt and PPO model_0 = 2e-4 (float precision only, not a load failure)
+- Logs saved to: `logs/rsl_rl/air2_ppo/`
+- Command: `./launch_air2.sh ppo-warm-start`
+**Status:** running (2026-05-31)

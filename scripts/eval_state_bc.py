@@ -39,8 +39,8 @@ parser.add_argument("--state_bc_ckpt", required=True,
 parser.add_argument("--task", default="Isaac-AIR2-Franka-Play-v0")
 parser.add_argument("--num_envs", type=int, default=1)
 parser.add_argument("--num_episodes", type=int, default=5)
-parser.add_argument("--max_steps", type=int, default=800)
-parser.add_argument("--episode_length_s", type=float, default=20.0)
+parser.add_argument("--max_steps", type=int, default=2000)
+parser.add_argument("--episode_length_s", type=float, default=40.0)
 parser.add_argument("--out", default="eval_results/state_bc.json")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -54,11 +54,22 @@ import numpy as np
 import torch
 import gymnasium as gym
 
-from rsl_rl.networks import MLP
-
 import isaaclab_tasks  # noqa: F401
-import isaaclab_ext.tasks.air2_franka  # noqa: F401
+import isaaclab_ext.tasks.air2_franka          # noqa: F401
+import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
+
+
+def _make_mlp(input_dim, output_dim, hidden_dims, activation="elu"):
+    import torch.nn as nn
+    act = nn.ELU if activation == "elu" else nn.ReLU
+    layers = []
+    in_d = input_dim
+    for h in hidden_dims:
+        layers += [nn.Linear(in_d, h), act()]
+        in_d = h
+    layers.append(nn.Linear(in_d, output_dim))
+    return nn.Sequential(*layers)
 
 
 # Same proxy success metric used by eval_bc.py / eval_ppo.py.
@@ -66,17 +77,16 @@ BASKET_POS_LOCAL = torch.tensor([-3.560, -5.370, 1.040])
 BASKET_REACH_RADIUS = 0.40
 
 
-def load_state_bc_policy(ckpt_path: str, device: str) -> MLP:
+def load_state_bc_policy(ckpt_path: str, device: str):
     """Reconstruct the MLP from the checkpoint's metadata + state_dict."""
     blob = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     if "state_dict" not in blob:
-        raise RuntimeError(f"Checkpoint {ckpt_path} missing 'state_dict' key — "
-                           f"is this really a train_state_bc.py output?")
-    input_dim = blob["input_dim"]
+        raise RuntimeError(f"Checkpoint {ckpt_path} missing 'state_dict' key")
+    input_dim  = blob["input_dim"]
     action_dim = blob["action_dim"]
     hidden_dims = blob["hidden_dims"]
-    activation = blob.get("activation", "elu")
-    model = MLP(input_dim, action_dim, hidden_dims, activation).to(device)
+    activation  = blob.get("activation", "elu")
+    model = _make_mlp(input_dim, action_dim, hidden_dims, activation).to(device)
     model.load_state_dict(blob["state_dict"], strict=True)
     model.eval()
     print(f"[eval-state-bc] loaded MLP: input={input_dim} hidden={hidden_dims} "
@@ -96,14 +106,20 @@ def main():
     num_envs = env.unwrapped.num_envs
 
     policy = load_state_bc_policy(args_cli.state_bc_ckpt, device=device)
-    print(f"[eval-state-bc] task={args_cli.task} envs={num_envs} target_episodes={args_cli.num_episodes}",
+    print(f"[eval-state-bc] task={args_cli.task} envs={num_envs} target_episodes={args_cli.num_episodes} episode_length_s={env_cfg.episode_length_s}",
           flush=True)
 
     basket_pos_dev = BASKET_POS_LOCAL.to(device)
 
-    ep_step = torch.zeros(num_envs, dtype=torch.long, device=device)
-    ep_reward = torch.zeros(num_envs, device=device)
+    ep_step      = torch.zeros(num_envs, dtype=torch.long, device=device)
+    ep_reward    = torch.zeros(num_envs, device=device)
     ep_min_basket_dist = torch.full((num_envs,), float("inf"), device=device)
+    # Phase state per env: 0=APPROACH, 1=GRIP (hold still), 2=CARRY
+    phase        = torch.zeros(num_envs, dtype=torch.long, device=device)
+    near_counter = torch.zeros(num_envs, dtype=torch.long, device=device)
+    grip_steps   = torch.zeros(num_envs, dtype=torch.long, device=device)
+    NEAR_THRESH  = 250   # steps within 0.08m before closing (5s)
+    GRIP_HOLD    = 50    # steps to hold still while gripping (1s)
     saved_episodes: list[dict] = []
 
     while len(saved_episodes) < args_cli.num_episodes and simulation_app.is_running():
@@ -113,19 +129,56 @@ def main():
             if isinstance(obs_policy, dict):
                 obs_policy = torch.cat(list(obs_policy.values()), dim=-1)
 
+            ee     = env.unwrapped.scene["ee_frame"]
+            brush  = env.unwrapped.scene["object"]
+            ee_pos  = ee.data.target_pos_w[..., 0, :]
+            obj_pos = brush.data.root_pos_w
+            ee_obj_dist = torch.linalg.norm(ee_pos - obj_pos, dim=-1)
+
             action = policy(obs_policy)
+
+            # Phase 0 — APPROACH: BC arm, gripper open, count time near object
+            near_counter = torch.where(
+                (phase == 0) & (ee_obj_dist < 0.08),
+                near_counter + 1, near_counter)
+            phase = torch.where((phase == 0) & (near_counter >= NEAR_THRESH),
+                                torch.ones_like(phase), phase)
+
+            # Phase 1 — GRIP: hold arm still, gripper closed, wait GRIP_HOLD steps
+            grip_steps = torch.where(phase == 1, grip_steps + 1, grip_steps)
+            phase = torch.where((phase == 1) & (grip_steps >= GRIP_HOLD),
+                                torch.full_like(phase, 2), phase)
+
+            # Build action based on phase — clip arm to prevent OOD large outputs
+            arm_action = action[:, :-1].clamp(-0.5, 0.5)
+            arm_action = torch.where((phase == 1).unsqueeze(-1).expand_as(arm_action),
+                                     torch.zeros_like(arm_action), arm_action)
+            grip_val = torch.where(phase == 0,
+                                   torch.ones(num_envs, device=device),
+                                   -torch.ones(num_envs, device=device))
+            action = torch.cat([arm_action, grip_val.unsqueeze(-1)], dim=-1)
+
+            if ep_step[0] % 100 == 0:
+                robot = env.unwrapped.scene["robot"]
+                jvel = robot.data.joint_vel[0].abs().max().item()
+                raw_arm_mag = action[0, :-1].abs().max().item()
+                print(f"[phase] step={ep_step[0].item():4d}  phase={phase[0].item()}  "
+                      f"near={near_counter[0].item()}  ee_dist={ee_obj_dist[0].item():.3f}m  "
+                      f"max_jvel={jvel:.3f}  raw_arm={raw_arm_mag:.3f}", flush=True)
 
             _, rew, terminated, truncated, _ = env.step(action)
             ep_step += 1
             ep_reward += rew
 
-            ee = env.unwrapped.scene["ee_frame"]
-            ee_local = ee.data.target_pos_w[..., 0, :] - env.unwrapped.scene.env_origins
-            dist = torch.linalg.norm(ee_local - basket_pos_dev, dim=1)
+            brush_local = brush.data.root_pos_w - env.unwrapped.scene.env_origins
+            dist = torch.linalg.norm(brush_local - basket_pos_dev, dim=1)
             ep_min_basket_dist = torch.minimum(ep_min_basket_dist, dist)
 
             done = terminated | truncated | (ep_step >= args_cli.max_steps)
             if done.any():
+                # Force env reset so next episode always starts clean
+                if (ep_step >= args_cli.max_steps).any():
+                    env.reset()
                 for i in done.nonzero(as_tuple=False).squeeze(-1).cpu().tolist():
                     if len(saved_episodes) >= args_cli.num_episodes:
                         break
@@ -147,6 +200,9 @@ def main():
                 ep_step[done] = 0
                 ep_reward[done] = 0.0
                 ep_min_basket_dist[done] = float("inf")
+                phase[done] = 0
+                near_counter[done] = 0
+                grip_steps[done] = 0
 
     rewards = [e["cumulative_reward"] for e in saved_episodes]
     reached = sum(1 for e in saved_episodes if e["reached_basket"])
