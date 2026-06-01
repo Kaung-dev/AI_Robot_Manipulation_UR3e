@@ -10,6 +10,15 @@ Script to record teleoperated demos and run mimic dataset generation in real-tim
 # Launching Isaac Sim Simulator first.
 
 import argparse
+from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
+
+# Windows workaround: load h5py's bundled HDF5 DLLs before Isaac Sim extensions
+# place older HDF5 DLLs on the process search path.
+import h5py  # noqa: F401
 
 from isaaclab.app import AppLauncher
 
