@@ -20,6 +20,7 @@ from dataclasses import MISSING
 from isaaclab.envs.mimic_env_cfg import MimicEnvCfg, SubTaskConfig
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
+from isaaclab.managers import TerminationTermCfg
 from isaaclab.utils import configclass
 
 # Stack task's mdp module has the standard ee_frame_pos / ee_frame_quat funcs
@@ -101,6 +102,17 @@ class AIR2RobotisBrushMimicEnvCfg(AIR2RobotisBrushEnvCfg, MimicEnvCfg):
         # IsaacLab Mimic's annotate_demos.py / generate_dataset.py look for a
         # termination named exactly "success" on the env cfg. Our cfg names it
         # "task_success" — alias it so mimic finds it.
+        # Override task_success with the LOOSER `target_reached_basket` (legacy
+        # euclidean dist < 0.30 m) for Mimic annotation. The strict drop-in
+        # rule used at PPO time requires the brush to settle inside the basket
+        # AFTER physics — but manual demos stop right after the release command,
+        # before fingers physically open and before the object falls. Verified
+        # empirically: brush demos end at ~7 cm from basket center with z=1.10
+        # (held above rim), which would satisfy the loose check but NOT strict.
+        self.terminations.task_success = TerminationTermCfg(
+            func=air2_mdp.target_reached_basket,
+            params={"target_key": "object", "radius": 0.30},
+        )
         if hasattr(self.terminations, "task_success"):
             self.terminations.success = self.terminations.task_success
 
@@ -115,6 +127,12 @@ class AIR2RobotisBrushMimicEnvCfg(AIR2RobotisBrushEnvCfg, MimicEnvCfg):
         # don't affect state obs but slow Isaac boot and would contaminate
         # any downstream camera-based pretraining.
         _strip_visual_markers(self)
+        # CRITICAL: disable per-reset object randomization. Mimic uses
+        # `reset_to(initial_state, is_relative=True)` to place objects at the
+        # demo's recorded start position. If the randomization event fires
+        # after that, brushes get moved to random peg slots and the demo's
+        # actions miss the target.
+        _disable_object_randomization(self)
 
         # Data-gen knobs (defaults are mostly fine; tune later if needed).
         self.datagen_config.name = "demo_src_air2_brush_D0"
@@ -194,6 +212,20 @@ def _build_mimic_subtasks(target_key: str, signal_name: str, tool_name: str) -> 
     ]
 
 
+def _disable_object_randomization(self) -> None:
+    """Mimic replays the demo's recorded actions starting from the demo's
+    recorded initial state. If the env's per-reset randomization event fires
+    AFTER `reset_to`, it overwrites the demo's brush/tool spawn positions with
+    random peg-slot placements, and the recorded actions then miss the target.
+    Disable both randomization events (AIR2 pegboard + Robotis cylinder slots)
+    while in Mimic mode.
+    """
+    if hasattr(self.events, "reset_object_position"):
+        self.events.reset_object_position = None
+    if hasattr(self.events, "randomize_hook_objects"):
+        self.events.randomize_hook_objects = None
+
+
 _MARKER_SCENE_KEYS = (
     "basket_frame", "basket_beacon_frame",
     "brush_frame", "pliers_frame", "scissors_frame", "screwdriver_frame",
@@ -226,11 +258,20 @@ def _mimic_cfg_common_init(self, target_key: str, tool_name: str) -> None:
     self.observations.policy.eef_quat = ObsTerm(func=stack_mdp.ee_frame_quat)
     self.observations.policy.concatenate_terms = False
     _strip_visual_markers(self)
+    _disable_object_randomization(self)
 
     signal_name = f"grasp_{tool_name}"
     SubtaskGroup = _subtask_terms_obs_group(target_key, signal_name)
     self.observations.subtask_terms = SubtaskGroup()
 
+    # Override task_success with the looser legacy rule — same reasoning
+    # as in AIR2RobotisBrushMimicEnvCfg.__post_init__ above: manual demos
+    # end before physics finishes the drop, so the strict drop-in rule
+    # rejects all valid demos. Use euclidean-distance < 0.30 m here.
+    self.terminations.task_success = TerminationTermCfg(
+        func=air2_mdp.target_reached_basket,
+        params={"target_key": target_key, "radius": 0.30},
+    )
     if hasattr(self.terminations, "task_success"):
         self.terminations.success = self.terminations.task_success
 

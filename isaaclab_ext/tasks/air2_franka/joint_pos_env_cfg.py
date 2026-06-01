@@ -201,10 +201,14 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
             ],
         )
 
-        # The Mimic-trained state-BC (policy_state_bc_mimic.pth) was trained on
-        # 42-D obs that includes eef_pos (3) and eef_quat (4). Default LiftEnvCfg
-        # only emits 35-D; without these extras the BC shape-mismatches and the
-        # robot sits at home with no actions applied.
+        # 35-D obs layout used by train_state_bc_from_raw.py (Path B BCs).
+        # Final order after disabling target_object_position:
+        #   joint_pos(9) + joint_vel(9) + object_position(3) + actions=last_action(7)
+        #   + eef_pos(3) + eef_quat(4) = 35
+        # target_object_position is the LiftEnvCfg's random goal pose. Our
+        # demos don't contain it (basket is fixed in world), so feeding a
+        # random goal at eval time is just covariate-shift noise. Disable it.
+        self.observations.policy.target_object_position = None
         self.observations.policy.eef_pos = ObsTerm(func=stack_mdp.ee_frame_pos)
         self.observations.policy.eef_quat = ObsTerm(func=stack_mdp.ee_frame_quat)
 

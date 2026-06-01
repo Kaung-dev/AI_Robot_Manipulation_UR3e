@@ -19,6 +19,12 @@ def target_reached_basket(
     asset = env.scene[target_key]
     obj_pos = asset.data.root_pos_w - env.scene.env_origins
     dist = torch.linalg.norm(obj_pos - basket, dim=-1)
+    # DEBUG (one-shot): print actual brush pos + dist so we can see why
+    # mimic annotate is rejecting demos despite the demo HDF5 ending near
+    # the basket. Remove after the pipeline is verified.
+    import os
+    if os.environ.get("AIR2_DEBUG_BASKET_CHECK") == "1":
+        print(f"[target_reached_basket DEBUG] target={target_key} obj_pos={obj_pos.tolist()} basket={basket.tolist()} dist={dist.tolist()} pass={(dist < radius).tolist()}", flush=True)
     return dist < radius
 
 
