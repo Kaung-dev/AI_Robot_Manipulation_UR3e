@@ -108,3 +108,16 @@ Pipeline: teleop demo collection → BC training → eval_bc.py rollout
 
 **Checkpoint:** `checkpoints/policy_state_bc_mimic.pth` (retrained, 42-D input)
 **Status:** retrained — eval pending
+
+---
+
+## 2026-06-01 — Future: replace GT object_position with camera-derived estimate
+**Who:** Steph
+**Idea:** Current `eval_state_bc.py` proximity check uses `brush.data.root_pos_w` (GT from physics — not available on real robot). Both can be replaced with camera-derived estimates:
+1. Run U-Net on RGB → object mask centroid in 2D
+2. Sample `distance_to_image_plane` at centroid → depth value
+3. Project through camera intrinsics + extrinsics → object position in robot frame
+4. Use for EE-to-object distance check (gripper close trigger) and as `object_position` obs input
+
+Both wrist and side cameras already output `distance_to_image_plane` + `semantic_segmentation` in the segmentation env cfg. EE position comes from FK (`ee_frame`), available on real hardware.
+**Status:** not implemented — log for future work
