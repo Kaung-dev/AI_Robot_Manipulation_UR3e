@@ -380,6 +380,8 @@ def main() -> None:
     teleop_interface.reset()
 
     action = torch.zeros(env.action_space.shape, device=device)
+    _basket_printed = False
+    _prev_grip_sign = None  # track gripper open/close transitions
     existing = [p for p in out_root.iterdir() if p.is_dir() and p.name.startswith("ep_")]
     saved = max((int(p.name.split("_")[1]) + 1 for p in existing), default=0)
     if saved > 0:
@@ -409,6 +411,39 @@ def main() -> None:
             action[:] = action_cmd.repeat(env.num_envs, 1)
             env.step(action)
             state["step"] += 1
+
+            # One-shot: print basket prim world position so we can update BASKET_POS_LOCAL
+            if not _basket_printed:
+                try:
+                    from pxr import UsdGeom, Usd
+                    stage = env.sim.stage
+                    origin = env.scene.env_origins[0].cpu()
+                    for prim in stage.Traverse():
+                        if "sm_boxportabled" in prim.GetName().lower():
+                            t = UsdGeom.Xformable(prim).ComputeLocalToWorldTransform(
+                                Usd.TimeCode.Default()).ExtractTranslation()
+                            local = (t[0] - float(origin[0]), t[1] - float(origin[1]), t[2] - float(origin[2]))
+                            print(f"[basket] world=({t[0]:.4f}, {t[1]:.4f}, {t[2]:.4f})  "
+                                  f"env-local=({local[0]:.4f}, {local[1]:.4f}, {local[2]:.4f})", flush=True)
+                            break
+                except Exception as e:
+                    print(f"[basket] could not read prim: {e}", flush=True)
+                _basket_printed = True
+
+            # Print EE + object position whenever gripper opens or closes
+            grip = float(action[0, 6].item())
+            grip_sign = 1 if grip >= 0 else -1
+            if _prev_grip_sign is not None and grip_sign != _prev_grip_sign:
+                origin = env.scene.env_origins[0].cpu()
+                ee_w = env.scene["ee_frame"].data.target_pos_w[0, 0].cpu()
+                obj_w = env.scene["object"].data.root_pos_w[0].cpu()
+                ee_local  = (ee_w - origin).tolist()
+                obj_local = (obj_w - origin).tolist()
+                state_str = "CLOSE" if grip_sign < 0 else "OPEN"
+                print(f"[gripper→{state_str}] step={state['step']}  "
+                      f"ee=({ee_local[0]:.3f}, {ee_local[1]:.3f}, {ee_local[2]:.3f})  "
+                      f"obj=({obj_local[0]:.3f}, {obj_local[1]:.3f}, {obj_local[2]:.3f})", flush=True)
+            _prev_grip_sign = grip_sign
 
             # Capture initial scene state for Mimic after first physics step.
             if first_step_of_episode and hdf5_handler is not None:

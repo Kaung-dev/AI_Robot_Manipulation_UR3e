@@ -130,7 +130,7 @@ case "$MODE" in
 
   collect-mimic)
     NUM="${2:-40}"
-    OUT="$REPO_ROOT/datasets/air2_mimic_demos.hdf5"
+    OUT="${3:-$REPO_ROOT/datasets/air2_mimic_demos.hdf5}"
     echo "[INFO] Collecting $NUM Mimic source demos → $OUT"
     PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
       "$REPO_ROOT/scripts/collect_mimic_demos.py" \

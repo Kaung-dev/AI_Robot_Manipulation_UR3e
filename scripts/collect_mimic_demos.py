@@ -307,6 +307,8 @@ def env_loop(env, env_action_queue, shared_datagen_info_pool, asyncio_event_loop
 
     # simulate environment -- run everything in inference mode
     is_first_print = True
+    _basket_printed = False
+    _prev_grip_sign = [None] * env.unwrapped.num_envs
     with contextlib.suppress(KeyboardInterrupt) and torch.inference_mode():
         while True:
             actions = torch.zeros(env.unwrapped.action_space.shape)
@@ -319,6 +321,39 @@ def env_loop(env, env_action_queue, shared_datagen_info_pool, asyncio_event_loop
 
             # perform action on environment
             env.step(actions)
+
+            # One-shot: print basket prim world position so we can update BASKET_POS_LOCAL
+            if not _basket_printed:
+                try:
+                    from pxr import UsdGeom, Usd
+                    stage = env.unwrapped.sim.stage
+                    origin = env.unwrapped.scene.env_origins[0].cpu()
+                    for prim in stage.Traverse():
+                        if "sm_boxportabled" in prim.GetName().lower():
+                            t = UsdGeom.Xformable(prim).ComputeLocalToWorldTransform(
+                                Usd.TimeCode.Default()).ExtractTranslation()
+                            local = (t[0] - float(origin[0]), t[1] - float(origin[1]), t[2] - float(origin[2]))
+                            print(f"[basket] world=({t[0]:.4f}, {t[1]:.4f}, {t[2]:.4f})  "
+                                  f"env-local=({local[0]:.4f}, {local[1]:.4f}, {local[2]:.4f})", flush=True)
+                            break
+                except Exception as e:
+                    print(f"[basket] could not read prim: {e}", flush=True)
+                _basket_printed = True
+
+            # Print EE + object position on gripper open/close transitions (env 0 only)
+            grip = float(actions[0, 6].item())
+            grip_sign = 1 if grip >= 0 else -1
+            if _prev_grip_sign[0] is not None and grip_sign != _prev_grip_sign[0]:
+                origin = env.unwrapped.scene.env_origins[0].cpu()
+                ee_w  = env.unwrapped.scene["ee_frame"].data.target_pos_w[0, 0].cpu()
+                obj_w = env.unwrapped.scene["object"].data.root_pos_w[0].cpu()
+                ee_local  = (ee_w - origin).tolist()
+                obj_local = (obj_w - origin).tolist()
+                state_str = "CLOSE" if grip_sign < 0 else "OPEN"
+                print(f"[gripper→{state_str}]  "
+                      f"ee=({ee_local[0]:.3f}, {ee_local[1]:.3f}, {ee_local[2]:.3f})  "
+                      f"obj=({obj_local[0]:.3f}, {obj_local[1]:.3f}, {obj_local[2]:.3f})", flush=True)
+            _prev_grip_sign[0] = grip_sign
 
             # mark done so the data generators can continue with the step results
             for i in range(env.unwrapped.num_envs):
