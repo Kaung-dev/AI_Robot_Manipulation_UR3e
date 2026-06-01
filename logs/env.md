@@ -122,3 +122,16 @@ Robot: Franka Panda
 **Observed:** `main` branch has `panda_joint4 = -2.26892803` ("wrist horizontal") in `AIR2FrankaEnvCfg` that experimental does NOT have. Experimental also has `ik_params={"lambda_val": 0.1}` that main lacks.
 **Impact:** Robot spawns with different wrist pose on main. Mimic demos collected on experimental — training distribution matches experimental, not main.
 **Action:** No change. Stay on experimental. Flag for teammate — merging main into experimental would shift initial joint pose and break BC eval.
+
+---
+
+## 2026-06-01 — Collected_AIR2.zip found in Downloads (unresolved)
+**Who:** Steph
+**Found:** `~/Downloads/Collected_AIR2.zip` (111MB, dated 2026-05-21) — unknown who shared it or why.
+**Contains:** `AIR2.usd` (11KB), `AIR.usd`, `AI_Robotics.usd`, pegboard USDs, omniverse asset cache.
+**Differs from current repo scene:**
+- ZIP `AIR2.usd` = 11KB vs repo = 65KB (even older than the 42KB→65KB update logged 2026-05-29)
+- ZIP embeds `SM_BoxPort` (basket) directly; repo references `./AIR.usd` as external payload + adds `ikea_pegboard`
+- Basket world position likely different — binary USD, not readable without USD tools
+**Risk:** Do NOT replace `scene/AIR2.usd` with the zip version. Mimic demos were collected with the repo scene — swapping the scene would invalidate the training data.
+**Action needed:** Find out who sent it and why before doing anything with it.
