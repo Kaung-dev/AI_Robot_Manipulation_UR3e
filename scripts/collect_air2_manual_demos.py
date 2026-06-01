@@ -76,6 +76,52 @@ from isaaclab_ext.tasks.air2_franka.objects import (
 )
 
 
+# ---------------------------------------------------------------------------
+# Mimic pose helpers (pure numpy — no Isaac Lab import needed at save time)
+# ---------------------------------------------------------------------------
+
+def _quat_wxyz_to_matrix(q: np.ndarray) -> np.ndarray:
+    w, x, y, z = q.astype(np.float64)
+    return np.array([
+        [1-2*(y*y+z*z), 2*(x*y-z*w),   2*(x*z+y*w)  ],
+        [2*(x*y+z*w),   1-2*(x*x+z*z), 2*(y*z-x*w)  ],
+        [2*(x*z-y*w),   2*(y*z+x*w),   1-2*(x*x+y*y)],
+    ], dtype=np.float32)
+
+
+def _poses_from_pos_quat(positions: np.ndarray, quats_wxyz: np.ndarray) -> np.ndarray:
+    """Build (T, 4, 4) homogeneous matrices from (T, 3) positions and (T, 4) wxyz quats."""
+    T = len(positions)
+    mats = np.tile(np.eye(4, dtype=np.float32), (T, 1, 1))
+    for t in range(T):
+        mats[t, :3, :3] = _quat_wxyz_to_matrix(quats_wxyz[t])
+        mats[t, :3,  3] = positions[t]
+    return mats
+
+
+def _target_eef_poses(eef_pos: np.ndarray, eef_quat: np.ndarray,
+                      actions: np.ndarray) -> np.ndarray:
+    """Compute target EEF 4×4 matrices from current pose + raw IK delta action.
+
+    Matches mimic_env.action_to_target_eef_pose: uses raw action (no IK scale).
+    """
+    from scipy.spatial.transform import Rotation
+    T = len(actions)
+    t_pos = eef_pos + actions[:, :3]           # (T, 3)
+    t_mats = np.tile(np.eye(4, dtype=np.float32), (T, 1, 1))
+    for t in range(T):
+        curr_rot = _quat_wxyz_to_matrix(eef_quat[t])
+        rv = actions[t, 3:6]
+        angle = float(np.linalg.norm(rv))
+        if angle > 1e-6:
+            delta_rot = Rotation.from_rotvec(rv).as_matrix().astype(np.float32)
+        else:
+            delta_rot = np.eye(3, dtype=np.float32)
+        t_mats[t, :3, :3] = delta_rot @ curr_rot
+        t_mats[t, :3,  3] = t_pos[t]
+    return t_mats
+
+
 class EpisodeBuffer:
     def __init__(self):
         self.wrist_rgb: list[np.ndarray] = []
@@ -85,6 +131,7 @@ class EpisodeBuffer:
         self.eef_pos: list[np.ndarray] = []
         self.eef_quat: list[np.ndarray] = []
         self.object_position: list[np.ndarray] = []
+        self.object_quat: list[np.ndarray] = []
         self.action: list[np.ndarray] = []
         self.gripper: list[float] = []
         self.target_class_id: list[int] = []
@@ -106,7 +153,7 @@ class EpisodeBuffer:
         )
 
     def append(self, wrist, board, jp, jv, act, grip, target_class_id: int,
-               eef_pos=None, eef_quat=None, object_position=None) -> None:
+               eef_pos=None, eef_quat=None, object_position=None, object_quat=None) -> None:
         self.wrist_rgb.append(wrist)
         self.board_rgb.append(board)
         self.joint_pos.append(jp)
@@ -117,6 +164,8 @@ class EpisodeBuffer:
             self.eef_quat.append(eef_quat)
         if object_position is not None:
             self.object_position.append(object_position)
+        if object_quat is not None:
+            self.object_quat.append(object_quat)
         self.action.append(act)
         self.gripper.append(float(grip))
         self.target_class_id.append(int(target_class_id))
@@ -152,6 +201,8 @@ class EpisodeBuffer:
             npz_kwargs["eef_quat"] = np.array(self.eef_quat, dtype=np.float32)
         if self.object_position:
             npz_kwargs["object_position"] = np.array(self.object_position, dtype=np.float32)
+        if self.object_quat:
+            npz_kwargs["object_quat"] = np.array(self.object_quat, dtype=np.float32)
         np.savez_compressed(out_dir / "states.npz", **npz_kwargs)
         meta = {
             **meta,
@@ -161,20 +212,47 @@ class EpisodeBuffer:
         }
         (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
 
-        # Also write HDF5 for Mimic pipeline if handler provided.
-        if hdf5_handler is not None and self.eef_pos:
+        # Write Mimic-compatible HDF5 if handler provided.
+        if hdf5_handler is not None and self.eef_pos and self.object_quat:
+            act_arr  = np.array(self.action,          dtype=np.float32)
+            ep_arr   = np.array(self.eef_pos,         dtype=np.float32)
+            eq_arr   = np.array(self.eef_quat,        dtype=np.float32)
+            op_arr   = np.array(self.object_position, dtype=np.float32)
+            oq_arr   = np.array(self.object_quat,     dtype=np.float32)
+            jp_arr   = np.array(self.joint_pos,       dtype=np.float32)
+
+            # 4×4 pose matrices for datagen_info
+            eef_poses    = _poses_from_pos_quat(ep_arr, eq_arr)         # (T, 4, 4)
+            obj_poses    = _poses_from_pos_quat(op_arr, oq_arr)         # (T, 4, 4)
+            tgt_poses    = _target_eef_poses(ep_arr, eq_arr, act_arr)   # (T, 4, 4)
+
+            # Grasp signal: EEF within 15 cm of object AND fingers mostly closed
+            eef_obj_dist = np.linalg.norm(ep_arr - op_arr, axis=-1)
+            proximity    = eef_obj_dist < 0.15
+            fingers_ok   = (jp_arr[:, 7] < 0.07) & (jp_arr[:, 8] < 0.07)
+            grasp_signal = (proximity & fingers_ok).astype(np.float32)
+            # Ensure at least one 0→1 transition so Mimic annotation doesn't fail.
+            if grasp_signal.max() < 0.5:
+                print("[manual] WARNING: no grasp detected — forcing signal at last frame", flush=True)
+                grasp_signal[-1] = 1.0
+
             ep = EpisodeData()
             ep.success = True
             if self.initial_state is not None:
                 ep.add("initial_state", self.initial_state)
-            actions_t = torch.tensor(np.array(self.action, dtype=np.float32))
-            for i in range(len(self.action)):
-                ep.add("actions", actions_t[i])
-                ep.add("obs/joint_pos", torch.tensor(self.joint_pos[i]))
-                ep.add("obs/joint_vel", torch.tensor(self.joint_vel[i]))
-                ep.add("obs/eef_pos",   torch.tensor(self.eef_pos[i]))
-                ep.add("obs/eef_quat",  torch.tensor(self.eef_quat[i]))
-                ep.add("obs/object_position", torch.tensor(self.object_position[i]))
+            actions_t = torch.tensor(act_arr)
+            T = len(self.action)
+            for i in range(T):
+                ep.add("actions",                                           actions_t[i])
+                ep.add("obs/joint_pos",                                     torch.tensor(jp_arr[i]))
+                ep.add("obs/joint_vel",                                     torch.tensor(self.joint_vel[i]))
+                ep.add("obs/eef_pos",                                       torch.tensor(ep_arr[i]))
+                ep.add("obs/eef_quat",                                      torch.tensor(eq_arr[i]))
+                ep.add("obs/object_position",                               torch.tensor(op_arr[i]))
+                ep.add("obs/datagen_info/eef_pose/franka",                  torch.tensor(eef_poses[i]))
+                ep.add("obs/datagen_info/object_pose/object",               torch.tensor(obj_poses[i]))
+                ep.add("obs/datagen_info/target_eef_pose/franka",           torch.tensor(tgt_poses[i]))
+                ep.add("obs/datagen_info/subtask_term_signals/grasp_brush", torch.tensor([grasp_signal[i]]))
             ep.pre_export()
             hdf5_handler.write_episode(ep)
             hdf5_handler.flush()
@@ -346,12 +424,14 @@ def main() -> None:
                 act = action[0].detach().cpu().numpy()
 
                 # Extra fields for Mimic.
-                eef_pos = env.scene["ee_frame"].data.target_pos_w[0, 0].detach().cpu().numpy() - env.scene.env_origins[0].cpu().numpy()
+                eef_pos  = env.scene["ee_frame"].data.target_pos_w[0, 0].detach().cpu().numpy() - env.scene.env_origins[0].cpu().numpy()
                 eef_quat = env.scene["ee_frame"].data.target_quat_w[0, 0].detach().cpu().numpy()
-                obj_pos = env.scene["object"].data.root_pos_w[0].detach().cpu().numpy() - env.scene.env_origins[0].cpu().numpy()
+                obj_pos  = env.scene["object"].data.root_pos_w[0].detach().cpu().numpy() - env.scene.env_origins[0].cpu().numpy()
+                obj_quat = env.scene["object"].data.root_quat_w[0].detach().cpu().numpy()
 
                 buffer.append(wrist, board, jp, jv, act, float(act[6]), int(state["target_class_id"]),
-                               eef_pos=eef_pos, eef_quat=eef_quat, object_position=obj_pos)
+                               eef_pos=eef_pos, eef_quat=eef_quat,
+                               object_position=obj_pos, object_quat=obj_quat)
 
             if state["accept"]:
                 if not buffer.action:

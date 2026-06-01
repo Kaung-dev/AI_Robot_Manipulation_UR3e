@@ -53,7 +53,9 @@ case "$MODE" in
     OBJECT="${4:-}"
     TARGET_ARG=""
     [ -n "$OBJECT" ] && TARGET_ARG="--default_target $OBJECT"
+    HDF5_OUT="$REPO_ROOT/datasets/air2_mimic_source.hdf5"
     echo "[INFO] Recording $NUM manual demos → datasets/air2_manual_demos (device: $DEVICE${OBJECT:+, target: $OBJECT})"
+    echo "[INFO] Also writing Mimic-compatible HDF5 → $HDF5_OUT"
     echo "[INFO] Controls: W/A/S/D/Q/E move | Z/X/T/G/C/V rotate | K gripper"
     echo "[INFO]           1=brush 2=pliers 3=scissors 4=screwdriver"
     echo "[INFO]           L=pause/resume | Enter=save | Backspace=discard"
@@ -61,6 +63,7 @@ case "$MODE" in
       --task "$TASK" --num_envs 1 --teleop_device "$DEVICE" --enable_cameras \
       --num_demos "$NUM" --output "$REPO_ROOT/datasets/air2_manual_demos" \
       --save_every_n_steps 4 --sensitivity 2 \
+      --hdf5_output "$HDF5_OUT" \
       $TARGET_ARG
     ;;
 
