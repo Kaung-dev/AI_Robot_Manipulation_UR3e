@@ -139,6 +139,39 @@ def target_in_basket(
     return (dist < radius).float()
 
 
+def release_above_basket(
+    env: ManagerBasedRLEnv,
+    target_key: str,
+    xy_radius: float = 0.18,
+    height_above_rim: float = 0.10,
+    finger_open_thresh: float = 0.03,
+) -> torch.Tensor:
+    """Reward for opening the gripper while object is hovering over the basket.
+
+    Bridges the gap between the loose `target_to_basket` Gaussian (always-on
+    pull) and the strict `target_dropped_in_basket` termination (gripper must
+    be open AND object inside basket). Without this term PPO has no incentive
+    to release — it just hovers gripped above the basket forever.
+
+    Returns 1.0 when:
+        - object's XY position is inside the basket footprint
+        - object's Z is at least height_above_rim above basket center
+        - gripper fingers are open (sum > finger_open_thresh)
+    Otherwise 0.0.
+    """
+    basket = BASKET_POS_LOCAL.to(env.device)
+    obj_pos = _obj_local_pos(env, target_key)
+    xy_dist = torch.linalg.norm(obj_pos[..., :2] - basket[:2], dim=-1)
+    inside_xy = xy_dist < xy_radius
+    above_rim = obj_pos[..., 2] > basket[2] + height_above_rim
+
+    robot = env.scene["robot"]
+    finger_sum = robot.data.joint_pos[:, -2:].sum(dim=-1)
+    gripper_open = finger_sum > finger_open_thresh
+
+    return (inside_xy & above_rim & gripper_open).float()
+
+
 # ---------------------------------------------------------------------------
 # Penalty terms
 # ---------------------------------------------------------------------------
@@ -162,6 +195,109 @@ def wrong_object_moved(
         moved = (obj_pos[..., 1] > slot_line_y + clearance).float()
         total = total + moved
     return total
+
+
+def tool_fell_to_floor(
+    env: ManagerBasedRLEnv,
+    target_key: str,
+    floor_z: float = 1.0,
+) -> torch.Tensor:
+    """Penalty: count of ANY tools (target + distractors) whose Z fell below floor_z.
+
+    Slot height is ~1.61 m and basket rim ~1.19 m; anything below floor_z = 1.0 m
+    is clearly knocked off and dropped. Counts target too — keeps the policy from
+    just batting the brush onto the floor rather than carrying it.
+    """
+    total = torch.zeros(env.num_envs, device=env.device)
+    for name in OBJECT_NAMES:
+        obj_pos = _obj_local_pos(env, name)
+        total = total + (obj_pos[..., 2] < floor_z).float()
+    return total
+
+
+def joint_near_limit(
+    env: ManagerBasedRLEnv,
+    margin_frac: float = 0.05,
+) -> torch.Tensor:
+    """Penalty: count of arm joints within margin_frac of their hard limit.
+
+    Proxy for near-singularity / wrist lock. The Franka panda hits gimbal
+    lock most often via joint 4 / 6 reaching their lower bound; once any
+    joint sits at its limit the differential-IK controller can't follow
+    further pose deltas in that direction.
+    """
+    robot = env.scene["robot"]
+    joint_pos = robot.data.joint_pos[:, :7]  # arm only (panda_joint1..7); skip the 2 finger joints
+    limits = robot.data.joint_pos_limits[:, :7]  # (num_envs, 7, 2)
+    lower = limits[..., 0]
+    upper = limits[..., 1]
+    pos_range = upper - lower
+    margin = pos_range * margin_frac
+    near = ((joint_pos < lower + margin) | (joint_pos > upper - margin)).float()
+    return near.sum(dim=-1)
+
+
+def arm_stuck(
+    env: ManagerBasedRLEnv,
+    jvel_threshold: float = 0.01,
+    action_threshold: float = 0.1,
+) -> torch.Tensor:
+    """Penalty: arm commanded to move but joints aren't moving.
+
+    Fires when the policy outputs a non-trivial arm action but the actual
+    joint velocities are ~zero. Catches singular configurations, contacts
+    against the environment, and joint-limit lockup.
+    """
+    robot = env.scene["robot"]
+    joint_vel_max = robot.data.joint_vel[:, :7].abs().max(dim=-1).values
+    last_action = env.action_manager.action  # (num_envs, action_dim)
+    action_mag = last_action[:, :6].abs().max(dim=-1).values  # arm action only (first 6 dims)
+    stuck = (joint_vel_max < jvel_threshold) & (action_mag > action_threshold)
+    return stuck.float()
+
+
+def ee_out_of_workspace(
+    env: ManagerBasedRLEnv,
+    x_min: float = -5.5, x_max: float = -3.5,
+    y_min: float = -6.0, y_max: float = -5.0,
+    z_min: float = 0.95, z_max: float = 2.2,
+) -> torch.Tensor:
+    """Penalty proportional to how far the EE has left the workspace box.
+
+    Returns the Euclidean distance from the EE position to the nearest
+    point inside the box (0 when EE is inside). Box edges chosen to keep
+    the EE between the pegboard (y < -5.95 would collide) and the open
+    right side (x > -3.5), above the table (z < 0.95), and below ceiling
+    (z > 2.2).
+    """
+    ee_pos = _ee_local_pos(env)
+    dx = torch.clamp(x_min - ee_pos[..., 0], min=0.0) + torch.clamp(ee_pos[..., 0] - x_max, min=0.0)
+    dy = torch.clamp(y_min - ee_pos[..., 1], min=0.0) + torch.clamp(ee_pos[..., 1] - y_max, min=0.0)
+    dz = torch.clamp(z_min - ee_pos[..., 2], min=0.0) + torch.clamp(ee_pos[..., 2] - z_max, min=0.0)
+    return torch.sqrt(dx * dx + dy * dy + dz * dz)
+
+
+def gripper_sky_pointing(
+    env: ManagerBasedRLEnv,
+    sky_thresh: float = 0.3,
+) -> torch.Tensor:
+    """Penalty: gripper forward axis pointing upward (sky-pointing pose).
+
+    panda_hand local +Z is the gripper-forward direction (the way the
+    fingers point). For a sensible grasp pose this should point
+    horizontally or downward, NOT toward the sky. Returns the surplus
+    above sky_thresh of the world-Z component of the rotated forward
+    axis — soft proportional penalty.
+
+    Quaternion identity: rotating local [0,0,1] by q=(w,x,y,z) gives a
+    world vector whose z-component is `1 - 2*(x^2 + y^2)`.
+    """
+    # Use the existing ee_frame FrameTransformer's TCP quat (= panda_hand quat).
+    ee_quat = env.scene["ee_frame"].data.target_quat_w[..., 0, :]  # (num_envs, 4) wxyz
+    x = ee_quat[..., 1]
+    y = ee_quat[..., 2]
+    forward_world_z = 1.0 - 2.0 * (x * x + y * y)
+    return torch.clamp(forward_world_z - sky_thresh, min=0.0)
 
 
 # Module-level state for step-to-step tracking. Keyed by id(env).

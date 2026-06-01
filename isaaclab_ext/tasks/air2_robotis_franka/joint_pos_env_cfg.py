@@ -16,9 +16,28 @@ from pathlib import Path
 
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.managers import EventTermCfg as EventTerm, RewardTermCfg as RewTerm, TerminationTermCfg
-from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
+from isaaclab.markers import VisualizationMarkersCfg
+from isaaclab.sensors import FrameTransformerCfg
+from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
+import isaaclab.sim as sim_utils
+from isaaclab.sim.schemas.schemas_cfg import CollisionPropertiesCfg, RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
+from isaaclab.sim.spawners.shapes.shapes_cfg import CylinderCfg, SphereCfg
+from isaaclab.sim.spawners.materials.visual_materials_cfg import PreviewSurfaceCfg
 from isaaclab.utils import configclass
+
+
+def _sphere_marker(visuals_name: str, color: tuple[float, float, float], radius: float = 0.05) -> VisualizationMarkersCfg:
+    """Build a one-marker VisualizationMarkersCfg with a custom-color sphere."""
+    return VisualizationMarkersCfg(
+        prim_path=f"/Visuals/{visuals_name}",
+        markers={
+            "sphere": sim_utils.SphereCfg(
+                radius=radius,
+                visual_material=PreviewSurfaceCfg(diffuse_color=color),
+            ),
+        },
+    )
 
 from . import mdp
 import isaaclab_ext.tasks.air2_franka.mdp as air2_mdp
@@ -112,6 +131,97 @@ class AIR2RobotisFrankaEnvCfg(AIR2FrankaEnvCfg):
         self.commands.object_pose.ranges.pos_y = (-6.5, -5.0)
         self.commands.object_pose.ranges.pos_z = (1.8, 2.2)
 
+        # Strict drop-in success needs more time per episode than the 5 s base:
+        # approach + grasp + lift + carry + release + wait-for-drop ≈ 6–8 s.
+        self.episode_length_s = 10.0
+
+        # Basket marker: use a FrameTransformerCfg pointing at the basket
+        # mesh's rigid body (same mechanism as the tool spheres — confirmed
+        # to render reliably). AssetBaseCfg + SphereCfg/CylinderCfg failed
+        # to display in earlier runs; switching to FrameTransformer fixes it.
+        # The mesh prim was probed via scripts/_probe_basket_prims.py.
+        BASKET_CENTER = (-3.918, -5.787, 1.042)  # kept for the success rule + the beacon offset
+        self.scene.basket_frame = FrameTransformerCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
+            debug_vis=True,
+            # Push the source-frame marker 10 m below the floor so the stack
+            # of overlapping source-spheres at the robot base disappears.
+            # Only affects the debug visualizer — relative-pose data from
+            # this FrameTransformer is not consumed elsewhere.
+            source_frame_offset=OffsetCfg(pos=[0.0, 0.0, -10.0]),
+            visualizer_cfg=_sphere_marker("Tracker_basket", (0.1, 1.0, 0.1), radius=0.12),
+            target_frames=[FrameTransformerCfg.FrameCfg(
+                prim_path="{ENV_REGEX_NS}/Environment/SM_BoxPortableD/SM_BoxPortableD",
+                name="basket_center",
+            )],
+        )
+        # A second FrameTransformer with a 25 cm upward offset acts as a
+        # floating beacon so the drop target is visible from any angle.
+        self.scene.basket_beacon_frame = FrameTransformerCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
+            debug_vis=True,
+            # Push the source-frame marker 10 m below the floor so the stack
+            # of overlapping source-spheres at the robot base disappears.
+            # Only affects the debug visualizer — relative-pose data from
+            # this FrameTransformer is not consumed elsewhere.
+            source_frame_offset=OffsetCfg(pos=[0.0, 0.0, -10.0]),
+            visualizer_cfg=_sphere_marker("Tracker_basket_beacon", (0.3, 1.0, 0.3), radius=0.10),
+            target_frames=[FrameTransformerCfg.FrameCfg(
+                prim_path="{ENV_REGEX_NS}/Environment/SM_BoxPortableD/SM_BoxPortableD",
+                name="basket_beacon",
+                offset=OffsetCfg(pos=[0.0, 0.0, 0.25]),
+            )],
+        )
+        # Per-tool tracking spheres — one FrameTransformerCfg per object,
+        # each with debug_vis=True so a colored sphere follows the rigid
+        # body across episode randomization. Distinct colors per tool make
+        # the GUI readable when multiple tools are visible. Rigid-body prim
+        # paths were probed via scripts/_probe_all_tools.py.
+        _TOOL_SPHERES = (
+            # (scene_key,        rigid_body_prim,                      color (rgb), name)
+            ("brush_frame",      "Object/brush_ring",                  (1.0, 0.0, 0.0), "brush"),         # red
+            ("pliers_frame",     "ToolPliers/pliers_ring",             (1.0, 1.0, 0.0), "pliers"),       # yellow
+            ("scissors_frame",   "ToolScissors/scissors_ring",         (0.0, 1.0, 1.0), "scissors"),     # cyan
+            ("screwdriver_frame","ToolScrewdriver/screw_driver",       (1.0, 0.0, 1.0), "screwdriver"),  # magenta
+        )
+        for scene_key, rb_path, color, name in _TOOL_SPHERES:
+            setattr(
+                self.scene, scene_key,
+                FrameTransformerCfg(
+                    prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
+                    debug_vis=True,
+                    visualizer_cfg=_sphere_marker(f"Tracker_{name}", color, radius=0.05),
+                    target_frames=[FrameTransformerCfg.FrameCfg(
+                        prim_path=f"{{ENV_REGEX_NS}}/{rb_path}",
+                        name=f"{name}_target",
+                    )],
+                ),
+            )
+
+        # Blue sphere on the end-effector TCP — the midpoint between the
+        # two fingers, NOT the wrist. The base ee_frame already uses this
+        # offset (pos=[0,0,0.1] in panda_hand local frame); copy it here
+        # so the visual marker matches the actual TCP that reward and
+        # grasp-assist code read from `ee_frame.data.target_pos_w`.
+        self.scene.ee_tcp_marker = FrameTransformerCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
+            debug_vis=True,
+            # Push the source-frame marker 10 m below the floor so the stack
+            # of overlapping source-spheres at the robot base disappears.
+            # Only affects the debug visualizer — relative-pose data from
+            # this FrameTransformer is not consumed elsewhere.
+            source_frame_offset=OffsetCfg(pos=[0.0, 0.0, -10.0]),
+            visualizer_cfg=_sphere_marker("Tracker_ee_tcp", (0.0, 0.4, 1.0), radius=0.04),
+            target_frames=[FrameTransformerCfg.FrameCfg(
+                prim_path="{ENV_REGEX_NS}/Robot/panda_hand",
+                name="ee_tcp",
+                offset=OffsetCfg(pos=[0.0, 0.0, 0.1]),
+            )],
+        )
+
+        # (Basket marker handled above via FrameTransformerCfg; the old
+        # AssetBaseCfg + SphereCfg/CylinderCfg block was invisible in-scene.)
+
 
 @configclass
 class AIR2RobotisFrankaEnvCfg_PLAY(AIR2RobotisFrankaEnvCfg):
@@ -188,10 +298,61 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
         params={"target_key": target_key, "radius": 0.30},
         weight=20.0,
     )
+    # Pairs with the strict drop-in success rule: rewards opening the gripper
+    # while the object is over the basket footprint (above rim). Without this
+    # PPO gets stuck hovering the object inside the basket bounds with the
+    # gripper closed — high carry reward, zero termination signal.
+    cfg.rewards.release_above_basket = RewTerm(
+        func=air2_mdp.release_above_basket,
+        params={
+            "target_key": target_key,
+            "xy_radius": 0.18,
+            "height_above_rim": 0.10,
+            "finger_open_thresh": 0.03,
+        },
+        weight=10.0,
+    )
     cfg.rewards.wrong_object_moved = RewTerm(
         func=air2_mdp.wrong_object_moved,
         params={"target_key": target_key},
+        weight=-3.0,  # bumped from -1.0 — collisions with distractors are now a stronger penalty
+    )
+    # New safety / robustness penalties (per user request 2026-06-01):
+    cfg.rewards.tool_fell_to_floor = RewTerm(
+        func=air2_mdp.tool_fell_to_floor,
+        params={"target_key": target_key, "floor_z": 0.5},
+        weight=-10.0,  # 2026-06-01: harder penalty; threshold lowered to 0.5 m so
+                       # a tool successfully landing in the basket (z ~ 1.04) does
+                       # NOT trigger this — only real-floor drops do.
+    )
+    cfg.rewards.joint_near_limit = RewTerm(
+        func=air2_mdp.joint_near_limit,
+        params={"margin_frac": 0.05},
+        weight=-0.5,
+    )
+    cfg.rewards.arm_stuck = RewTerm(
+        func=air2_mdp.arm_stuck,
+        params={"jvel_threshold": 0.01, "action_threshold": 0.1},
         weight=-1.0,
+    )
+    # Soft workspace-bounds penalty: continuous distance-from-box, keeps
+    # the EE between the pegboard (y > -5.95 = no collision), table
+    # (z > 0.95), basket-side (x < -3.5 = don't fly off right), ceiling
+    # (z < 2.2). Distance is in meters → weight tunes severity.
+    cfg.rewards.ee_out_of_workspace = RewTerm(
+        func=air2_mdp.ee_out_of_workspace,
+        params={"x_min": -5.5, "x_max": -3.5,
+                "y_min": -6.0, "y_max": -5.0,
+                "z_min": 0.95, "z_max": 2.2},
+        weight=-2.0,
+    )
+    # Soft "no sky-pointing" penalty: discourages the gripper from being
+    # oriented straight up. Fires only when forward axis's world-z > 0.3
+    # (~17° above horizontal).
+    cfg.rewards.gripper_sky_pointing = RewTerm(
+        func=air2_mdp.gripper_sky_pointing,
+        params={"sky_thresh": 0.3},
+        weight=-2.0,
     )
     cfg.rewards.object_slipped = RewTerm(
         func=air2_mdp.object_slipped,
@@ -212,9 +373,19 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
         params={"target_key": target_key},
         weight=-0.02,
     )
+    # Strict drop-in: success only fires when the object has actually
+    # been released inside the basket (gripper open, object below rim).
+    # Replaces the loose "distance < 0.30 m" rule that fired while still
+    # gripped — the policy could no longer just hover the object over the
+    # basket and call it done.
     cfg.terminations.task_success = TerminationTermCfg(
-        func=air2_mdp.target_reached_basket,
-        params={"target_key": target_key, "radius": 0.30},
+        func=air2_mdp.target_dropped_in_basket,
+        params={
+            "target_key": target_key,
+            "xy_radius": 0.18,
+            "rim_z_offset": 0.15,
+            "finger_open_thresh": 0.03,
+        },
     )
 
     # The base lift_env_cfg curriculum ramps action_rate / joint_vel weights

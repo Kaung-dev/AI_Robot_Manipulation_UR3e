@@ -5,7 +5,7 @@ from pathlib import Path
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
-from isaaclab.managers import EventTermCfg as EventTerm, RewardTermCfg as RewTerm, SceneEntityCfg
+from isaaclab.managers import EventTermCfg as EventTerm, ObservationTermCfg as ObsTerm, RewardTermCfg as RewTerm, SceneEntityCfg
 import isaaclab.sim as sim_utils
 from isaaclab.sensors import CameraCfg, FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
@@ -15,6 +15,7 @@ from isaaclab.utils import configclass
 
 from isaaclab_tasks.manager_based.manipulation.lift import mdp as lift_mdp
 from isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg import LiftEnvCfg
+from isaaclab_tasks.manager_based.manipulation.stack import mdp as stack_mdp
 
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG  # isort: skip
@@ -199,6 +200,13 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
                 ),
             ],
         )
+
+        # The Mimic-trained state-BC (policy_state_bc_mimic.pth) was trained on
+        # 42-D obs that includes eef_pos (3) and eef_quat (4). Default LiftEnvCfg
+        # only emits 35-D; without these extras the BC shape-mismatches and the
+        # robot sits at home with no actions applied.
+        self.observations.policy.eef_pos = ObsTerm(func=stack_mdp.ee_frame_pos)
+        self.observations.policy.eef_quat = ObsTerm(func=stack_mdp.ee_frame_quat)
 
 
 @configclass

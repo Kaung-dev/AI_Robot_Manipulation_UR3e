@@ -33,6 +33,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from isaaclab.app import AppLauncher
 
@@ -51,6 +52,11 @@ parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--log_dir", default="logs/rsl_rl/air2_ppo")
 parser.add_argument("--experiment_name", default=None, help="Subdir under log_dir; defaults to a timestamp.")
 parser.add_argument("--resume", default=None, help="Path to a previous PPO checkpoint to resume from.")
+parser.add_argument("--grasp_assist", action="store_true",
+                    help="Wrap env in GraspAssistWrapper — gripper auto-closes when EE is near the target. "
+                         "Lets PPO focus on approach + carry + release instead of also learning grasp.")
+parser.add_argument("--grasp_assist_target_key", default="object",
+                    help="Scene key of the pick target for the grasp-assist (e.g. 'object', 'tool_pliers').")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
@@ -72,7 +78,7 @@ import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401 — registers per-ta
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab_tasks.utils.parse_cfg import load_cfg_from_registry
 import importlib.metadata as metadata
-from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, handle_deprecated_rsl_rl_cfg
+from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 
 
 def warm_start_actor_from_state_bc(runner: OnPolicyRunner, ckpt_path: str) -> None:
@@ -85,11 +91,16 @@ def warm_start_actor_from_state_bc(runner: OnPolicyRunner, ckpt_path: str) -> No
     blob = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     sd = blob["state_dict"] if isinstance(blob, dict) and "state_dict" in blob else blob
 
-    # Remap plain Sequential keys → mlp.* (new rsl_rl MLPModel structure)
-    remapped = {f"mlp.{k}": v for k, v in sd.items()}
-
-    actor = runner.alg.actor
+    actor = runner.alg.policy.actor
     actor_sd = actor.state_dict()
+
+    # Probe actor key format: newer rsl_rl wraps MLP in MLPModel (.mlp.0.weight),
+    # older variants use flat Sequential keys (0.weight). Detect at runtime.
+    sample_key = next(iter(actor_sd.keys()))
+    if sample_key.startswith("mlp."):
+        remapped = {f"mlp.{k}": v for k, v in sd.items()}
+    else:
+        remapped = dict(sd)
 
     # Verify shapes for the keys we're loading
     for key, val in remapped.items():
@@ -204,12 +215,14 @@ def main():
     print("[debug] before gym.make", flush=True)
     env = gym.make(args_cli.task, cfg=env_cfg)
     print("[debug] after gym.make, before RslRlVecEnvWrapper", flush=True)
+    if args_cli.grasp_assist:
+        from grasp_assist_wrapper import GraspAssistWrapper
+        env = GraspAssistWrapper(env, target_key=args_cli.grasp_assist_target_key)
+        print(f"[bc->ppo] grasp-assist ENABLED — target_key={args_cli.grasp_assist_target_key}, "
+              f"NEAR_THRESH={GraspAssistWrapper.NEAR_THRESH} @ {GraspAssistWrapper.NEAR_RADIUS}m, "
+              f"GRIP_HOLD={GraspAssistWrapper.GRIP_HOLD}", flush=True)
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
     print("[debug] after RslRlVecEnvWrapper, before OnPolicyRunner", flush=True)
-
-    # Upgrade cfg to new rsl_rl API (adds class_name fields expected by newer rsl_rl)
-    installed_rsl_rl_version = metadata.version("rsl-rl-lib")
-    agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, installed_rsl_rl_version)
 
     # Build runner
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=str(log_dir), device=agent_cfg.device)

@@ -148,7 +148,8 @@ DEFAULT_VISION_DIM = 256  # FrozenUNetEncoder feature_dim (U-Net)
 RESNET_VISION_DIM  = 512  # FrozenResNetEncoder feature_dim (ResNet-18)
 
 # Basket position in env-local frame (subtract env_origins from world pos to get this).
-BASKET_POS_LOCAL = torch.tensor([-3.560, -5.370, 1.040])
+# 2026-06-01: corrected to point at the actual basket mesh, not the outer Xform.
+BASKET_POS_LOCAL = torch.tensor([-3.918, -5.787, 1.042])
 
 
 class BCPolicy(nn.Module):
