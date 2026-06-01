@@ -114,20 +114,28 @@ def main():
     ep_step      = torch.zeros(num_envs, dtype=torch.long, device=device)
     ep_reward    = torch.zeros(num_envs, device=device)
     ep_min_basket_dist = torch.full((num_envs,), float("inf"), device=device)
-    # Phase state per env: 0=APPROACH, 1=GRIP (hold still), 2=CARRY
+    # Phase state per env: 0=APPROACH, 1=GRIP, 2=CARRY, 3=STABILIZE, 4=RELEASE
     phase        = torch.zeros(num_envs, dtype=torch.long, device=device)
     near_counter = torch.zeros(num_envs, dtype=torch.long, device=device)
     grip_steps   = torch.zeros(num_envs, dtype=torch.long, device=device)
-    NEAR_THRESH  = 250   # steps within 0.08m before closing (5s)
-    GRIP_HOLD    = 50    # steps to hold still while gripping (1s)
+    stab_steps   = torch.zeros(num_envs, dtype=torch.long, device=device)
+    NEAR_THRESH       = 250   # steps within 0.08m before closing (5s @ 50Hz)
+    GRIP_HOLD         = 50    # steps to hold still while gripping (1s)
+    STAB_HOLD         = 100   # steps to stabilize above basket before releasing (2s)
+    BASKET_XY_RADIUS  = 0.35  # cylinder radius in XY around basket center
     saved_episodes: list[dict] = []
 
+    _obs_shape_printed = False
+    _prev_phase = torch.zeros(num_envs, dtype=torch.long, device=device)
     while len(saved_episodes) < args_cli.num_episodes and simulation_app.is_running():
         with torch.inference_mode():
             obs_dict = env.unwrapped.observation_manager.compute()
             obs_policy = obs_dict["policy"]
             if isinstance(obs_policy, dict):
                 obs_policy = torch.cat(list(obs_policy.values()), dim=-1)
+            if not _obs_shape_printed:
+                print(f"[eval-state-bc] env obs shape: {obs_policy.shape}  (expected: ({num_envs}, 42))", flush=True)
+                _obs_shape_printed = True
 
             ee     = env.unwrapped.scene["ee_frame"]
             brush  = env.unwrapped.scene["object"]
@@ -149,14 +157,42 @@ def main():
             phase = torch.where((phase == 1) & (grip_steps >= GRIP_HOLD),
                                 torch.full_like(phase, 2), phase)
 
+            # Phase 2 — CARRY: BC arm, gripper closed
+            # Transition to STABILIZE when EE is within XY cylinder above basket
+            obj_local = obj_pos - env.unwrapped.scene.env_origins
+            xy_dist_to_basket = torch.linalg.norm(
+                obj_local[:, :2] - basket_pos_dev[:2], dim=-1)
+            above_basket = (phase == 2) & (xy_dist_to_basket < BASKET_XY_RADIUS)
+            phase = torch.where(above_basket, torch.full_like(phase, 3), phase)
+
+            # Phase 3 — STABILIZE: hold arm still, gripper closed, wait STAB_HOLD steps
+            stab_steps = torch.where(phase == 3, stab_steps + 1, stab_steps)
+            phase = torch.where((phase == 3) & (stab_steps >= STAB_HOLD),
+                                torch.full_like(phase, 4), phase)
+
             # Build action based on phase — clip arm to prevent OOD large outputs
             arm_action = action[:, :-1].clamp(-0.5, 0.5)
-            arm_action = torch.where((phase == 1).unsqueeze(-1).expand_as(arm_action),
+            hold_arm = (phase == 1) | (phase == 3) | (phase == 4)
+            arm_action = torch.where(hold_arm.unsqueeze(-1).expand_as(arm_action),
                                      torch.zeros_like(arm_action), arm_action)
+            # Phase 4 — RELEASE: gripper open; all others after phase 0 keep closed
             grip_val = torch.where(phase == 0,
                                    torch.ones(num_envs, device=device),
-                                   -torch.ones(num_envs, device=device))
+                                   torch.where(phase == 4,
+                                               torch.ones(num_envs, device=device),
+                                               -torch.ones(num_envs, device=device)))
             action = torch.cat([arm_action, grip_val.unsqueeze(-1)], dim=-1)
+
+            phase_names = {0: "APPROACH", 1: "GRIP", 2: "CARRY", 3: "STABILIZE", 4: "RELEASE"}
+            for i in range(num_envs):
+                if phase[i] != _prev_phase[i]:
+                    robot = env.unwrapped.scene["robot"]
+                    jvel = robot.data.joint_vel[i].abs().max().item()
+                    raw_arm_mag = action[i, :-1].abs().max().item()
+                    print(f"[phase-change] env={i} step={ep_step[i].item()}  "
+                          f"{phase_names.get(int(_prev_phase[i].item()), '?')} → {phase_names.get(int(phase[i].item()), '?')}  "
+                          f"ee_dist={ee_obj_dist[i].item():.3f}m  max_jvel={jvel:.3f}  raw_arm={raw_arm_mag:.3f}", flush=True)
+            _prev_phase = phase.clone()
 
             if ep_step[0] % 100 == 0:
                 robot = env.unwrapped.scene["robot"]
@@ -164,6 +200,7 @@ def main():
                 raw_arm_mag = action[0, :-1].abs().max().item()
                 print(f"[phase] step={ep_step[0].item():4d}  phase={phase[0].item()}  "
                       f"near={near_counter[0].item()}  ee_dist={ee_obj_dist[0].item():.3f}m  "
+                      f"xy_basket={xy_dist_to_basket[0].item():.3f}m  stab={stab_steps[0].item()}  "
                       f"max_jvel={jvel:.3f}  raw_arm={raw_arm_mag:.3f}", flush=True)
 
             _, rew, terminated, truncated, _ = env.step(action)
@@ -203,6 +240,8 @@ def main():
                 phase[done] = 0
                 near_counter[done] = 0
                 grip_steps[done] = 0
+                stab_steps[done] = 0
+                _prev_phase[done] = 0
 
     rewards = [e["cumulative_reward"] for e in saved_episodes]
     reached = sum(1 for e in saved_episodes if e["reached_basket"])

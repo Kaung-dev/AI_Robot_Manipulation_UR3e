@@ -111,6 +111,42 @@ Pipeline: teleop demo collection → BC training → eval_bc.py rollout
 
 ---
 
+## 2026-06-01 — Hard-coded release phase (Phase 3 + 4) added to eval_state_bc.py
+**Who:** Steph
+**Problem:** Policy reaches basket position but refuses to open gripper — reward signal during training incentivises staying close to object, so policy never learns to release.
+**Fix:** Extended 3-phase state machine to 5 phases:
+- Phase 0: APPROACH — BC arm, gripper open, count steps within 0.08m of object
+- Phase 1: GRIP — hold arm still 50 steps (1s), gripper closed
+- Phase 2: CARRY — BC arm, gripper closed
+- Phase 3: STABILIZE — triggered when object XY is within 0.35m of basket center; hold arm still 100 steps (2s) to let physics settle, gripper closed
+- Phase 4: RELEASE — gripper open, arm held still
+
+**Other known issues (not fixed):**
+- Policy sometimes goes limp after GRIP phase — covariate shift from 50-step arm freeze putting robot into states not in training data. Dataset limitation, no easy fix without more demos.
+- Breakable joint (object ↔ pegboard hook) sometimes struggles to detach during grasp — physics parameter issue, separate from policy.
+
+**Status:** implemented — eval pending
+
+---
+
+## 2026-06-01 — Eval results: 5 episodes, 1/5 reached basket
+**Who:** Steph
+**Checkpoint:** `checkpoints/policy_state_bc_mimic.pth` (42-D, Mimic-generated)
+**Results:** basket-reach: 20% (1/5), mean reward: 144.10
+
+**Episode breakdown:**
+- Ep 1, 3: `near` stayed 0 entire episode — policy never approached the object (approach failure / covariate shift from episode start)
+- Ep 2, 5: reached object, gripped, but during CARRY `raw_arm` hit 0.5 clamp + `max_jvel` spiked (~1.0–1.5) — policy went unstable before reaching basket
+- Ep 4 (success): all phases triggered correctly; object placed at `xy_basket=0.375m` — outside basket. `BASKET_XY_RADIUS=0.35m` triggered STABILIZE too early
+
+**Fix needed:** reduce `BASKET_XY_RADIUS` from `0.35m` to `0.20m` — reward function uses `radius=0.30m` for `target_in_basket`, so 0.35m was too loose. Not yet applied.
+
+**Outstanding issues:**
+- 2/5 episodes: approach failure — policy drifts away from object entirely (covariate shift at episode start, dataset limitation)
+- 2/5 episodes: carry instability — `raw_arm` saturates at 0.5 clamp during CARRY, arm oscillates wildly
+
+---
+
 ## 2026-06-01 — Future: replace GT object_position with camera-derived estimate
 **Who:** Steph
 **Idea:** Current `eval_state_bc.py` proximity check uses `brush.data.root_pos_w` (GT from physics — not available on real robot). Both can be replaced with camera-derived estimates:

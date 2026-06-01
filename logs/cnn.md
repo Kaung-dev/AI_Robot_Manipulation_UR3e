@@ -68,3 +68,16 @@ Pipeline: collect_air2_segmentation_data.py → train_air2_segmentation.py → f
 **Result:** position_world now populated when camera extrinsics are passed. Backward compatible — callers that omit extrinsics still get None.
 **Status:** working (code only — not yet wired into reward functions)
 **Note:** Reward functions will need to pass extrinsics when calling extract_detections. That's part of the reward redesign step.
+
+---
+
+## 2026-06-01 — Future: use U-Net + depth for EE-to-object distance in eval
+**Who:** Steph
+**Idea:** `eval_state_bc.py` proximity check (gripper close trigger) currently uses GT `brush.data.root_pos_w`. Replace with:
+1. U-Net on RGB → object mask centroid in 2D
+2. `distance_to_image_plane` sampled at centroid → depth
+3. Project through camera intrinsics + extrinsics → object position in robot frame (already implemented in `postprocess.py` `position_world`)
+4. Use as drop-in for GT object_position — same proximity threshold, same gripper close logic
+
+Same pipeline also replaces `object_position` in the policy obs, making state-BC deployable on real hardware.
+**Status:** not implemented — log for future work
