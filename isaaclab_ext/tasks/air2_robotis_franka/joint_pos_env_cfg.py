@@ -15,7 +15,8 @@ robotis_net_table_2 offset (-0.0153, 0, 0.06981):
 from pathlib import Path
 
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
-from isaaclab.managers import EventTermCfg as EventTerm, RewardTermCfg as RewTerm, TerminationTermCfg
+from isaaclab.managers import EventTermCfg as EventTerm, ObservationTermCfg as ObsTerm, RewardTermCfg as RewTerm, TerminationTermCfg
+from isaaclab_tasks.manager_based.manipulation.stack import mdp as stack_mdp
 from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils import configclass
@@ -111,6 +112,11 @@ class AIR2RobotisFrankaEnvCfg(AIR2FrankaEnvCfg):
         self.commands.object_pose.ranges.pos_x = (-5.0, -3.5)
         self.commands.object_pose.ranges.pos_y = (-6.5, -5.0)
         self.commands.object_pose.ranges.pos_z = (1.8, 2.2)
+
+        # EEF pose in the policy obs — keeps the obs space consistent with what
+        # was recorded in the Mimic HDF5 and used by train_state_bc_from_hdf5.py.
+        self.observations.policy.eef_pos = ObsTerm(func=stack_mdp.ee_frame_pos)
+        self.observations.policy.eef_quat = ObsTerm(func=stack_mdp.ee_frame_quat)
 
 
 @configclass

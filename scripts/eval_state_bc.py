@@ -36,7 +36,7 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description="Evaluate a trained STATE-only BC policy.")
 parser.add_argument("--state_bc_ckpt", required=True,
                     help="Path to checkpoints/policy_state_bc.pth from train_state_bc.py.")
-parser.add_argument("--task", default="Isaac-AIR2-Franka-Play-v0")
+parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Brush-Play-v0")
 parser.add_argument("--num_envs", type=int, default=1)
 parser.add_argument("--num_episodes", type=int, default=5)
 parser.add_argument("--max_steps", type=int, default=2000)

@@ -105,3 +105,20 @@ Robot: Franka Panda
 **Changed:** `agents/rsl_rl_ppo_cfg.py` added `AIR2RobotisPPORunnerCfg`; all per-object task registrations updated to use it
 **Reason:** Per-object tasks previously fell back to parent air2_franka runner — PPO logs went to wrong directory
 **Status:** working
+
+---
+
+## 2026-06-01 — eef_pos/eef_quat added to base policy obs
+**Who:** Steph
+**Changed:** `AIR2RobotisFrankaEnvCfg.__post_init__()` in `air2_robotis_franka/joint_pos_env_cfg.py`
+**Added:** `eef_pos` and `eef_quat` ObsTerms (from `stack_mdp.ee_frame_pos/quat`) to the policy obs group for all Robotis tasks (eval + PPO + Mimic).
+**Reason:** These were previously Mimic-only (added in mimic_env_cfg.py). State-BC training was loading them from the HDF5 but the eval env wasn't providing them — causing obs mismatch between training and rollout.
+**Status:** working
+
+---
+
+## 2026-06-01 — main vs experimental diff noted
+**Who:** Steph
+**Observed:** `main` branch has `panda_joint4 = -2.26892803` ("wrist horizontal") in `AIR2FrankaEnvCfg` that experimental does NOT have. Experimental also has `ik_params={"lambda_val": 0.1}` that main lacks.
+**Impact:** Robot spawns with different wrist pose on main. Mimic demos collected on experimental — training distribution matches experimental, not main.
+**Action:** No change. Stay on experimental. Flag for teammate — merging main into experimental would shift initial joint pose and break BC eval.

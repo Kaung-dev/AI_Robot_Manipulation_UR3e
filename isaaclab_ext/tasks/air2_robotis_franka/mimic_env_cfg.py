@@ -59,14 +59,9 @@ class AIR2RobotisBrushMimicEnvCfg(AIR2RobotisBrushEnvCfg, MimicEnvCfg):
         # Calls AIR2RobotisBrushEnvCfg.__post_init__ then MimicEnvCfg defaults.
         super().__post_init__()
 
-        # Augment the policy obs with EE pose — the mimic env's
-        # get_robot_eef_pose() reads these out of obs_buf at runtime.
-        self.observations.policy.eef_pos = ObsTerm(func=stack_mdp.ee_frame_pos)
-        self.observations.policy.eef_quat = ObsTerm(func=stack_mdp.ee_frame_quat)
-        # mimic_env.get_robot_eef_pose does `obs_buf["policy"]["eef_pos"]` —
-        # that dict-style indexing only works when the group is NOT a single
-        # concatenated tensor. Mimic data gen doesn't feed obs into a policy
-        # network, so disabling concatenation here is safe.
+        # eef_pos and eef_quat are added by the base AIR2RobotisFrankaEnvCfg.
+        # Disable concatenation so mimic_env.get_robot_eef_pose() can index
+        # obs_buf["policy"]["eef_pos"] by name at runtime.
         self.observations.policy.concatenate_terms = False
 
         # Register the subtask-terms obs group on the env's observations cfg.

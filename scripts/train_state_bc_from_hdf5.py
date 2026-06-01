@@ -1,7 +1,7 @@
 """Train a state-BC policy from Mimic-generated HDF5 demos.
 
 Obs:  joint_pos(9) + joint_vel(9) + object_position(3) +
-      target_object_position(7) + last_action(7)  = 35-D
+      target_object_position(7) + last_action(7) + eef_pos(3) + eef_quat(4) = 42-D
 Action: 7-D (matches PPO actor layout — checkpoint is load_state_dict compatible)
 
 No Isaac Sim required — pure PyTorch.
@@ -43,8 +43,9 @@ args = parser.parse_args()
 # Data loading
 # ---------------------------------------------------------------------------
 
-OBS_KEYS = ["joint_pos", "joint_vel", "object_position", "target_object_position", "actions"]
+OBS_KEYS = ["joint_pos", "joint_vel", "object_position", "target_object_position", "actions", "eef_pos", "eef_quat"]
 # "actions" in the obs group = last_action recorded at that timestep
+# eef_pos / eef_quat: EEF world pose from ee_frame FrameTransformer (env-local coords)
 
 def load_dataset(hdf5_path: str):
     obs_list, act_list = [], []

@@ -44,10 +44,10 @@ Pipeline: teleop demo collection → BC training → eval_bc.py rollout
 
 ### State-BC training script
 `scripts/train_state_bc_from_hdf5.py` — pure PyTorch, no Isaac Sim needed.
-- Obs: joint_pos(9) + joint_vel(9) + object_position(3) + target_object_position(7) + last_action(7) = 35-D
-- Architecture: MLP 35→256→128→64→7 (ELU) — same as PPO actor
+- Obs: joint_pos(9) + joint_vel(9) + object_position(3) + target_object_position(7) + last_action(7) + eef_pos(3) + eef_quat(4) = 42-D
+- Architecture: MLP 42→256→128→64→7 (ELU) — same as PPO actor
 - Loss: smooth-L1, cosine LR decay, saves best-val checkpoint
-- Run: `./launch_air2.sh train-bc` → `checkpoints/policy_state_bc_mimic.pth`
+- Run: `./launch_air2.sh train-state-bc` → `checkpoints/policy_state_bc_mimic.pth`
 
 **Status:** training not yet run — next step
 
@@ -89,3 +89,22 @@ Pipeline: teleop demo collection → BC training → eval_bc.py rollout
 **Status:** not usable — wrong camera config and encoder
 **Root cause:** BC only learns what it sees in demos. Wrong viewpoint → visual encoder outputs noise → policy skips pick phase and falls back to the one thing it learned from proprioception (arm trajectory to basket).
 **Fix:** Collect own VR demos with current camera config, retrain with `--backbone unet --unet_ckpt checkpoints/air2_segmentation_unet.pth`
+
+---
+
+## 2026-06-01 — State-BC obs space fix + retrain
+**Who:** Steph
+**Problem:** Policy learned to move arm away from board in most episodes (went behind robot). Occasionally approached and grasped correctly (~1 successful full run observed).
+**Root cause (investigated):**
+1. `eef_pos` and `eef_quat` were recorded in the HDF5 but excluded from `OBS_KEYS` in training. Without EEF position the policy had to infer spatial layout from joint angles alone — unreliable for states not seen in training.
+2. `target_object_position` (7-D basket goal, world frame) and `object_position` (3-D, robot-root frame) are in different coordinate frames. The MLP could not compute a meaningful direction from object to target.
+3. Occasional successes explained: `object_position` (robot-root) is genuinely informative. When the initial arm config happened to closely match a training state, the policy produced correct actions. Failed otherwise due to covariate shift.
+
+**Fix:**
+- Added `eef_pos` (3-D, env-local) and `eef_quat` (4-D) to `OBS_KEYS` → obs 35-D → 42-D
+- Added `eef_pos`/`eef_quat` `ObsTerm`s to `AIR2RobotisFrankaEnvCfg` policy obs group (was Mimic-only before)
+- Removed duplicate assignments from `mimic_env_cfg.py` (base class now provides them)
+- Fixed `eval_state_bc.py` default task: `Isaac-AIR2-Franka-Play-v0` → `Isaac-AIR2-Robotis-Franka-Brush-Play-v0`
+
+**Checkpoint:** `checkpoints/policy_state_bc_mimic.pth` (retrained, 42-D input)
+**Status:** retrained — eval pending
