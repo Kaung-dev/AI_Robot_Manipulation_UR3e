@@ -80,6 +80,11 @@ _smoke_test/
 _archive/
 
 # Training / experiment scratch (logs, raw demo zips, PPO checkpoint dirs)
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# DO NOT ADD logs/ HERE — component logs (bc.md, env.md, ppo.md, cnn.md)
+# ARE TRACKED IN GIT. Only DEVLOG.md is personal scratch and stays ignored.
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 _mvp_logs/
-logs/
+logs/rsl_rl/
+DEVLOG.md
 *_demos.zip

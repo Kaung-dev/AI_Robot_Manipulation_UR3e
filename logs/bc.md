@@ -104,3 +104,39 @@ Pipeline: teleop demo collection → BC training → eval_bc.py rollout
 **Status:** not usable — wrong camera config and encoder
 **Root cause:** BC only learns what it sees in demos. Wrong viewpoint → visual encoder outputs noise → policy skips pick phase and falls back to the one thing it learned from proprioception (arm trajectory to basket).
 **Fix:** Collect own VR demos with current camera config, retrain with `--backbone unet --unet_ckpt checkpoints/air2_segmentation_unet.pth`
+
+---
+
+## Mimic pipeline — how to train from an existing HDF5
+
+If you already have a raw source HDF5 (e.g. from teleop collection), follow these steps:
+
+**Step 1 — Annotate**
+```bash
+./launch_air2.sh annotate-mimic datasets/your_raw.hdf5 datasets/your_annotated.hdf5
+```
+Replays each demo and auto-detects subtask boundaries. Expect ~80-85% survival. If <70% survive, the raw demos have quality issues.
+
+**Step 2 — Generate synthetic demos**
+```bash
+./launch_air2.sh generate-mimic datasets/your_annotated.hdf5 datasets/your_generated.hdf5 1000
+```
+Tries 1000 generations, keeps successes (~40-50% → ~400-500 demos). Headless, 4 envs, ~1-2 hours on RTX 3050.
+
+**Step 3 — Train state-BC**
+```bash
+./launch_air2.sh train-state-bc datasets/your_generated.hdf5 checkpoints/policy_state_bc_yourobj.pth 300
+```
+Pure PyTorch, no Isaac Sim needed. ~10-20 min.
+
+**Step 4 — Eval**
+```bash
+./launch_air2.sh eval-state-bc checkpoints/policy_state_bc_yourobj.pth 20
+```
+
+**Gotchas:**
+- Each HDF5 must be single-object only — do not mix objects
+- `grasp_radius` / `finger_threshold` in `mimic_env_cfg.py` may need per-object tuning (brush uses `0.15` / `0.07` due to the ring)
+- Always use unique filenames — never overwrite existing HDF5s
+- The annotate/generate task must match the object the demos were collected for
+- `BASKET_POS_LOCAL` in `constants.py` must match the actual USD scene — verify before collecting
