@@ -108,12 +108,16 @@ Robot: Franka Panda
 
 ---
 
-## 2026-06-01 — Switched to Main+Experimental_merge branch
+## 2026-06-01 — Switched to Main+Experimental_merge branch; debug prints added
 **Who:** Steph
-**Reason:** New env has updated basket position (SM_BoxPortableD moved — to the left and closer to robot) and `panda_joint4 = -2.26892803` restored. Collecting 100 new source demos for Mimic on this env.
+**Reason:** New env has updated basket position (SM_BoxPortableD moved — to the left and closer to robot by Declan) and `panda_joint4 = -2.26892803` restored. Collecting 100 new source demos for Mimic on this env.
 **Warning:** `BASKET_POS_LOCAL` in `constants.py`, `eval_state_bc.py`, `eval_ppo.py`, `scripted_controller.py` still hardcoded to old value `[-3.560, -5.370, 1.040]` — needs updating once real position is confirmed from sim.
-**How to get real position:** `collect_air2_manual_demos.py` now prints basket prim world+env-local coords on first step, and prints EE+object position on every gripper open/close. Run `./launch_air2.sh collect-demos 1` to grab the values.
-**Status:** pending — need to collect 1 test demo to read basket position then update constants
+**Added to `collect_mimic_demos.py` and `collect_air2_manual_demos.py`:**
+- On first step: prints basket prim world + env-local coords → use to update `BASKET_POS_LOCAL`
+- On every gripper open/close: prints EE + object position in env-local frame → confirms grasp and drop positions
+**Dataset cleanup:** old Mimic files (raw 40, annotated, generated) moved to `datasets/old_env/` — wrong env, do not use. New collection goes to `datasets/air2_mimic_demos_v2.hdf5`.
+**collect-mimic command:** now accepts output path as 3rd arg: `./launch_air2.sh collect-mimic 100 datasets/air2_mimic_demos_v2.hdf5`
+**Status:** ready to collect — run command above, note `[basket]` line on first step, update constants
 
 ---
 
