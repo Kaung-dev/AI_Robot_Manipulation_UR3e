@@ -82,4 +82,5 @@ _archive/
 # Training / experiment scratch (logs, raw demo zips, PPO checkpoint dirs)
 _mvp_logs/
 DEVLOG.md
+logs/rsl_rl/
 *_demos.zip
