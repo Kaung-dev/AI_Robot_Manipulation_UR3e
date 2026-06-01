@@ -1,0 +1,44 @@
+{
+  "epochs": [
+    {
+      "epoch": 1,
+      "train_loss": 0.0717777361050438,
+      "val_loss": 0.06526380777359009
+    }
+  ],
+  "hdf5_summary": {
+    "files": [
+      {
+        "path": "D:\\AI_Robot_Manipulation_UR3e\\datasets\\air2_mimic_\\air2_mimic_demos_annotated.hdf5",
+        "used": 2,
+        "skipped": 0,
+        "samples": 1307,
+        "env_args": "{\"env_name\": \"Isaac-AIR2-Robotis-Franka-Brush-Mimic-v0\", \"type\": 2, \"sim_args\": {\"dt\": 0.01, \"decimation\": 2, \"render_interval\": 2, \"num_envs\": 1}}"
+      }
+    ],
+    "obs_keys": [
+      "joint_pos",
+      "joint_vel",
+      "object_position",
+      "target_object_position",
+      "actions"
+    ],
+    "action_key": "actions",
+    "success_only": true,
+    "frame_stride": 1,
+    "demos_seen": 2,
+    "demos_used": 2,
+    "demos_skipped": 0,
+    "num_samples": 1307,
+    "input_dim": 35,
+    "action_dim": 7
+  },
+  "hidden_dims": [
+    256,
+    128,
+    64
+  ],
+  "activation": "elu",
+  "lr": 0.0003,
+  "batch_size": 256
+}

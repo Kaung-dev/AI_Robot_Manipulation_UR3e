@@ -29,6 +29,7 @@ import json
 import math
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -44,6 +45,9 @@ from isaaclab_ext.tasks.lift_air2_ur3e_rg2.policy import (
     BCPolicy, FrozenUNetEncoder, load_frozen_encoder,
     ACTION_DIM, STATE_DIM, JOINT_DIM, CHUNK_SIZE, COMMAND_DIM,
 )
+
+
+DEMO_SUBFOLDERS = ("brush_demos", "plier_demos", "scissors_demos", "screwdriver_demos")
 
 
 # ----- dataset --------------------------------------------------------------
@@ -65,6 +69,22 @@ class AIR2DemoDataset(Dataset):
     WRIST_H = WRIST_W = 224
     BOARD_H, BOARD_W = 360, 640
 
+    @staticmethod
+    def _discover_episode_dirs(root: Path) -> list[Path]:
+        """Find episode directories in a flat folder or known object subfolders."""
+        direct = [p for p in root.iterdir() if p.is_dir() and p.name.startswith("ep_")]
+        nested: list[Path] = []
+        for folder_name in DEMO_SUBFOLDERS:
+            folder = root / folder_name
+            if folder.is_dir():
+                nested.extend(p for p in folder.iterdir() if p.is_dir() and p.name.startswith("ep_"))
+        if direct and nested:
+            print("[dataset] found both flat ep_* dirs and object subfolder ep_* dirs; using all of them.")
+        episodes = direct + nested
+        if not episodes:
+            episodes = [p for p in root.rglob("ep_*") if p.is_dir()]
+        return sorted(set(episodes), key=lambda p: str(p.relative_to(root)).lower())
+
     def __init__(self, demos_root: Path, frame_stride: int = 1, chunk_size: int = CHUNK_SIZE,
                  success_only: bool = True):
         self.demos_root = Path(demos_root)
@@ -78,10 +98,15 @@ class AIR2DemoDataset(Dataset):
         self.target_one_hot: dict[Path, np.ndarray] = {}
         self.target_valid: dict[Path, np.ndarray] = {}
 
-        episodes = sorted(p for p in self.demos_root.iterdir() if p.is_dir() and p.name.startswith("ep_"))
+        episodes = self._discover_episode_dirs(self.demos_root)
         if not episodes:
-            raise FileNotFoundError(f"No ep_* directories under {demos_root}")
+            raise FileNotFoundError(
+                f"No ep_* directories under {demos_root}. Expected either flat ep_* folders or "
+                f"subfolders named {', '.join(DEMO_SUBFOLDERS)}."
+            )
         kept, skipped_failed = 0, 0
+        source_counts = Counter(ep.parent.name if ep.parent != self.demos_root else "." for ep in episodes)
+        print("[dataset] episode sources: " + ", ".join(f"{name}={count}" for name, count in sorted(source_counts.items())))
         for ep in episodes:
             states_path = ep / "states.npz"
             if not states_path.exists():

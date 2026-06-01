@@ -1,0 +1,61 @@
+{
+  "policy": "state_bc",
+  "checkpoint": "checkpoints\\brush_mimic_state_bc.pth",
+  "num_episodes": 5,
+  "mean_reward": 16.085373973846437,
+  "std_reward": 9.193227473929976,
+  "basket_reach_rate": 0.0,
+  "mean_steps": 560.0,
+  "episodes": [
+    {
+      "ep_idx": 0,
+      "env_idx": 0,
+      "steps": 800,
+      "cumulative_reward": 22.76299476623535,
+      "min_basket_dist": 1.0745649337768555,
+      "reached_basket": false,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 1,
+      "env_idx": 0,
+      "steps": 200,
+      "cumulative_reward": 5.849205017089844,
+      "min_basket_dist": 1.0746092796325684,
+      "reached_basket": false,
+      "terminated": false,
+      "truncated": true
+    },
+    {
+      "ep_idx": 2,
+      "env_idx": 0,
+      "steps": 800,
+      "cumulative_reward": 21.197593688964844,
+      "min_basket_dist": 1.0745702981948853,
+      "reached_basket": false,
+      "terminated": false,
+      "truncated": false
+    },
+    {
+      "ep_idx": 3,
+      "env_idx": 0,
+      "steps": 200,
+      "cumulative_reward": 4.2210307121276855,
+      "min_basket_dist": 1.0746092796325684,
+      "reached_basket": false,
+      "terminated": false,
+      "truncated": true
+    },
+    {
+      "ep_idx": 4,
+      "env_idx": 0,
+      "steps": 800,
+      "cumulative_reward": 26.396045684814453,
+      "min_basket_dist": 1.074544072151184,
+      "reached_basket": false,
+      "terminated": false,
+      "truncated": false
+    }
+  ]
+}

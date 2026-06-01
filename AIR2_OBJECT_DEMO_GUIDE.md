@@ -352,6 +352,89 @@ D:\IsaacLab\isaaclab.bat -p scripts\train_bc.py `
   --out checkpoints/policy_bc.pth
 ```
 
+## Brush-Only HDF5 Trial
+
+Use this path only for teammate Isaac Mimic HDF5 files. It trains a state-only
+brush policy from robot states and actions. It does not use cameras, semantic
+segmentation, or the four-object command labels.
+
+First extract the zip.
+
+### Windows
+
+```powershell
+mkdir datasets\air2_mimic
+Expand-Archive C:\Users\thiam\Downloads\air2_mimic_.zip -DestinationPath datasets\air2_mimic
+```
+
+If extraction creates `datasets\air2_mimic_` instead, use that folder name in
+the commands below.
+
+Train on the annotated demos:
+
+```powershell
+D:\IsaacLab\isaaclab.bat -p scripts\train_mimic_hdf5_bc.py `
+  --hdf5 datasets\air2_mimic\air2_mimic_demos_annotated.hdf5 `
+  --epochs 100 `
+  --batch_size 256 `
+  --out checkpoints\brush_mimic_state_bc.pth
+```
+
+Or train on the larger generated dataset:
+
+```powershell
+D:\IsaacLab\isaaclab.bat -p scripts\train_mimic_hdf5_bc.py `
+  --hdf5 datasets\air2_mimic\air2_mimic_generated.hdf5 `
+  --epochs 100 `
+  --batch_size 256 `
+  --out checkpoints\brush_mimic_generated_state_bc.pth
+```
+
+Run the trained state-only policy:
+
+```powershell
+D:\IsaacLab\isaaclab.bat -p scripts\eval_state_bc.py `
+  --state_bc_ckpt checkpoints\brush_mimic_state_bc.pth `
+  --task Isaac-Lift-AIR2-Robotis-Play-v0 `
+  --num_envs 1 `
+  --num_episodes 5 `
+  --enable_cameras
+```
+
+### Linux
+
+```bash
+mkdir -p datasets/air2_mimic
+unzip ~/Downloads/air2_mimic_.zip -d datasets/air2_mimic
+```
+
+Train on the annotated demos:
+
+```bash
+~/IsaacLab/isaaclab.sh -p scripts/train_mimic_hdf5_bc.py \
+  --hdf5 datasets/air2_mimic/air2_mimic_demos_annotated.hdf5 \
+  --epochs 100 \
+  --batch_size 256 \
+  --out checkpoints/brush_mimic_state_bc.pth
+```
+
+Run the trained state-only policy:
+
+```bash
+~/IsaacLab/isaaclab.sh -p scripts/eval_state_bc.py \
+  --state_bc_ckpt checkpoints/brush_mimic_state_bc.pth \
+  --task Isaac-Lift-AIR2-Robotis-Play-v0 \
+  --num_envs 1 \
+  --num_episodes 5 \
+  --enable_cameras
+```
+
+For a fast check before a full run, add:
+
+```text
+--limit_demos 2 --epochs 1
+```
+
 ## Troubleshooting
 
 If normal `python` cannot import PyTorch, use Isaac Lab Python:

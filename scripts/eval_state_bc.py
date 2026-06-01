@@ -31,6 +31,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+# Windows workaround: load h5py's bundled HDF5 DLLs before Isaac extensions.
+import h5py  # noqa: F401
+
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Evaluate a trained STATE-only BC policy.")
@@ -52,12 +55,45 @@ simulation_app = app_launcher.app
 
 import numpy as np
 import torch
+from torch import nn
 import gymnasium as gym
 
-from rsl_rl.networks import MLP
+try:
+    from rsl_rl.networks import MLP  # type: ignore
+except ModuleNotFoundError:
+    def _activation(name: str) -> type[nn.Module]:
+        table = {
+            "elu": nn.ELU,
+            "relu": nn.ReLU,
+            "tanh": nn.Tanh,
+            "leaky_relu": nn.LeakyReLU,
+        }
+        key = name.lower()
+        if key not in table:
+            raise ValueError(f"Unsupported activation '{name}'. Choose from {sorted(table)}.")
+        return table[key]
+
+    class MLP(nn.Module):
+        """Small fallback matching train_mimic_hdf5_bc.py checkpoints."""
+
+        def __init__(self, input_dim: int, output_dim: int, hidden_dims: list[int], activation: str):
+            super().__init__()
+            act = _activation(activation)
+            layers: list[nn.Module] = []
+            last_dim = input_dim
+            for hidden_dim in hidden_dims:
+                layers.append(nn.Linear(last_dim, hidden_dim))
+                layers.append(act())
+                last_dim = hidden_dim
+            layers.append(nn.Linear(last_dim, output_dim))
+            self.net = nn.Sequential(*layers)
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            return self.net(x)
 
 import isaaclab_tasks  # noqa: F401
 import isaaclab_ext.tasks.lift_air2_ur3e_rg2  # noqa: F401
+import isaaclab_ext.tasks.lift_air2_robotis  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
 
