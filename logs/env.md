@@ -108,6 +108,15 @@ Robot: Franka Panda
 
 ---
 
+## 2026-06-01 — Switched to Main+Experimental_merge branch
+**Who:** Steph
+**Reason:** New env has updated basket position (SM_BoxPortableD moved — to the left and closer to robot) and `panda_joint4 = -2.26892803` restored. Collecting 100 new source demos for Mimic on this env.
+**Warning:** `BASKET_POS_LOCAL` in `constants.py`, `eval_state_bc.py`, `eval_ppo.py`, `scripted_controller.py` still hardcoded to old value `[-3.560, -5.370, 1.040]` — needs updating once real position is confirmed from sim.
+**How to get real position:** `collect_air2_manual_demos.py` now prints basket prim world+env-local coords on first step, and prints EE+object position on every gripper open/close. Run `./launch_air2.sh collect-demos 1` to grab the values.
+**Status:** pending — need to collect 1 test demo to read basket position then update constants
+
+---
+
 ## 2026-05-31 — Per-object PPO runner config
 **Who:** Steph
 **Changed:** `agents/rsl_rl_ppo_cfg.py` added `AIR2RobotisPPORunnerCfg`; all per-object task registrations updated to use it
