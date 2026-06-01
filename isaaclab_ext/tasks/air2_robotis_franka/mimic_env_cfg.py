@@ -28,12 +28,38 @@ from isaaclab_tasks.manager_based.manipulation.stack import mdp as stack_mdp
 
 from isaaclab_ext.tasks.air2_franka import mdp as air2_mdp
 
-from .joint_pos_env_cfg import AIR2RobotisBrushEnvCfg
+from .joint_pos_env_cfg import (
+    AIR2RobotisBrushEnvCfg,
+    AIR2RobotisPliersFrankaEnvCfg,
+    AIR2RobotisScissorsFrankaEnvCfg,
+    AIR2RobotisScrewdriverFrankaEnvCfg,
+)
+
+
+def _subtask_terms_obs_group(target_key: str, signal_name: str) -> type:
+    """Build a per-tool SubtaskTermsObsCfg class whose grasp signal points at
+    the right rigid body. Factory because Mimic looks up the signal by NAME
+    (e.g. `grasp_brush`) and that name must match the subtask config.
+    """
+    @configclass
+    class _PerToolSubtaskCfg(ObsGroup):
+        # Dynamically named field — added below via setattr.
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = False
+
+    setattr(
+        _PerToolSubtaskCfg,
+        signal_name,
+        ObsTerm(func=air2_mdp.grasped, params={"target_key": target_key}),
+    )
+    return _PerToolSubtaskCfg
 
 
 @configclass
 class SubtaskTermsObsCfg(ObsGroup):
-    """Subtask term signals — booleans Mimic reads to detect phase boundaries."""
+    """Subtask term signals for the BRUSH target (legacy class kept for
+    backward compatibility with existing checkpoints / logs)."""
 
     grasp_brush = ObsTerm(
         func=air2_mdp.grasped,
@@ -85,6 +111,10 @@ class AIR2RobotisBrushMimicEnvCfg(AIR2RobotisBrushEnvCfg, MimicEnvCfg):
             self.scene.wrist_camera = None
         if hasattr(self.scene, "board_camera"):
             self.scene.board_camera = None
+        # Drop the GUI-only marker spheres (FrameTransformer-based). They
+        # don't affect state obs but slow Isaac boot and would contaminate
+        # any downstream camera-based pretraining.
+        _strip_visual_markers(self)
 
         # Data-gen knobs (defaults are mostly fine; tune later if needed).
         self.datagen_config.name = "demo_src_air2_brush_D0"
@@ -130,3 +160,115 @@ class AIR2RobotisBrushMimicEnvCfg(AIR2RobotisBrushEnvCfg, MimicEnvCfg):
         ]
         # The mimic env wrapper keys subtask_configs by EEF name (we use "franka").
         self.subtask_configs["franka"] = subtasks
+
+
+def _build_mimic_subtasks(target_key: str, signal_name: str, tool_name: str) -> list:
+    """Two-stage subtask list (approach+grasp, then carry to basket)
+    parameterised by which tool we're targeting."""
+    return [
+        SubTaskConfig(
+            object_ref=target_key,
+            subtask_term_signal=signal_name,
+            subtask_term_offset_range=(5, 15),
+            selection_strategy="nearest_neighbor_object",
+            selection_strategy_kwargs={"nn_k": 3},
+            action_noise=0.03,
+            num_interpolation_steps=5,
+            num_fixed_steps=0,
+            apply_noise_during_interpolation=False,
+            description=f"Approach and grasp the {tool_name}",
+            next_subtask_description=f"Carry {tool_name} to basket",
+        ),
+        SubTaskConfig(
+            object_ref=target_key,
+            subtask_term_signal=None,
+            subtask_term_offset_range=(0, 0),
+            selection_strategy="nearest_neighbor_object",
+            selection_strategy_kwargs={"nn_k": 3},
+            action_noise=0.03,
+            num_interpolation_steps=5,
+            num_fixed_steps=0,
+            apply_noise_during_interpolation=False,
+            description=f"Carry {tool_name} to basket",
+        ),
+    ]
+
+
+_MARKER_SCENE_KEYS = (
+    "basket_frame", "basket_beacon_frame",
+    "brush_frame", "pliers_frame", "scissors_frame", "screwdriver_frame",
+    "ee_tcp_marker",
+)
+
+
+def _strip_visual_markers(self) -> None:
+    """Remove the colored debug spheres from the scene.
+
+    The markers are visualization-only for GUI eval. For Mimic data gen
+    and CNN/visual training they should be off because:
+      - Mimic doesn't render cameras (markers waste init time)
+      - CNN training reads camera RGB and the spheres would teach the
+        network to cheat by detecting them instead of the real tools.
+    """
+    for key in _MARKER_SCENE_KEYS:
+        if hasattr(self.scene, key):
+            setattr(self.scene, key, None)
+
+
+def _mimic_cfg_common_init(self, target_key: str, tool_name: str) -> None:
+    """Shared __post_init__ body for all per-tool Mimic env cfgs.
+
+    The class hierarchy already calls the parent task config; this helper just
+    layers on the Mimic-specific obs groups, success alias, datagen knobs,
+    subtask list, and camera + marker strip.
+    """
+    self.observations.policy.eef_pos = ObsTerm(func=stack_mdp.ee_frame_pos)
+    self.observations.policy.eef_quat = ObsTerm(func=stack_mdp.ee_frame_quat)
+    self.observations.policy.concatenate_terms = False
+    _strip_visual_markers(self)
+
+    signal_name = f"grasp_{tool_name}"
+    SubtaskGroup = _subtask_terms_obs_group(target_key, signal_name)
+    self.observations.subtask_terms = SubtaskGroup()
+
+    if hasattr(self.terminations, "task_success"):
+        self.terminations.success = self.terminations.task_success
+
+    if hasattr(self.scene, "wrist_camera"):
+        self.scene.wrist_camera = None
+    if hasattr(self.scene, "board_camera"):
+        self.scene.board_camera = None
+
+    self.datagen_config.name = f"demo_src_air2_{tool_name}_D0"
+    self.datagen_config.generation_guarantee = True
+    self.datagen_config.generation_keep_failed = False
+    self.datagen_config.generation_num_trials = 200
+    self.datagen_config.generation_select_src_per_subtask = True
+    self.datagen_config.generation_transform_first_robot_pose = False
+    self.datagen_config.generation_interpolate_from_last_target_pose = True
+    self.datagen_config.generation_relative = True
+    self.datagen_config.max_num_failures = 50
+    self.datagen_config.seed = 0
+
+    self.subtask_configs["franka"] = _build_mimic_subtasks(target_key, signal_name, tool_name)
+
+
+@configclass
+class AIR2RobotisPliersMimicEnvCfg(AIR2RobotisPliersFrankaEnvCfg, MimicEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        _mimic_cfg_common_init(self, target_key="tool_pliers", tool_name="pliers")
+
+
+@configclass
+class AIR2RobotisScissorsMimicEnvCfg(AIR2RobotisScissorsFrankaEnvCfg, MimicEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        _mimic_cfg_common_init(self, target_key="tool_scissors", tool_name="scissors")
+
+
+@configclass
+class AIR2RobotisScrewdriverMimicEnvCfg(AIR2RobotisScrewdriverFrankaEnvCfg, MimicEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        _mimic_cfg_common_init(self, target_key="tool_screwdriver", tool_name="screwdriver")

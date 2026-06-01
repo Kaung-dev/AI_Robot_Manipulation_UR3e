@@ -291,7 +291,12 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
     cfg.rewards.target_to_basket = RewTerm(
         func=air2_mdp.target_to_basket,
         params={"target_key": target_key, "std": 0.5},
-        weight=6.0,                       # v3=3.0, v4=6.0 (stronger pull)
+        weight=2.0,                       # 2026-06-01: cut 6 → 2. The Gaussian fires
+                                          # regardless of whether the brush is in hand,
+                                          # so PPO kept finding the "hover EE near basket
+                                          # without grasping" local minimum. Lower weight
+                                          # means grasp-related signals (target_in_hand,
+                                          # lift_progress) dominate.
     )
     cfg.rewards.target_in_basket = RewTerm(
         func=air2_mdp.target_in_basket,

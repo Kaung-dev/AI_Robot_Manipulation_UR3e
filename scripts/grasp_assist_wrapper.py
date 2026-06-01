@@ -22,9 +22,12 @@ import torch
 
 
 class GraspAssistWrapper(gym.Wrapper):
-    NEAR_THRESH = 250    # steps within radius before phase 0 → 1 trigger (~5s at 50Hz)
+    NEAR_THRESH = 75     # 2026-06-01: tightened 250 → 75 (~1.5s). 250 required the EE
+                         # to hold within radius for 5s straight; PPO action noise made
+                         # the counter reset every few steps and Phase 1 never fired.
     GRIP_HOLD = 50       # steps to hold the grip before phase 1 → 2 (~1s)
-    NEAR_RADIUS = 0.08   # meters; EE-to-object proximity for "near"
+    NEAR_RADIUS = 0.15   # 2026-06-01: loosened 0.08 → 0.15 m. 0.08 was on the order of
+                         # the brush-ring radius; PPO needed a bigger basin to hit reliably.
     OPEN_VAL = 1.0       # BinaryJointPositionActionCfg: +1 → open_command
     CLOSE_VAL = -1.0     # -1 → close_command
 

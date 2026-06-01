@@ -184,7 +184,10 @@ def main():
     #      so the actor expects raw inputs. Empirical normalization would
     #      re-center observations during PPO and silently invalidate the prior.
     is_warm_start = bool(args_cli.state_bc_ckpt or args_cli.bc_ckpt)
-    if is_warm_start:
+    # `--resume` also needs noise_std_type="log" + empirical_normalization=False
+    # so the actor structure matches the checkpoint that was saved by a prior
+    # warm-start run (log_std vs std key mismatch otherwise).
+    if is_warm_start or args_cli.resume:
         agent_cfg.policy.init_noise_std = args_cli.warm_start_noise_std
         agent_cfg.policy.noise_std_type = "log"
         agent_cfg.empirical_normalization = False

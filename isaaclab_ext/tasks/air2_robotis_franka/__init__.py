@@ -128,13 +128,40 @@ gym.register(
     disable_env_checker=True,
 )
 
-# --- Mimic task (brush only) -----------------------------------------------
+# --- Mimic tasks (one per pick target) -------------------------------------
 
 gym.register(
     id="Isaac-AIR2-Robotis-Franka-Brush-Mimic-v0",
     entry_point=f"{__name__}.mimic_env:AIR2RobotisFrankaMimicEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.mimic_env_cfg:AIR2RobotisBrushMimicEnvCfg",
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-AIR2-Robotis-Franka-Pliers-Mimic-v0",
+    entry_point=f"{__name__}.mimic_env:AIR2RobotisFrankaMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.mimic_env_cfg:AIR2RobotisPliersMimicEnvCfg",
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-AIR2-Robotis-Franka-Scissors-Mimic-v0",
+    entry_point=f"{__name__}.mimic_env:AIR2RobotisFrankaMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.mimic_env_cfg:AIR2RobotisScissorsMimicEnvCfg",
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-AIR2-Robotis-Franka-Screwdriver-Mimic-v0",
+    entry_point=f"{__name__}.mimic_env:AIR2RobotisFrankaMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.mimic_env_cfg:AIR2RobotisScrewdriverMimicEnvCfg",
     },
     disable_env_checker=True,
 )
