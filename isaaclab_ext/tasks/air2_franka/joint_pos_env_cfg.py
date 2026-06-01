@@ -52,7 +52,8 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
         # Franka's ~85 cm reach. AIR2.usd's baked Franka visual stays at the
         # old pose; the controllable Franka floats ~20 cm forward of it.
         self.scene.robot.init_state.pos = (-4.2405, -5.2851, 1.0397)
-        self.scene.robot.init_state.joint_pos["panda_joint1"] = -1.5708  # 90° rotation to face pegboard
+        self.scene.robot.init_state.joint_pos["panda_joint1"] = -1.5708  # 90° rotation at spawn
+        self.scene.robot.init_state.joint_pos["panda_joint4"] = -2.26892803   # wrist horizontal
 
         self.sim.physx.gpu_max_rigid_patch_count = 524288
         self.sim.physx.gpu_max_rigid_contact_count = 2_097_152
@@ -89,6 +90,7 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
         # Hydra never sees it.
 
         self.commands.object_pose.body_name = "panda_hand"
+        self.commands.object_pose.debug_vis = False
 
         # AIR2.usd loaded at origin — hooks and Franka at their USD world positions.
         self.scene.table = AssetBaseCfg(
