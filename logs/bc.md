@@ -24,6 +24,21 @@ Pipeline: teleop demo collection → BC training → eval_bc.py rollout
 
 ---
 
+## 2026-06-01 — Linux freeze fix for collect_air2_manual_demos.py
+**Who:** Declan
+**Changed:** `scripts/collect_air2_manual_demos.py` — removed `ep.pre_export()` call before `hdf5_handler.write_episode(ep)`
+**Tried:** `./launch_air2.sh collect-demos 2 keyboard scissors` on Linux
+**Result:** Every time Enter was pressed to save an episode, the robot froze and could not be moved. HDF5 output file was left as a corrupt 96-byte truncated file. PNG/NPZ/JSON saved correctly (ep_000 with 264 frames was intact).
+**Root cause:** `ep.pre_export()` called on `EpisodeData` but the method does not exist in Isaac Lab v2.2.1. Raised `AttributeError` which propagated uncaught and triggered `simulation_app.close()`. Isaac Sim shutdown on Linux takes ~30–60s, appearing as a frozen robot.
+**Status:** working after fix
+**Fix:**
+1. Removed `ep.pre_export()` from line 256 of `collect_air2_manual_demos.py` — method does not exist in this Isaac Lab version and is not needed (tensors are already stacked by `EpisodeData.add()`).
+2. Deleted corrupt `datasets/air2_mimic_source.hdf5` (96-byte truncated file left by the crash — next run would fail trying to open it in append mode).
+**Note:** Teammate on Windows was unaffected — likely running a newer Isaac Lab version where `pre_export()` exists, or the faster Windows shutdown masked the crash. The warning `"no grasp detected — forcing signal at last frame"` is harmless — it only pads the Mimic grasp signal and does not affect the save.
+**Added:** `COLLECT_AND_TRAIN.md` — full pipeline guide with Linux/Windows commands for demo collection and training.
+
+---
+
 ## 2026-05-31 — Switched to Mimic → state-BC pipeline
 **Who:** Steph
 **Decision:** Abandoned visual BC. Adopted Isaac Lab Mimic for data augmentation → state-BC policy (no camera, GT object_position from physics).
