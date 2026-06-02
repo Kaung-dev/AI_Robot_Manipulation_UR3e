@@ -129,12 +129,14 @@ case "$MODE" in
     ;;
 
   collect-mimic)
-    NUM="${2:-40}"
-    OUT="${3:-$REPO_ROOT/datasets/air2_mimic_demos.hdf5}"
-    echo "[INFO] Collecting $NUM Mimic source demos → $OUT"
+    OBJECT="${2:-brush}"
+    NUM="${3:-40}"
+    OUT="${4:-$REPO_ROOT/datasets/air2_mimic_demos.hdf5}"
+    OBJECT_CAP="$(echo "$OBJECT" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')"
+    echo "[INFO] Collecting $NUM Mimic source demos ($OBJECT) → $OUT"
     PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
       "$REPO_ROOT/scripts/collect_mimic_demos.py" \
-      --task "Isaac-AIR2-Robotis-Franka-Brush-Mimic-v0" \
+      --task "Isaac-AIR2-Robotis-Franka-${OBJECT_CAP}-Mimic-v0" \
       --teleop_device keyboard \
       --num_demos "$NUM" \
       --num_envs 1 \
