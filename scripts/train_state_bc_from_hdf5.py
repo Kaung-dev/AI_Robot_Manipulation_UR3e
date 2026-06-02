@@ -52,8 +52,9 @@ args = parser.parse_args()
 OBS_KEYS = ["joint_pos", "joint_vel", "object_position", "target_object_position", "actions", "eef_pos", "eef_quat"]
 # "actions" in the obs group = last_action recorded at that timestep
 
-DWELL_ARM_THRESH = 0.01   # BC-DW1: arm steps with max|action[:6]| below this are "dwell"
-DWELL_LOSS_WEIGHT = 0.1   # BC-DW1: loss weight for dwell steps (vs 1.0 for active steps)
+DWELL_ARM_THRESH  = 0.01   # arm steps with max|action[:6]| below this are "dwell"
+DWELL_TRIM        = False  # BC-DW1: weight dwell steps rather than trimming them
+DWELL_LOSS_WEIGHT = 0.1    # BC-DW1: weight for dwell steps
 
 
 def load_dataset(hdf5_path: str, grasp_signal: str = "grasp_brush"):
@@ -65,6 +66,14 @@ def load_dataset(hdf5_path: str, grasp_signal: str = "grasp_brush"):
             d = f["data"][demo_key]
             obs_parts = [d["obs"][k][:] for k in OBS_KEYS]
             obs_42 = np.concatenate(obs_parts, axis=-1).astype(np.float32)  # (T, 42)
+
+            # obs-alignment: dims 21:28 (target_object_position) = resampling goal command,
+            # a semantic mismatch with eval and noisy w.r.t. the action. Replace with the
+            # actual object position (robot-root frame, dims 18:21) + identity quat so
+            # these 7 dims carry real signal and match eval exactly.
+            obs_42[:, 21:24] = obs_42[:, 18:21]
+            obs_42[:, 24:28] = 0.0
+            obs_42[:, 24]    = 1.0
 
             # Phase label: 0=approach, 1=carry
             # Prefer datagen_info grasp signal (annotated HDF5); fall back to
@@ -84,9 +93,16 @@ def load_dataset(hdf5_path: str, grasp_signal: str = "grasp_brush"):
             obs = np.concatenate([obs_42, phase], axis=-1)  # (T, 43)
             act = d["actions"][:].astype(np.float32)        # (T, 7)
 
-            # BC-DW1: down-weight dwell steps so approach-direction signal dominates
-            arm_mag = np.abs(act[:, :6]).max(axis=1)        # (T,)
-            w = np.where(arm_mag < DWELL_ARM_THRESH, DWELL_LOSS_WEIGHT, 1.0).astype(np.float32)
+            arm_mag = np.abs(act[:, :6]).max(axis=1)          # (T,)
+            if DWELL_TRIM:
+                # BC-TRIM1: remove dwell steps so policy never learns default-pose → near-zero
+                nonzero = np.where(arm_mag > DWELL_ARM_THRESH)[0]
+                start = int(nonzero[0]) if len(nonzero) > 0 else 0
+                obs  = obs[start:]
+                act  = act[start:]
+                arm_mag = arm_mag[start:]
+            w = np.ones(len(act), dtype=np.float32) if DWELL_TRIM else \
+                np.where(arm_mag < DWELL_ARM_THRESH, DWELL_LOSS_WEIGHT, 1.0).astype(np.float32)
 
             obs_list.append(obs)
             act_list.append(act)
@@ -95,9 +111,12 @@ def load_dataset(hdf5_path: str, grasp_signal: str = "grasp_brush"):
     obs_all = np.concatenate(obs_list, axis=0)
     act_all = np.concatenate(act_list, axis=0)
     weight_all = np.concatenate(weight_list, axis=0)
-    dwell_frac = (weight_all < 1.0).mean() * 100
     print(f"Dataset: {obs_all.shape[0]} steps, obs_dim={obs_all.shape[1]}, act_dim={act_all.shape[1]}")
-    print(f"BC-DW1: dwell steps={dwell_frac:.1f}% (weight={DWELL_LOSS_WEIGHT}), active={100-dwell_frac:.1f}% (weight=1.0)")
+    if DWELL_TRIM:
+        print(f"BC-TRIM1: dwell steps removed, all {obs_all.shape[0]} steps are active")
+    else:
+        dwell_frac = (weight_all < 1.0).mean() * 100
+        print(f"BC-DW1: dwell steps={dwell_frac:.1f}% (weight={DWELL_LOSS_WEIGHT}), active={100-dwell_frac:.1f}% (weight=1.0)")
     return obs_all, act_all, weight_all
 
 
@@ -205,6 +224,15 @@ if __name__ == "__main__":
     obs_np, act_np, weight_np = load_dataset(args.hdf5, grasp_signal=grasp_signal)
     print(f"[diag] data load: {time.time()-t0:.1f}s")
 
+    # Standardize obs to mean 0 / std 1. Stats are saved in the checkpoint
+    # and applied identically at eval — critical for MLP performance on
+    # mixed-scale inputs (joint angles vs world-frame coordinates).
+    obs_mean = obs_np.mean(axis=0).astype(np.float32)
+    obs_std  = obs_np.std(axis=0).astype(np.float32)
+    obs_std[obs_std < 1e-6] = 1.0   # guard constant dims (identity quat, phase bit)
+    obs_np = (obs_np - obs_mean) / obs_std
+    print(f"[norm] standardized obs: std range [{obs_std.min():.4f}, {obs_std.max():.4f}]")
+
     t1 = time.time()
     model, best_state, log, input_dim, action_dim = train(obs_np, act_np, weight_np)
     print(f"[diag] total train time: {time.time()-t1:.1f}s")
@@ -217,6 +245,9 @@ if __name__ == "__main__":
         "activation": "elu",
         "obs_keys": OBS_KEYS,
         "num_steps": int(obs_np.shape[0]),
+        "obs_mean": obs_mean,
+        "obs_std":  obs_std,
+        "obs_aligned": True,
     }, out_path)
 
     log_path = out_path.with_suffix(".log.json")

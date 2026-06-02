@@ -210,6 +210,15 @@ case "$MODE" in
       --num_envs 1 --num_episodes "$EPISODES" --max_steps "$MAX_STEPS" --episode_length_s 80.0
     ;;
 
+  eval-sequential)
+    EPISODES="${2:-5}"
+    echo "[INFO] Sequential multi-tool eval — $EPISODES episodes"
+    PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
+      "$REPO_ROOT/scripts/eval_sequential.py" \
+      --num_episodes "$EPISODES" \
+      "${@:3}"
+    ;;
+
   ppo-play)
     OBJECT="${2:-brush}"
     RUN="${3:-}"

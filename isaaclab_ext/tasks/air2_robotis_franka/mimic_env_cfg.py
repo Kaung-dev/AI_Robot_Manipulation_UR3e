@@ -148,7 +148,7 @@ class AIR2RobotisBrushMimicEnvCfg(AIR2RobotisBrushEnvCfg, MimicEnvCfg):
                 subtask_term_offset_range=(5, 15),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
-                action_noise=0.03,
+                action_noise=0.01,
                 num_interpolation_steps=5,
                 num_fixed_steps=0,
                 apply_noise_during_interpolation=False,
@@ -211,7 +211,15 @@ def _disable_object_randomization(self) -> None:
     random peg-slot placements, and the recorded actions then miss the target.
     Disable both randomization events (AIR2 pegboard + Robotis cylinder slots)
     while in Mimic mode.
+
+    Set MIMIC_KEEP_RANDOMIZATION=1 in the environment to SKIP disabling — this
+    keeps slot randomization ON during generation so each trial spawns at a
+    different slot, producing a multi-slot dataset.  Required for policies that
+    need to generalise across all peg positions (R0/R1/R2).
     """
+    import os
+    if os.environ.get("MIMIC_KEEP_RANDOMIZATION", "0") == "1":
+        return
     if hasattr(self.events, "reset_object_position"):
         self.events.reset_object_position = None
     if hasattr(self.events, "randomize_hook_objects"):

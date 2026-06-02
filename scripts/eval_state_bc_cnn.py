@@ -47,9 +47,14 @@ parser.add_argument("--servo_dist", type=float, default=0.18,
                     help="When EE is within this dist of the object during APPROACH, servo the EE "
                          "straight onto the object (robot-root frame) instead of trusting BC alone. "
                          "Fixes R2 downward overshoot. Set 0 to disable.")
-parser.add_argument("--out", default="eval_results/state_bc.json")
+parser.add_argument("--out", default="eval_results/state_bc_cnn.json")
+parser.add_argument("--seg_ckpt", default="checkpoints/air2_segmentation_unet.pth",
+                    help="Path to U-Net segmentation checkpoint for object detection.")
+parser.add_argument("--detect_every", type=int, default=10,
+                    help="Run CNN detection every N steps (default 10 to keep sim smooth).")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
+args_cli.enable_cameras = True  # board_camera requires camera rendering
 
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
@@ -65,6 +70,25 @@ import isaaclab_ext.tasks.air2_franka          # noqa: F401
 import isaaclab_ext.tasks.air2_robotis_franka  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.utils.math import subtract_frame_transforms
+from isaaclab.sensors import CameraCfg
+import isaaclab.sim as sim_utils
+
+from isaaclab_ext.tasks.air2_franka.cnn.model import build_model, build_resnet_model
+from isaaclab_ext.tasks.air2_franka.cnn.postprocess import extract_detections
+
+
+def _load_seg_model(path: str, device: str):
+    ckpt = torch.load(path, map_location=device, weights_only=False)
+    backbone = ckpt.get("backbone", "unet")
+    num_classes = int(ckpt.get("num_classes", 9))
+    if backbone == "resnet":
+        model = build_resnet_model(num_classes=num_classes, pretrained=False).to(device)
+    else:
+        model = build_model(num_classes=num_classes,
+                            base_channels=int(ckpt.get("base_channels", 32))).to(device)
+    model.load_state_dict(ckpt["model_state_dict"])
+    model.eval()
+    return model
 
 
 def _make_mlp(input_dim, output_dim, hidden_dims, activation="elu"):
@@ -133,6 +157,27 @@ def main():
     env_cfg = parse_env_cfg(args_cli.task, device="cuda:0", num_envs=args_cli.num_envs)
     env_cfg.episode_length_s = args_cli.episode_length_s
 
+    # Add board_camera with RGB + depth — same position as segmentation_env_cfg.py.
+    # Camera pose may need tuning if the new scene layout differs from the old env.
+    env_cfg.scene.board_camera = CameraCfg(
+        prim_path="{ENV_REGEX_NS}/board_camera",
+        update_period=0.0,
+        height=360,
+        width=640,
+        data_types=["rgb", "distance_to_image_plane"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=24.0,
+            focus_distance=400.0,
+            horizontal_aperture=20.955,
+            clipping_range=(0.1, 20.0),
+        ),
+        offset=CameraCfg.OffsetCfg(
+            pos=(-1.0, -3.5, 1.8),
+            rot=(-0.2068, 0.2807, 0.7545, -0.5560),
+            convention="ros",
+        ),
+    )
+
     # Disable env terminations so the object can physically settle after release
     # before we score the episode. Keep only time_out so episodes can't run forever.
     _disabled = []
@@ -150,6 +195,10 @@ def main():
     num_envs = env.unwrapped.num_envs
 
     policy, obs_mean, obs_std, obs_aligned = load_state_bc_policy(args_cli.state_bc_ckpt, device=device)
+
+    seg_model = _load_seg_model(args_cli.seg_ckpt, device)
+    board_cam = env.unwrapped.scene["board_camera"]
+    print(f"[eval-state-bc-cnn] segmentation model loaded from {args_cli.seg_ckpt}", flush=True)
     print(f"[eval-state-bc] task={args_cli.task} envs={num_envs} target_episodes={args_cli.num_episodes} episode_length_s={env_cfg.episode_length_s}",
           flush=True)
 
@@ -266,6 +315,23 @@ def main():
                 bp = obj_pos[0].cpu().tolist()
                 slot_name = min(_SLOTS, key=lambda s: sum((a-b)**2 for a,b in zip(_SLOTS[s], bp)))
                 print(f"[episode start] brush world=({bp[0]:.3f}, {bp[1]:.3f}, {bp[2]:.3f})  slot={slot_name}", flush=True)
+
+            # CNN detection (env 0 only, every detect_every steps)
+            if ep_step[0] % args_cli.detect_every == 0:
+                rgb   = board_cam.data.output["rgb"][0].detach().cpu().numpy().astype("uint8")
+                depth = board_cam.data.output["distance_to_image_plane"][0].detach().cpu().numpy()
+                intr  = board_cam.data.intrinsic_matrices[0].detach().cpu().numpy()
+                pos_w_cam  = board_cam.data.pos_w[0].detach().cpu().numpy()
+                quat_w_cam = board_cam.data.quat_w_ros[0].detach().cpu().numpy()
+                with torch.no_grad():
+                    rgb_t  = torch.from_numpy(rgb).permute(2, 0, 1).float().unsqueeze(0).to(device) / 255.0
+                    logits = seg_model(rgb_t)
+                dets = extract_detections(logits, depth=depth, intrinsic_matrix=intr,
+                                          pos_w=pos_w_cam, rot_w_quat=quat_w_cam)
+                det_strs = [f"{d['label']}@({d['position_world'][0]:.2f},{d['position_world'][1]:.2f},{d['position_world'][2]:.2f})"
+                            if d["position_world"] else d["label"]
+                            for d in dets if d["class_id"] != 0]
+                print(f"[cnn step {ep_step[0].item():4d}] {det_strs}", flush=True)
 
             # phase transition print
             _PHASE_NAMES = {0: "APPROACH", 1: "GRIP", 2: "CARRY", 3: "RELEASE"}

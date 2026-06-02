@@ -404,6 +404,24 @@ def _apply_target_rewards(cfg, target_key: str) -> None:
         cfg.curriculum.joint_vel = None
 
 
+_DEBUG_MARKER_KEYS = (
+    "basket_frame", "basket_beacon_frame",
+    "brush_frame", "pliers_frame", "scissors_frame", "screwdriver_frame",
+    "ee_tcp_marker",
+)
+
+
+def _strip_debug_markers(cfg) -> None:
+    """Remove FrameTransformer debug-vis markers from PLAY/eval envs.
+
+    These markers crash at eval time if their target prims aren't loaded yet
+    when the debug_vis callback fires. Not needed outside the GUI dev loop.
+    """
+    for key in _DEBUG_MARKER_KEYS:
+        if hasattr(cfg.scene, key):
+            setattr(cfg.scene, key, None)
+
+
 @configclass
 class AIR2RobotisBrushEnvCfg(AIR2RobotisFrankaEnvCfg):
     def __post_init__(self):
@@ -418,6 +436,7 @@ class AIR2RobotisBrushEnvCfg_PLAY(AIR2RobotisBrushEnvCfg):
         self.scene.num_envs = 1
         self.scene.env_spacing = 2.5
         self.observations.policy.enable_corruption = False
+        _strip_debug_markers(self)
 
 
 @configclass
@@ -437,6 +456,7 @@ class AIR2RobotisPliersFrankaEnvCfg_PLAY(AIR2RobotisPliersFrankaEnvCfg):
         self.scene.num_envs = 1
         self.scene.env_spacing = 2.5
         self.observations.policy.enable_corruption = False
+        _strip_debug_markers(self)
 
 
 @configclass
@@ -456,6 +476,7 @@ class AIR2RobotisScissorsFrankaEnvCfg_PLAY(AIR2RobotisScissorsFrankaEnvCfg):
         self.scene.num_envs = 1
         self.scene.env_spacing = 2.5
         self.observations.policy.enable_corruption = False
+        _strip_debug_markers(self)
 
 
 @configclass
@@ -475,3 +496,4 @@ class AIR2RobotisScrewdriverFrankaEnvCfg_PLAY(AIR2RobotisScrewdriverFrankaEnvCfg
         self.scene.num_envs = 1
         self.scene.env_spacing = 2.5
         self.observations.policy.enable_corruption = False
+        _strip_debug_markers(self)

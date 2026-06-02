@@ -335,6 +335,37 @@ BASKET_REACH_RADIUS = 0.40  # success metric threshold
 
 ---
 
+---
+
+## 2026-06-02 — BC-TRIM1: trim dwell steps from training data
+
+**Code:** BC-TRIM1
+**Who:** Steph
+**Changed:** `scripts/train_state_bc_from_hdf5.py`
+
+**Problem:** BC-DW1 (weight=0.1 on 1.2% dwell steps) had no visible effect — too gentle. The dwell phase (first ~5 steps of each demo where arm action < 0.01) trains the policy to map default-reset-pose → near-zero action. At eval, the robot starts at default pose, so the policy outputs near-zero for all slots. R1 happens to escape because the tiny drift aligns with its approach direction by geometry. R0 and R2 drift away.
+
+**Fix:** Trim dwell steps entirely from each demo before training. Find first step where `max|arm_action[:6]| > 0.01` and discard everything before it. Policy never sees "default pose → near-zero" and instead learns "first obs = early approach → output approach direction." At eval step 0, the default-pose obs now maps to the early-approach training distribution → policy immediately outputs correct direction for all slots.
+
+**Pre-patch state (revert to):**
+- `DWELL_ARM_THRESH = 0.01`, `DWELL_LOSS_WEIGHT = 0.1` (BC-DW1 weighting, no trimming)
+- `load_dataset` computes per-sample weights and returns `(obs_all, act_all, weight_all)`
+
+**Post-patch state:**
+- `DWELL_TRIM = True` added — when True, slices each demo from first active step; weights become all 1.0
+- Same `(obs_all, act_all, weight_all)` return signature preserved
+
+**Checkpoint produced:** `checkpoints/policy_state_bc_mimic.pth`
+
+**Run command:**
+```bash
+./launch_air2.sh train-state-bc datasets/air2_mimic_generated.hdf5 checkpoints/policy_state_bc_mimic.pth 300
+```
+
+**Status:** training pending
+
+---
+
 ### Known issue — other 2 brush slot locations
 
 The arm barely moves (raw_arm~0.001-0.005) for non-rightmost slots even with the `target_object_position` patch. Root cause suspected to be covariate shift: training data may be skewed toward the rightmost slot, so the policy hasn't learned to approach from the other starting configurations. Next step: verify training data slot distribution and either collect more diverse demos or add per-slot conditioning.
@@ -375,4 +406,4 @@ The arm barely moves (raw_arm~0.001-0.005) for non-rightmost slots even with the
 ./launch_air2.sh eval-state-bc brush checkpoints/policy_state_bc_mimic_v2_dw1.pth 20 2000
 ```
 
-**Status:** training pending
+**Status:** no visible effect — raw_arm still 0.001-0.003 after retrain. Weight 0.1 on 1.2% of steps too gentle; dwell signal barely changed. Superseded by BC-TRIM1.
