@@ -87,10 +87,10 @@ class AIR2RobotisFrankaEnvCfg(AIR2FrankaEnvCfg):
             ),
         )
 
-        # Main pick target at slot L1.
+        # Main pick target at slot R0 (right side only).
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=_SLOTS["L1"], rot=_TOOL_ROT),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=_SLOTS["R0"], rot=_TOOL_ROT),
             spawn=UsdFileCfg(
                 usd_path=str(_ASSETS / OBJECT_SPECS[0].usd_file),
                 rigid_props=_TOOL_RIGID,
@@ -98,11 +98,12 @@ class AIR2RobotisFrankaEnvCfg(AIR2FrankaEnvCfg):
             ),
         )
 
-        # 3 distractors + main object = 4 total; reset event randomizes slots.
+        # 3 distractors — all right-side slots so Mimic collection matches PPO.
+        # R3 goes to pliers or scissors (screwdriver can't reach R3).
         for spec, slot in [
-            (OBJECT_SPECS[1], "L0"),
-            (OBJECT_SPECS[2], "R0"),
-            (OBJECT_SPECS[3], "R1"),
+            (OBJECT_SPECS[1], "R1"),   # pliers
+            (OBJECT_SPECS[2], "R3"),   # scissors (can reach R3)
+            (OBJECT_SPECS[3], "R2"),   # screwdriver (cannot reach R3)
         ]:
             setattr(
                 self.scene, spec.scene_key,
