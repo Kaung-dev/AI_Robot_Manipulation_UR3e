@@ -164,7 +164,7 @@ def main():
     while len(saved_episodes) < args_cli.num_episodes and simulation_app.is_running():
         with torch.inference_mode():
             wrist = env.unwrapped.scene["wrist_camera"].data.output["rgb"]
-            board = env.unwrapped.scene["board_camera"].data.output["rgb"]
+            board = env.unwrapped.scene["main_camera"].data.output["rgb"]
             jp = env.unwrapped.scene["robot"].data.joint_pos
             jv = env.unwrapped.scene["robot"].data.joint_vel
 

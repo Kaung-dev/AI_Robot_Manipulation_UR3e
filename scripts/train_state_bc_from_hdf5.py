@@ -38,6 +38,9 @@ parser.add_argument("--batch_size", type=int, default=512)
 parser.add_argument("--lr", type=float, default=3e-4)
 parser.add_argument("--val_ratio", type=float, default=0.1)
 parser.add_argument("--hidden_dims", type=int, nargs="+", default=[256, 128, 64])
+parser.add_argument("--object", default="brush",
+                    choices=["brush", "pliers", "scissors", "screwdriver"],
+                    help="Target object — determines grasp signal name in annotated HDF5.")
 parser.add_argument("--out", default="checkpoints/policy_state_bc_mimic.pth")
 parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
 args = parser.parse_args()
@@ -53,22 +56,22 @@ DWELL_ARM_THRESH = 0.01   # BC-DW1: arm steps with max|action[:6]| below this ar
 DWELL_LOSS_WEIGHT = 0.1   # BC-DW1: loss weight for dwell steps (vs 1.0 for active steps)
 
 
-def load_dataset(hdf5_path: str):
+def load_dataset(hdf5_path: str, grasp_signal: str = "grasp_brush"):
     obs_list, act_list, weight_list = [], [], []
     with h5py.File(hdf5_path, "r") as f:
         demos = sorted(f["data"].keys(), key=lambda x: int(x.split("_")[1]))
-        print(f"Loading {len(demos)} demos from {hdf5_path}")
+        print(f"Loading {len(demos)} demos from {hdf5_path} (grasp_signal={grasp_signal})")
         for demo_key in demos:
             d = f["data"][demo_key]
             obs_parts = [d["obs"][k][:] for k in OBS_KEYS]
             obs_42 = np.concatenate(obs_parts, axis=-1).astype(np.float32)  # (T, 42)
 
             # Phase label: 0=approach, 1=carry
-            # Prefer datagen_info grasp_brush signal (annotated HDF5); fall back to
+            # Prefer datagen_info grasp signal (annotated HDF5); fall back to
             # gripper action column (generated HDF5, which omits datagen_info).
             T = obs_42.shape[0]
             try:
-                signals = d["obs"]["datagen_info"]["subtask_term_signals"]["grasp_brush"][:].flatten()
+                signals = d["obs"]["datagen_info"]["subtask_term_signals"][grasp_signal][:].flatten()
                 transitions = np.where(np.diff(signals.astype(np.int32)) > 0)[0]
                 boundary = int(transitions[0]) + 1 if len(transitions) > 0 else T
             except (KeyError, ValueError):
@@ -198,7 +201,8 @@ if __name__ == "__main__":
         print(f"[diag] GPU: {_t.cuda.get_device_name(0)}")
 
     t0 = time.time()
-    obs_np, act_np, weight_np = load_dataset(args.hdf5)
+    grasp_signal = f"grasp_{args.object}"
+    obs_np, act_np, weight_np = load_dataset(args.hdf5, grasp_signal=grasp_signal)
     print(f"[diag] data load: {time.time()-t0:.1f}s")
 
     t1 = time.time()

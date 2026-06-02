@@ -67,17 +67,10 @@ def _apply_segmentation_cameras(cfg) -> None:
         clipping_range=(0.1, 1.0e5),
     )
 
-    # Third-person 3/4 view aimed at the actual action zone confirmed by
-    # inspect_air2_hooks.py:
-    #   - pegboard wall     y = -6.01 (back)
-    #   - object spawn line y = -5.90 (in front of the wall, where reset places them)
-    #   - basket            (-3.56, -5.37, 1.04)
-    #   - Franka base       (-4.24, -5.29, 1.04)
-    # Look-at = (-3.9, -5.7, 1.3) (centre of the strip).
-    # Camera position is offset to +X and +Y of the cluster, ~3 m away, raised
-    # to 2.2 m so the operator can see the arm reach back into the board.
-    cfg.scene.board_camera = CameraCfg(
-        prim_path="{ENV_REGEX_NS}/board_camera",
+    # Main camera: right of robot, elevated, tilted left toward pegboard objects.
+    # Replaces the old board_camera with a better angle for CNN training.
+    cfg.scene.main_camera = CameraCfg(
+        prim_path="{ENV_REGEX_NS}/main_camera",
         update_period=0.0,
         height=360,
         width=640,
@@ -86,15 +79,15 @@ def _apply_segmentation_cameras(cfg) -> None:
         colorize_instance_segmentation=False,
         spawn=pinhole_wide,
         offset=CameraCfg.OffsetCfg(
-            pos=(-1.0, -3.5, 1.8),
-            rot=(-0.2068, 0.2807, 0.7545, -0.5560),
+            pos=(-4.8, -5.2, 2.2),
+            rot=(0.1598, -0.3477, 0.8395, -0.3857),
             convention="ros",
         ),
     )
 
     cfg.rerender_on_reset = True
     cfg.sim.render.antialiasing_mode = "OFF"
-    cfg.image_obs_list = ["board_camera", "wrist_camera"]
+    cfg.image_obs_list = ["main_camera", "wrist_camera"]
 
     # Hide the goal_pose / body_pose / EE-frame debug arrows so they don't
     # block the camera views during dataset collection.

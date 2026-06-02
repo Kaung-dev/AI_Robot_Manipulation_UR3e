@@ -168,7 +168,7 @@ def main():
     # ~35s/iter of rendering overhead on T4 and require --enable_cameras flag.
     # Strip them from the scene so PPO runs at ~10s/iter and doesn't need
     # the flag. (Mimic data-gen and BC eval still spawn cameras as needed.)
-    for cam_attr in ("wrist_camera", "board_camera"):
+    for cam_attr in ("wrist_camera", "main_camera"):
         if hasattr(env_cfg.scene, cam_attr) and getattr(env_cfg.scene, cam_attr) is not None:
             setattr(env_cfg.scene, cam_attr, None)
             print(f"[bc->ppo] stripped scene.{cam_attr} (PPO doesn't need cameras)", flush=True)

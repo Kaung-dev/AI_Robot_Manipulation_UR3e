@@ -132,7 +132,7 @@ def main() -> None:
     parser.add_argument("--depth", help="Optional saved depth .npy for image mode.")
     parser.add_argument("--intrinsics", help="Optional camera intrinsics .npy for image mode.")
     parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Segmentation-v0")
-    parser.add_argument("--camera", default="board_camera")
+    parser.add_argument("--camera", default="main_camera")
     parser.add_argument("--settle-steps", type=int, default=5)
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--min-area", type=int, default=32)

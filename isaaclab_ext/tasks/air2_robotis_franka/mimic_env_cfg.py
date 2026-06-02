@@ -118,8 +118,8 @@ class AIR2RobotisBrushMimicEnvCfg(AIR2RobotisBrushEnvCfg, MimicEnvCfg):
         # omni.syntheticdata.plugin on this T4 setup. Strip cameras to skip.
         if hasattr(self.scene, "wrist_camera"):
             self.scene.wrist_camera = None
-        if hasattr(self.scene, "board_camera"):
-            self.scene.board_camera = None
+        if hasattr(self.scene, "main_camera"):
+            self.scene.main_camera = None
         # Drop the GUI-only marker spheres (FrameTransformer-based). They
         # don't affect state obs but slow Isaac boot and would contaminate
         # any downstream camera-based pretraining.
@@ -269,8 +269,8 @@ def _mimic_cfg_common_init(self, target_key: str, tool_name: str) -> None:
 
     if hasattr(self.scene, "wrist_camera"):
         self.scene.wrist_camera = None
-    if hasattr(self.scene, "board_camera"):
-        self.scene.board_camera = None
+    if hasattr(self.scene, "main_camera"):
+        self.scene.main_camera = None
 
     self.datagen_config.name = f"demo_src_air2_{tool_name}_D0"
     self.datagen_config.generation_guarantee = True

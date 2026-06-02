@@ -175,13 +175,14 @@ case "$MODE" in
     ;;
 
   train-state-bc)
-    HDF5="${2:-$REPO_ROOT/datasets/air2_mimic_generated.hdf5}"
-    OUT="${3:-$REPO_ROOT/checkpoints/policy_state_bc_mimic.pth}"
-    EPOCHS="${4:-300}"
-    echo "[INFO] Training state-BC from $HDF5 → $OUT  (${EPOCHS} epochs)"
+    OBJECT="${2:-brush}"
+    HDF5="${3:-$REPO_ROOT/datasets/air2_mimic_${OBJECT}_generated.hdf5}"
+    OUT="${4:-$REPO_ROOT/checkpoints/policy_state_bc_${OBJECT}.pth}"
+    EPOCHS="${5:-300}"
+    echo "[INFO] Training state-BC ($OBJECT) from $HDF5 → $OUT  (${EPOCHS} epochs)"
     PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
       "$REPO_ROOT/scripts/train_state_bc_from_hdf5.py" \
-      --hdf5 "$HDF5" --out "$OUT" --epochs "$EPOCHS"
+      --hdf5 "$HDF5" --object "$OBJECT" --out "$OUT" --epochs "$EPOCHS"
     ;;
 
   ppo-warm-start)
@@ -234,8 +235,20 @@ case "$MODE" in
       --task "$TASK" --num_envs 1 --teleop_device keyboard --enable_cameras
     ;;
 
+  eval-multi)
+    ROUNDS="${2:-1}"
+    MAX_STEPS="${3:-2000}"
+    echo "[INFO] Multi-object BC eval — $ROUNDS rounds, max $MAX_STEPS steps/object"
+    PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
+      "$REPO_ROOT/scripts/eval_multi_object_bc.py" \
+      --task "Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0" \
+      --ckpt_dir "$REPO_ROOT/checkpoints" \
+      --num_envs 1 --num_rounds "$ROUNDS" --max_steps_per_object "$MAX_STEPS" \
+      --enable_cameras
+    ;;
+
   *)
-    echo "Usage: $0 collect-seg | train-seg | collect-demos | precompute | train-diffusion | train-bc | eval [object] | teleop"
+    echo "Usage: $0 collect-seg | train-seg | collect-demos | precompute | train-diffusion | train-bc | eval [object] | eval-multi [rounds] | teleop"
     exit 1
     ;;
 

@@ -101,7 +101,7 @@ def load_classifier(ckpt_path: str, device: str):
 def read_cameras(env, device):
     """Pull a single wrist + board frame from the env's camera sensors."""
     wrist = env.unwrapped.scene["wrist_camera"].data.output["rgb"][0]  # (H, W, 3) uint8
-    board = env.unwrapped.scene["board_camera"].data.output["rgb"][0]
+    board = env.unwrapped.scene["main_camera"].data.output["rgb"][0]
     tfm = T.Compose([
         T.Resize((224, 224)),
         T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),

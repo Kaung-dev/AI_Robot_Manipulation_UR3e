@@ -402,7 +402,7 @@ def main() -> None:
             print(f"[manual] creating HDF5: {hdf5_path}", flush=True)
 
     # Check which cameras are available.
-    has_cameras = "wrist_camera" in env.scene.sensors and "board_camera" in env.scene.sensors
+    has_cameras = "wrist_camera" in env.scene.sensors and ("main_camera" in env.scene.sensors or "board_camera" in env.scene.sensors)
     first_step_of_episode = True
 
     while saved < args_cli.num_demos and simulation_app.is_running():
@@ -452,7 +452,8 @@ def main() -> None:
 
             if state["recording"] and state["step"] % args_cli.save_every_n_steps == 0:
                 wrist = env.scene["wrist_camera"].data.output["rgb"][0].detach().cpu().numpy().astype(np.uint8) if has_cameras else np.zeros((1,1,3), dtype=np.uint8)
-                board = env.scene["board_camera"].data.output["rgb"][0].detach().cpu().numpy().astype(np.uint8) if has_cameras else np.zeros((1,1,3), dtype=np.uint8)
+                _board_key = "main_camera" if "main_camera" in env.scene.sensors else "board_camera"
+                board = env.scene[_board_key].data.output["rgb"][0].detach().cpu().numpy().astype(np.uint8) if has_cameras else np.zeros((1,1,3), dtype=np.uint8)
                 jp = env.scene["robot"].data.joint_pos[0].detach().cpu().numpy()
                 jv = env.scene["robot"].data.joint_vel[0].detach().cpu().numpy()
                 act = action[0].detach().cpu().numpy()

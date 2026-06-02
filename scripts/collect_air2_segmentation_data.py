@@ -1,13 +1,14 @@
 """Collect AIR2 RGB/depth/segmentation frames for CNN training.
 
-The robot is driven through the pick-place waypoint sequence (in-front-of-each-
-object -> above-basket -> repeat) using the same PickPlaceController used by
-collect_air2_demos.py. This gives the CNN diverse viewpoints from BOTH cameras:
+The robot is driven through a scan + pick-place waypoint sequence using
+PickPlaceController.  The scan phase moves the wrist camera to multiple
+viewpoints around each object (front, sides, above, diagonal) BEFORE the
+pick-place begins — so the CNN sees every tool from diverse angles.
 
-  - board_camera (static, third-person): sees the robot in many poses,
-    objects on random hooks, basket
-  - wrist_camera (attached to panda_hand): sees the gripper approaching each
-    object, the basket up close, varying angles as the arm moves
+  - main_camera (static, elevated right-of-robot): sees the full work cell
+    from a fixed angle — robot, pegboard, all objects, and basket
+  - wrist_camera (attached to panda_hand): multi-angle scan of each object,
+    then close-up approach/grasp/transport views during pick-place
 
 Each saved frame produces:
   images/<id>_rgb.png        : RGB capture (uint8)
@@ -48,7 +49,7 @@ parser = argparse.ArgumentParser(description="Collect AIR2 segmentation training
 parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0")
 parser.add_argument("--output", default="datasets/air2_segmentation")
 parser.add_argument("--frames", type=int, default=0, help="Target number of saved frames. 0 = run until Ctrl+C.")
-parser.add_argument("--cameras", nargs="+", default=["board_camera", "wrist_camera"])
+parser.add_argument("--cameras", nargs="+", default=["main_camera", "wrist_camera"])
 parser.add_argument("--save-every-n-steps", type=int, default=3, help="Save a frame every Nth sim step.")
 parser.add_argument("--episode-length-s", type=float, default=20.0)
 parser.add_argument("--val-ratio", type=float, default=0.2)
@@ -154,7 +155,7 @@ def main() -> None:
     env.reset()
     device = env.unwrapped.device
 
-    controller = PickPlaceController(num_envs=1, device=device)
+    controller = PickPlaceController(num_envs=1, device=device, scan_before_pick=True)
 
     def collect_object_positions() -> list[list[torch.Tensor]]:
         per_env = []
@@ -168,6 +169,8 @@ def main() -> None:
         return per_env
 
     controller.reset(collect_object_positions())
+    print(f"[seg-collect] action_space={env.unwrapped.action_space.shape}, "
+          f"waypoints={len(controller.waypoints[0])}", flush=True)
     action = torch.zeros(env.unwrapped.action_space.shape, device=device)
 
     sample_ids: list[str] = []
@@ -257,5 +260,11 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
+    except BaseException as e:
+        import traceback
+        err_msg = traceback.format_exc()
+        print(f"[seg-collect] FATAL: {e}\n{err_msg}", flush=True)
+        Path("/tmp/seg_collect_error.log").write_text(err_msg)
+        raise
     finally:
         simulation_app.close()

@@ -46,6 +46,55 @@ MAX_STEP_DELTA = 0.10       # clip per-step IK target delta to 10 cm to avoid ov
 ACTION_DIM = 7              # 6-DOF IK-Rel pose + 1 gripper
 
 
+def make_scan_waypoints(
+    object_positions: list[torch.Tensor],
+) -> list[tuple[torch.Tensor, float, int]]:
+    """Observation-only waypoints that give the wrist camera diverse views.
+
+    Adds per-object views from multiple angles (front, left, right, above,
+    diagonal) plus scene-wide overview positions.  Gripper stays open — no
+    grasping.  Intended to run BEFORE the pick-place sequence so objects are
+    still on the pegs.
+    """
+    SCAN_DWELL = 8  # steps to hold each scan position (camera needs a frame)
+    wps: list[tuple[torch.Tensor, float, int]] = []
+
+    # --- Per-object multi-angle scan ---
+    # Offsets in (dX, dY, dZ) relative to each object.
+    # Y+ = toward robot (front), X± = left/right, Z+ = above.
+    per_object_offsets = [
+        # Side views
+        ( 0.15, 0.15, 0.00),   # front-right diagonal
+        (-0.15, 0.15, 0.00),   # front-left diagonal
+        ( 0.20, 0.10, 0.00),   # right side
+        (-0.20, 0.10, 0.00),   # left side
+        # Elevated views
+        ( 0.00, 0.15, 0.15),   # front-above
+        ( 0.10, 0.10, 0.15),   # right-above diagonal
+        (-0.10, 0.10, 0.15),   # left-above diagonal
+        # Below (lower angle looking up at object)
+        ( 0.00, 0.15, -0.10),  # front-below
+    ]
+
+    for obj_xyz in object_positions:
+        for dx, dy, dz in per_object_offsets:
+            pos = obj_xyz + torch.tensor([dx, dy, dz])
+            wps.append((pos, GRIPPER_OPEN, SCAN_DWELL))
+
+    # --- Scene-wide overview positions ---
+    if object_positions:
+        stack = torch.stack(object_positions)
+        center = stack.mean(dim=0)
+        # High overview of all objects
+        wps.append((center + torch.tensor([0.0, 0.25, 0.30]), GRIPPER_OPEN, SCAN_DWELL))
+        # Low sweeping view across objects
+        wps.append((center + torch.tensor([0.0, 0.20, -0.15]), GRIPPER_OPEN, SCAN_DWELL))
+        # Basket overview
+        wps.append((BASKET_POS_LOCAL + torch.tensor([0.0, 0.15, 0.25]), GRIPPER_OPEN, SCAN_DWELL))
+
+    return wps
+
+
 def make_object_waypoints(obj_xyz: torch.Tensor) -> list[tuple[torch.Tensor, float, int]]:
     """Real pick-and-place sequence per object.
 
@@ -78,10 +127,12 @@ class PickPlaceController:
     objects 3-4 that never get reached). Recommended for BC training.
     """
 
-    def __init__(self, num_envs: int, device: torch.device, single_object: bool = False):
+    def __init__(self, num_envs: int, device: torch.device, single_object: bool = False,
+                 scan_before_pick: bool = False):
         self.num_envs = num_envs
         self.device = device
         self.single_object = single_object
+        self.scan_before_pick = scan_before_pick
         self.waypoints: list[list] = [[] for _ in range(num_envs)]
         self.wp_class_ids: list[list[int]] = [[] for _ in range(num_envs)]
         self.wp_idx = torch.zeros(num_envs, dtype=torch.long, device=device)
@@ -99,6 +150,12 @@ class PickPlaceController:
                 object_names = [object_names[pick_idx]]
             wps = []
             wp_class_ids = []
+            # Optional scan phase: multi-angle observation before picking.
+            if self.scan_before_pick:
+                scan_wps = make_scan_waypoints(objs)
+                wps.extend(scan_wps)
+                # Scan waypoints use class_id=0 (background) since they're observation-only.
+                wp_class_ids.extend([0] * len(scan_wps))
             for obj_name, obj_xyz in zip(object_names, objs):
                 obj_wps = make_object_waypoints(obj_xyz)
                 wps.extend(obj_wps)

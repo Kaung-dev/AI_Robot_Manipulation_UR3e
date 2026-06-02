@@ -10,6 +10,7 @@ Simplest working approach: patch sys.argv with our task, add repo to path, and
 let annotate_demos.py boot Isaac Sim then import everything.
 """
 from __future__ import annotations
+import os
 import sys
 from pathlib import Path
 
@@ -20,7 +21,7 @@ sys.path.insert(0, str(REPO_ROOT))
 # then our tasks register when isaaclab_ext is imported post-boot.
 import runpy
 
-ISAACLAB_PATH = Path("/home/steph/isaac-sim/isaac-sim-standalone-5.1.0-linux-x86_64/IsaacLab")
+ISAACLAB_PATH = Path(os.environ.get("ISAACLAB_PATH", "/mnt/extra/IsaacLab"))
 SCRIPT = ISAACLAB_PATH / "scripts/imitation_learning/isaaclab_mimic/annotate_demos.py"
 
 # Patch the script to import our tasks after AppLauncher starts.
