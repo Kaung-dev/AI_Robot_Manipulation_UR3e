@@ -424,9 +424,9 @@ class AIR2RobotisBrushEnvCfg_PLAY(AIR2RobotisBrushEnvCfg):
 class AIR2RobotisPliersFrankaEnvCfg(AIR2RobotisFrankaEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        # Swap scene.object to pliers USD so pliers is the primary pick target
-        # at slot L1 — identical scene layout to brush.
         self.scene.object.spawn.usd_path = str(_ASSETS / OBJECT_SPECS[1].usd_file)
+        # Replace tool_pliers distractor with brush so there's no duplicate pliers
+        self.scene.tool_pliers.spawn.usd_path = str(_ASSETS / OBJECT_SPECS[0].usd_file)
         _apply_target_rewards(self, "object")
 
 
@@ -444,6 +444,8 @@ class AIR2RobotisScissorsFrankaEnvCfg(AIR2RobotisFrankaEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.scene.object.spawn.usd_path = str(_ASSETS / OBJECT_SPECS[2].usd_file)
+        # Replace tool_scissors distractor with brush so there's no duplicate scissors
+        self.scene.tool_scissors.spawn.usd_path = str(_ASSETS / OBJECT_SPECS[0].usd_file)
         _apply_target_rewards(self, "object")
 
 
@@ -461,6 +463,8 @@ class AIR2RobotisScrewdriverFrankaEnvCfg(AIR2RobotisFrankaEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.scene.object.spawn.usd_path = str(_ASSETS / OBJECT_SPECS[3].usd_file)
+        # Replace tool_screwdriver distractor with brush so there's no duplicate screwdriver
+        self.scene.tool_screwdriver.spawn.usd_path = str(_ASSETS / OBJECT_SPECS[0].usd_file)
         _apply_target_rewards(self, "object")
 
 
