@@ -338,3 +338,41 @@ BASKET_REACH_RADIUS = 0.40  # success metric threshold
 ### Known issue — other 2 brush slot locations
 
 The arm barely moves (raw_arm~0.001-0.005) for non-rightmost slots even with the `target_object_position` patch. Root cause suspected to be covariate shift: training data may be skewed toward the rightmost slot, so the policy hasn't learned to approach from the other starting configurations. Next step: verify training data slot distribution and either collect more diverse demos or add per-slot conditioning.
+
+---
+
+## 2026-06-02 — BC-DW1: dwell-step loss down-weighting
+
+**Code:** BC-DW1
+**Who:** Steph
+**Changed:** `scripts/train_state_bc_from_hdf5.py`
+
+**Problem:** Training data is balanced ~33% per slot (confirmed), but 2 of 3 brush slots fail at eval. Root cause: every Mimic demo begins with ~5 dwell steps where arm actions are near-zero. The policy learns "at step 0, output near-zero" for all slots. At eval, the tiny initial output happens to point toward the rightmost slot but away from the other two — a geometry accident of the robot's default joint pose. Non-working slots never bootstrap into the self-reinforcing approach loop.
+
+**Fix:** Down-weight dwell steps in the training loss instead of removing them. Steps where `max|arm_action[:6]| < 0.01` (near-zero arm) get loss weight **0.1**. Active approach/carry steps get weight **1.0**. The policy still sees dwell context but the approach-direction signal dominates by 10x.
+
+**Why this weight:** Gentle enough that the policy still learns the dwell (preserving the "build-up" behaviour seen in the working slot), but strong enough that BC learns correct approach direction from step 5+ data even when step 0 obs looks like dwell.
+
+**Pre-patch state (revert to):**
+- `load_dataset` returned `(obs_all, act_all)` — no weights
+- `train(obs_np, act_np)` — uniform smooth-L1 loss, no weighting
+- `if __name__ == "__main__"`: `obs_np, act_np = load_dataset(...)`
+
+**Post-patch state:**
+- `load_dataset` returns `(obs_all, act_all, weight_all)` — weight_all shape (N,), values 0.1 or 1.0
+- `train(obs_np, act_np, weight_np)` — weighted smooth-L1 on training steps; val loss remains unweighted
+- `if __name__ == "__main__"`: `obs_np, act_np, weight_np = load_dataset(...)`
+
+**Checkpoint produced:** `checkpoints/policy_state_bc_mimic_v2_dw1.pth`
+
+**Run command:**
+```bash
+./launch_air2.sh train-state-bc datasets/air2_mimic_generated.hdf5 checkpoints/policy_state_bc_mimic_v2_dw1.pth 300
+```
+
+**Eval command:**
+```bash
+./launch_air2.sh eval-state-bc brush checkpoints/policy_state_bc_mimic_v2_dw1.pth 20 2000
+```
+
+**Status:** training pending

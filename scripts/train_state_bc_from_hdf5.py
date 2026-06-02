@@ -49,8 +49,12 @@ args = parser.parse_args()
 OBS_KEYS = ["joint_pos", "joint_vel", "object_position", "target_object_position", "actions", "eef_pos", "eef_quat"]
 # "actions" in the obs group = last_action recorded at that timestep
 
+DWELL_ARM_THRESH = 0.01   # BC-DW1: arm steps with max|action[:6]| below this are "dwell"
+DWELL_LOSS_WEIGHT = 0.1   # BC-DW1: loss weight for dwell steps (vs 1.0 for active steps)
+
+
 def load_dataset(hdf5_path: str):
-    obs_list, act_list = [], []
+    obs_list, act_list, weight_list = [], [], []
     with h5py.File(hdf5_path, "r") as f:
         demos = sorted(f["data"].keys(), key=lambda x: int(x.split("_")[1]))
         print(f"Loading {len(demos)} demos from {hdf5_path}")
@@ -76,13 +80,22 @@ def load_dataset(hdf5_path: str):
 
             obs = np.concatenate([obs_42, phase], axis=-1)  # (T, 43)
             act = d["actions"][:].astype(np.float32)        # (T, 7)
+
+            # BC-DW1: down-weight dwell steps so approach-direction signal dominates
+            arm_mag = np.abs(act[:, :6]).max(axis=1)        # (T,)
+            w = np.where(arm_mag < DWELL_ARM_THRESH, DWELL_LOSS_WEIGHT, 1.0).astype(np.float32)
+
             obs_list.append(obs)
             act_list.append(act)
+            weight_list.append(w)
 
     obs_all = np.concatenate(obs_list, axis=0)
     act_all = np.concatenate(act_list, axis=0)
+    weight_all = np.concatenate(weight_list, axis=0)
+    dwell_frac = (weight_all < 1.0).mean() * 100
     print(f"Dataset: {obs_all.shape[0]} steps, obs_dim={obs_all.shape[1]}, act_dim={act_all.shape[1]}")
-    return obs_all, act_all
+    print(f"BC-DW1: dwell steps={dwell_frac:.1f}% (weight={DWELL_LOSS_WEIGHT}), active={100-dwell_frac:.1f}% (weight=1.0)")
+    return obs_all, act_all, weight_all
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +116,7 @@ def make_mlp(input_dim: int, output_dim: int, hidden_dims: list[int]) -> nn.Sequ
 # Training
 # ---------------------------------------------------------------------------
 
-def train(obs_np: np.ndarray, act_np: np.ndarray):
+def train(obs_np: np.ndarray, act_np: np.ndarray, weight_np: np.ndarray):
     n = obs_np.shape[0]
     n_val = max(1, int(n * args.val_ratio))
     perm = np.random.permutation(n)
@@ -111,10 +124,11 @@ def train(obs_np: np.ndarray, act_np: np.ndarray):
 
     # Pin entire dataset on GPU — ~55MB total, avoids 641 CPU→GPU transfers per epoch
     dev = args.device
-    obs_t = torch.from_numpy(obs_np).to(dev)
-    act_t = torch.from_numpy(act_np).to(dev)
-    obs_train, act_train = obs_t[train_idx], act_t[train_idx]
-    obs_val,   act_val   = obs_t[val_idx],   act_t[val_idx]
+    obs_t    = torch.from_numpy(obs_np).to(dev)
+    act_t    = torch.from_numpy(act_np).to(dev)
+    weight_t = torch.from_numpy(weight_np).to(dev)
+    obs_train,  act_train,  w_train = obs_t[train_idx],  act_t[train_idx],  weight_t[train_idx]
+    obs_val,    act_val              = obs_t[val_idx],    act_t[val_idx]
     n_train = len(train_idx)
     print(f"Device: {dev}  |  train={n_train}  val={len(val_idx)}")
 
@@ -136,13 +150,16 @@ def train(obs_np: np.ndarray, act_np: np.ndarray):
         model.train()
         # Shuffle on GPU
         perm_t = torch.randperm(n_train, device=dev)
-        obs_shuf, act_shuf = obs_train[perm_t], act_train[perm_t]
+        obs_shuf, act_shuf, w_shuf = obs_train[perm_t], act_train[perm_t], w_train[perm_t]
         tr_loss = 0.0
         for i in range(0, n_train, args.batch_size):
             xb = obs_shuf[i:i + args.batch_size]
             yb = act_shuf[i:i + args.batch_size]
+            wb = w_shuf[i:i + args.batch_size]          # BC-DW1: per-sample weights
             pred = model(xb)
-            loss = nn.functional.smooth_l1_loss(pred, yb)
+            # BC-DW1: weight each sample's loss; val uses unweighted loss for a clean metric
+            loss_raw = nn.functional.smooth_l1_loss(pred, yb, reduction="none")  # (B, 7)
+            loss = (loss_raw.mean(dim=-1) * wb).mean()
             opt.zero_grad(); loss.backward(); opt.step()
             tr_loss += loss.item() * xb.size(0)
         tr_loss /= n_train
@@ -181,11 +198,11 @@ if __name__ == "__main__":
         print(f"[diag] GPU: {_t.cuda.get_device_name(0)}")
 
     t0 = time.time()
-    obs_np, act_np = load_dataset(args.hdf5)
+    obs_np, act_np, weight_np = load_dataset(args.hdf5)
     print(f"[diag] data load: {time.time()-t0:.1f}s")
 
     t1 = time.time()
-    model, best_state, log, input_dim, action_dim = train(obs_np, act_np)
+    model, best_state, log, input_dim, action_dim = train(obs_np, act_np, weight_np)
     print(f"[diag] total train time: {time.time()-t1:.1f}s")
 
     torch.save({
