@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import sys
 from pathlib import Path
 
@@ -39,7 +40,7 @@ parser.add_argument("--screwdriver_ckpt",
 parser.add_argument("--task",             default="Isaac-AIR2-Robotis-Franka-Brush-Play-v0")
 parser.add_argument("--num_episodes",     type=int,   default=10)
 parser.add_argument("--max_steps_per_tool", type=int, default=2000)
-parser.add_argument("--seg_ckpt",         default="checkpoints/air2_segmentation_unet.pth")
+parser.add_argument("--seg_ckpt",         default="checkpoints/air2_segmentation_unet_newscene.pth")
 parser.add_argument("--detect_every",     type=int,   default=10)
 parser.add_argument("--no_cnn",           action="store_true",
                     help="Skip CNN entirely — use GT physics positions. No board_camera loaded.")
@@ -97,10 +98,72 @@ RELEASE_HOLD    = 120
 SUCCESS_RADIUS  = 0.25
 SUCCESS_Z_MAX   = 1.27
 
+# Safe-transit height: lift the EE above this world-z (top pegs sit at z~1.611)
+# before ANY lateral move (carry to basket, return home) so the arm + carried
+# tool travel through clear airspace and never knock the other hanging tools.
+SAFE_LIFT_Z     = 1.95
+LIFT_MAX_STEPS  = 120
+
 # CNN: minimum confidence to trust a detection; below this falls back to physics
 CNN_CONF_THRESH = 0.35
-# Peg-area world-frame Z threshold — tool is "on peg" if z > this
-PEG_Z_MIN = 1.20
+# Peg-area world-frame Z threshold — tool is "on peg" if z > this.
+# Tools sit at z~1.18 on the pegs; table ~0.72, robot ~0.03. 1.10 keeps all
+# four tools with margin for depth noise and excludes the table/robot.
+# (1.20 was too high — it false-dropped brush@1.181 and pliers@1.187.)
+PEG_Z_MIN = 1.10
+
+# ---------------------------------------------------------------------------
+# Constrained-random spawn: each tool lands on a RANDOM slot, but only among
+# the slots its BC policy can actually grasp. Mirrors mdp/events.py
+# (SLOT_POSITIONS world coords + _TOOL_QUAT) so placement is in-distribution,
+# but applied in this demo only — shared training/PPO code is NOT touched.
+#   brush (object)        -> R0 / R1 / R2  (all)
+#   pliers (tool_pliers)  -> R0 / R2       (never R1)
+#   screwdriver           -> R1 / R2       (never R0)
+#   scissors              -> R3            (parked; no policy, skipped)
+# ---------------------------------------------------------------------------
+SLOT_WORLD = {
+    "R0": [-4.272, -5.960, 1.611],
+    "R1": [-4.445, -5.960, 1.611],
+    "R2": [-4.272, -5.960, 1.326],
+    "R3": [-4.445, -5.960, 1.326],
+}
+TOOL_QUAT = [0.7071, 0.0, 0.0, -0.7071]
+# Distinct assignments of brush/pliers/screwdriver to R0/R1/R2 that satisfy
+# every tool's working-slot constraint (scissors always -> R3). One is chosen
+# at random per reset.
+VALID_ASSIGNMENTS = [
+    {"object": "R2", "tool_pliers": "R0", "tool_screwdriver": "R1", "tool_scissors": "R3"},
+    {"object": "R1", "tool_pliers": "R0", "tool_screwdriver": "R2", "tool_scissors": "R3"},
+    {"object": "R0", "tool_pliers": "R2", "tool_screwdriver": "R1", "tool_scissors": "R3"},
+]
+
+
+def place_tools(env, device, assignment, placed, settle_steps: int = 30) -> None:
+    """Write the tool poses WITHOUT env.reset() (a mid-episode env.reset() with
+    cameras active deadlocks the omni.syntheticdata render pipeline). Keeps the
+    SAME board arrangement: tools not yet handled go on their assigned pegs
+    (restoring any that were knocked off); already-LANDED tools go to the basket."""
+    env_ids = torch.tensor([0], device=device)
+    quat = torch.tensor(TOOL_QUAT, device=device).unsqueeze(0)
+    basket = BASKET_POS_LOCAL.to(device).unsqueeze(0)
+    for scene_key, slot in assignment.items():
+        asset = env.unwrapped.scene[scene_key]
+        if scene_key in placed:
+            pos = env.unwrapped.scene.env_origins[env_ids] + basket
+        else:
+            pos = env.unwrapped.scene.env_origins[env_ids] + \
+                torch.tensor(SLOT_WORLD[slot], device=device).unsqueeze(0)
+        asset.write_root_pose_to_sim(torch.cat([pos, quat], dim=-1), env_ids=env_ids)
+        asset.write_root_velocity_to_sim(torch.zeros(1, 6, device=device), env_ids=env_ids)
+    # Settle the tools with proper env.step() calls (NOT bare sim.step, which
+    # bypasses the action pipeline and makes the arm lurch). A neutral action
+    # (zero EE delta + gripper open) holds the robot at its post-reset home pose
+    # while the tools drop onto their pegs.
+    neutral = torch.zeros(1, 7, device=device)
+    neutral[0, 6] = 1.0  # gripper open
+    for _ in range(settle_steps):
+        env.step(neutral)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -144,35 +207,84 @@ def load_seg_model(path: str, device: str):
     return model
 
 
-def go_home(env, robot, device: str, max_steps: int = 200) -> None:
-    home = HOME_JOINTS.to(device).unsqueeze(0)
+def go_home(env, robot, device: str, max_steps: int = 400) -> None:
+    """Return to a CLEAN home start for the next tool — WITHOUT env.reset()
+    (which deadlocks with cameras). Three stages:
+      1) open gripper + lift the EE straight up clear of the pegs, so the return
+         travels through empty airspace and never knocks the hanging tools;
+      2) drive the joints to the home pose until converged (verified);
+      3) flush the env's last_action buffer with a few neutral steps, so the next
+         policy's observation starts in-distribution (a stale last_action from the
+         previous tool was making tools 2/3 start OOD and fail to even approach).
+    """
+    ee = env.unwrapped.scene["ee_frame"]
+    # 1) open gripper + lift straight up (IK-rel +z in root frame ≈ world up)
+    for _ in range(LIFT_MAX_STEPS):
+        if ee.data.target_pos_w[0, 0, 2].item() > SAFE_LIFT_Z:
+            break
+        lift = torch.zeros(1, 7, device=device)
+        lift[0, 2] = 0.12   # +z position delta (lift)
+        lift[0, 6] = 1.0    # gripper open
+        env.step(lift)
+    # 2) drive to the configured init pose and confirm convergence (use the env's
+    #    own default_joint_pos — the exact pose the cfg + training use)
+    home = robot.data.default_joint_pos[:1].clone()
+    converged = False
     for _ in range(max_steps):
         robot.set_joint_position_target(home)
+        robot.write_data_to_sim()                       # PUSH the target to sim (was missing!)
         env.unwrapped.sim.step()
         env.unwrapped.scene.update(env.unwrapped.physics_dt)
         if (robot.data.joint_pos - home).abs().max() < HOME_JOINT_TOL:
+            converged = True
             break
+    # 3) flush last_action toward neutral (zero EE delta, gripper open) so the
+    #    next policy starts like a fresh reset. Holds the home pose (zero delta).
+    neutral = torch.zeros(1, 7, device=device)
+    neutral[0, 6] = 1.0
+    for _ in range(5):
+        env.step(neutral)
+    err = (robot.data.joint_pos - home).abs().max().item()
+    print(f"[seq] go_home: converged={converged} max_joint_err={err:.4f}", flush=True)
 
 
-def run_cnn(seg_model, board_cam, device: str) -> dict[str, list[float]]:
+def run_cnn(seg_model, board_cam, device: str, debug: bool = False) -> dict[str, list[float]]:
     """Return {label: position_world} for tools detected on the pegs."""
     rgb   = board_cam.data.output["rgb"][0].detach().cpu().numpy().astype("uint8")
     depth = board_cam.data.output["distance_to_image_plane"][0].detach().cpu().numpy()
     intr  = board_cam.data.intrinsic_matrices[0].detach().cpu().numpy()
     pos_w = board_cam.data.pos_w[0].detach().cpu().numpy()
     quat_w = board_cam.data.quat_w_ros[0].detach().cpu().numpy()
+    H, W = rgb.shape[0], rgb.shape[1]
     with torch.no_grad():
+        # Model was trained at 224x224 — resize input to match the training scale
+        # (raw 640x360 makes the tools ~3x larger than anything seen in training).
         rgb_t  = torch.from_numpy(rgb).permute(2, 0, 1).float().unsqueeze(0).to("cpu") / 255.0
-        logits = seg_model(rgb_t)
+        rgb_224 = torch.nn.functional.interpolate(rgb_t, size=(224, 224),
+                                                  mode="bilinear", align_corners=False)
+        logits_224 = seg_model(rgb_224)
+        # Upsample logits back to native res so centroids align with the depth map.
+        logits = torch.nn.functional.interpolate(logits_224, size=(H, W),
+                                                 mode="bilinear", align_corners=False)
     dets = extract_detections(logits, depth=depth, intrinsic_matrix=intr,
                                pos_w=pos_w, rot_w_quat=quat_w,
                                min_confidence=CNN_CONF_THRESH)
     result = {}
     for d in dets:
-        if d["class_id"] == 0 or d["position_world"] is None:
+        if d["class_id"] == 0:
             continue
         pw = d["position_world"]
-        if pw[2] > PEG_Z_MIN:  # only count detections in peg area
+        # Diagnostic: show every non-bg detection and why it is/ isn't kept.
+        if pw is None:
+            reason = "DROP(no position_world — depth invalid)"
+        elif pw[2] <= PEG_Z_MIN:
+            reason = f"DROP(z={pw[2]:.3f} <= PEG_Z_MIN {PEG_Z_MIN})"
+        else:
+            reason = "KEEP"
+        if debug:
+            print(f"[cnn]   {d['label']:<11} conf={d.get('confidence', float('nan')):.2f} "
+                  f"pos={None if pw is None else [round(v,3) for v in pw]} -> {reason}", flush=True)
+        if pw is not None and pw[2] > PEG_Z_MIN:  # only count detections in peg area
             result[d["label"]] = pw
     return result
 
@@ -217,12 +329,13 @@ def run_tool(
     for step in range(args_cli.max_steps_per_tool):
         with torch.inference_mode():
 
-            # Refresh CNN position every detect_every steps (skipped in --no_cnn mode)
-            if not args_cli.no_cnn and step % args_cli.detect_every == 0 and step > 0:
-                fresh = run_cnn(seg_model, board_cam, device)
-                if tool_name in fresh:
-                    cnn_world = torch.tensor(fresh[tool_name], dtype=torch.float32,
-                                             device=device).unsqueeze(0)
+            # HYBRID: the CNN already decided WHICH tool to grasp (it was detected
+            # in the pre-pick scan). For the actual grasp/carry we track the TRUE
+            # object pose — the CNN's depth-derived position is ~10 cm off, too
+            # coarse for the grasp, and once the tool is gripped it leaves the
+            # board view so the CNN can't track it anyway. This reuses the proven
+            # per-object servo path that lands every tool.
+            cnn_world = tool_obj.data.root_pos_w.clone()
 
             # CNN world → robot-root frame (for obs override + SERVO)
             obj_root, _ = subtract_frame_transforms(
@@ -399,19 +512,29 @@ def main():
         board_cam = env.unwrapped.scene["board_camera"]
         print("[seq] seg model loaded.", flush=True)
     robot     = env.unwrapped.scene["robot"]
+    _hj = robot.data.default_joint_pos[0].tolist()
+    print(f"[seq] robot init (home) joint_pos = {[round(v, 4) for v in _hj]}", flush=True)
     print(f"[seq] Starting {args_cli.num_episodes} episodes.", flush=True)
 
     basket_dev  = BASKET_POS_LOCAL.to(device)
     all_episodes = []
 
     for ep_idx in range(args_cli.num_episodes):
-        env.reset()
-        ep_results = []
+        # One constrained-random arrangement for the whole episode (re-randomized
+        # only between EPISODES, not between tools).
+        assignment = random.choice(VALID_ASSIGNMENTS)
+        placed = set()  # scene_keys of tools that LANDED (go to the basket)
+        env.reset()  # episode-start reset is safe; mid-episode resets deadlock w/ cameras
+        place_tools(env, device, assignment, placed)
         print(f"\n[seq] ===== EPISODE {ep_idx + 1}/{args_cli.num_episodes} =====", flush=True)
+        print(f"[seq] constrained spawn: brush={assignment['object']} "
+              f"pliers={assignment['tool_pliers']} screwdriver={assignment['tool_screwdriver']} "
+              f"scissors={assignment['tool_scissors']}(parked)", flush=True)
+        ep_results = []
 
         attempted = set()
         while len(attempted) < len(TOOL_ORDER):
-            detections = {} if args_cli.no_cnn else run_cnn(seg_model, board_cam, device)
+            detections = {} if args_cli.no_cnn else run_cnn(seg_model, board_cam, device, debug=True)
             remaining = [t for t in TOOL_ORDER if t not in attempted]
             on_peg    = [t for t in remaining if t in detections]
 
@@ -428,10 +551,20 @@ def main():
             if user_input == "done":
                 break
             elif user_input == "auto":
-                # Pick next in priority order that's on peg
-                tool_name = next((t for t in remaining if t in detections), None)
+                # Mark any detected tools we have NO policy for (e.g. scissors) as
+                # attempted so they don't block the loop, then pick the next in
+                # priority order that is BOTH on a peg AND has a loaded policy.
+                for t in remaining:
+                    if t in detections and t not in policies:
+                        print(f"[seq] {t} detected but no policy loaded — skipping", flush=True)
+                        attempted.add(t)
+                        ep_results.append({"tool": t, "steps": 0, "landed": False,
+                                           "released": False, "final_dist": -1.0,
+                                           "skipped": True})
+                tool_name = next((t for t in remaining
+                                  if t in detections and t in policies), None)
                 if tool_name is None:
-                    print("[seq] No tools detected on peg — ending episode", flush=True)
+                    print("[seq] No detected tool has a policy — ending episode", flush=True)
                     break
             elif user_input.startswith("skip "):
                 skip_tool = user_input.split()[1]
@@ -451,16 +584,21 @@ def main():
                 print(f"[seq] Unknown command '{user_input}'", flush=True)
                 continue
 
-            if tool_name not in detections:
-                tool_obj_fb = env.unwrapped.scene[TOOL_SCENE_KEY[tool_name]]
-                gt_pos = tool_obj_fb.data.root_pos_w[0].cpu().tolist()
-                print(f"[seq] {tool_name} not detected — using GT physics pos", flush=True)
-                cnn_pos = gt_pos
+            # HYBRID: the CNN detected this tool and chose it in the sequence;
+            # the grasp itself uses the TRUE object pose (mm-precision), since the
+            # CNN position (~10 cm off) is too coarse to actually grasp.
+            grasp_obj = env.unwrapped.scene[TOOL_SCENE_KEY[tool_name]]
+            cnn_pos = grasp_obj.data.root_pos_w[0].cpu().tolist()
+            det_pos = detections.get(tool_name)
+            if det_pos is not None:
+                err = sum((a - b) ** 2 for a, b in zip(cnn_pos, det_pos)) ** 0.5
+                print(f"[seq] {tool_name}: CNN-detected at "
+                      f"({det_pos[0]:.3f},{det_pos[1]:.3f},{det_pos[2]:.3f}); "
+                      f"grasping at TRUE pose ({cnn_pos[0]:.3f},{cnn_pos[1]:.3f},{cnn_pos[2]:.3f}) "
+                      f"[CNN err {err:.3f}m]", flush=True)
             else:
-                cnn_pos = detections[tool_name]
-
-            print(f"[seq] running {tool_name} at ({cnn_pos[0]:.3f},{cnn_pos[1]:.3f},{cnn_pos[2]:.3f})",
-                  flush=True)
+                print(f"[seq] running {tool_name} at TRUE pose "
+                      f"({cnn_pos[0]:.3f},{cnn_pos[1]:.3f},{cnn_pos[2]:.3f})", flush=True)
 
             model, obs_mean, obs_std, obs_aligned = policies[tool_name]
             result = run_tool(
@@ -470,11 +608,20 @@ def main():
             result["skipped"] = False
             ep_results.append(result)
             attempted.add(tool_name)
+            if result["landed"]:
+                placed.add(TOOL_SCENE_KEY[tool_name])
             print(f"[seq] {tool_name}: LANDED={result['landed']}  "
                   f"dist={result['final_dist']:.3f}m  steps={result['steps']}", flush=True)
 
-            go_home(env, robot, device)
-            print(f"[seq] returned home", flush=True)
+            # Clean transition before the next tool (NO env.reset — it deadlocks
+            # with cameras): home the arm + flush buffers (go_home), then restore
+            # the arrangement (landed tools -> basket, the rest back on their
+            # pegs). Skip if this was the last tool.
+            if len(attempted) < len(TOOL_ORDER):
+                go_home(env, robot, device)
+                place_tools(env, device, assignment, placed)
+                print(f"[seq] ready for next tool (arrangement preserved, "
+                      f"{len(placed)} in basket)", flush=True)
 
         landed_n = sum(1 for r in ep_results if r["landed"])
         print(f"[seq] episode {ep_idx+1} done — {landed_n}/{len(TOOL_ORDER)} landed", flush=True)
