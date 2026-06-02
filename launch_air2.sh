@@ -190,14 +190,16 @@ case "$MODE" in
     ;;
 
   eval-state-bc)
-    CKPT="${2:-$REPO_ROOT/checkpoints/policy_state_bc_mimic.pth}"
-    EPISODES="${3:-20}"
-    MAX_STEPS="${4:-1600}"
-    echo "[INFO] Evaluating state-BC — $CKPT  ($EPISODES episodes, max $MAX_STEPS steps)"
+    OBJECT="${2:-brush}"
+    CKPT="${3:-$REPO_ROOT/checkpoints/policy_state_bc_mimic.pth}"
+    EPISODES="${4:-20}"
+    MAX_STEPS="${5:-1600}"
+    OBJECT_CAP="$(echo "$OBJECT" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')"
+    echo "[INFO] Evaluating state-BC ($OBJECT) — $CKPT  ($EPISODES episodes, max $MAX_STEPS steps)"
     PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
       "$REPO_ROOT/scripts/eval_state_bc.py" \
       --state_bc_ckpt "$CKPT" \
-      --task "Isaac-AIR2-Robotis-Franka-Brush-Play-v0" \
+      --task "Isaac-AIR2-Robotis-Franka-${OBJECT_CAP}-Play-v0" \
       --num_envs 1 --num_episodes "$EPISODES" --max_steps "$MAX_STEPS" --episode_length_s 80.0
     ;;
 
