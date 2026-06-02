@@ -59,14 +59,18 @@ def load_dataset(hdf5_path: str):
             obs_parts = [d["obs"][k][:] for k in OBS_KEYS]
             obs_42 = np.concatenate(obs_parts, axis=-1).astype(np.float32)  # (T, 42)
 
-            # Phase label from grasp_brush subtask term signal (0=approach, 1=carry)
+            # Phase label: 0=approach, 1=carry
+            # Prefer datagen_info grasp_brush signal (annotated HDF5); fall back to
+            # gripper action column (generated HDF5, which omits datagen_info).
             T = obs_42.shape[0]
             try:
-                signals = d["obs/datagen_info/subtask_term_signals/grasp_brush"][:].flatten()
+                signals = d["obs"]["datagen_info"]["subtask_term_signals"]["grasp_brush"][:].flatten()
                 transitions = np.where(np.diff(signals.astype(np.int32)) > 0)[0]
                 boundary = int(transitions[0]) + 1 if len(transitions) > 0 else T
-            except KeyError:
-                boundary = T
+            except (KeyError, ValueError):
+                grip = d["actions"][:, -1]
+                trans = np.where(np.diff((grip < 0).astype(np.int32)) > 0)[0]
+                boundary = int(trans[0]) + 1 if len(trans) > 0 else T
             phase = np.zeros((T, 1), dtype=np.float32)
             phase[boundary:] = 1.0
 

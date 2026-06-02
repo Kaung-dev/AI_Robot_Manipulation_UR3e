@@ -201,14 +201,9 @@ class AIR2FrankaEnvCfg(LiftEnvCfg):
             ],
         )
 
-        # 35-D obs layout used by train_state_bc_from_raw.py (Path B BCs).
-        # Final order after disabling target_object_position:
-        #   joint_pos(9) + joint_vel(9) + object_position(3) + actions=last_action(7)
-        #   + eef_pos(3) + eef_quat(4) = 35
-        # target_object_position is the LiftEnvCfg's random goal pose. Our
-        # demos don't contain it (basket is fixed in world), so feeding a
-        # random goal at eval time is just covariate-shift noise. Disable it.
-        self.observations.policy.target_object_position = None
+        # 42-D obs layout (LiftEnvCfg target_object_position kept active):
+        #   joint_pos(9) + joint_vel(9) + object_position(3) + target_object_position(7)
+        #   + actions=last_action(7) + eef_pos(3) + eef_quat(4) = 42
         self.observations.policy.eef_pos = ObsTerm(func=stack_mdp.ee_frame_pos)
         self.observations.policy.eef_quat = ObsTerm(func=stack_mdp.ee_frame_quat)
 

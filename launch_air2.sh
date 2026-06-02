@@ -198,7 +198,7 @@ case "$MODE" in
       "$REPO_ROOT/scripts/eval_state_bc.py" \
       --state_bc_ckpt "$CKPT" \
       --task "Isaac-AIR2-Robotis-Franka-Brush-Play-v0" \
-      --num_envs 1 --num_episodes "$EPISODES" --max_steps "$MAX_STEPS"
+      --num_envs 1 --num_episodes "$EPISODES" --max_steps "$MAX_STEPS" --episode_length_s 80.0
     ;;
 
   ppo-play)
