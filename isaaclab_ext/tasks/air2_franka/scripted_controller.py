@@ -29,7 +29,7 @@ from .objects import OBJECT_BY_SCENE_KEY, OBJECT_NAMES as CATALOG_OBJECT_NAMES
 
 # Match collect_air2_demos.py expectations.
 OBJECT_NAMES = list(CATALOG_OBJECT_NAMES)
-BASKET_POS_LOCAL = torch.tensor([-3.918, -5.787, 1.042])  # 2026-06-01: corrected to basket mesh, not outer Xform
+BASKET_POS_LOCAL = torch.tensor([-3.941, -5.785, 1.140])
 
 # Approach geometry — hooks are at y=-5.9 so objects sit on the -Y side of the
 # pegboard. Approaching from +Y (toward the robot) makes sense.

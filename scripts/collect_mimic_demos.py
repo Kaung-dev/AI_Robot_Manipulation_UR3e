@@ -102,6 +102,8 @@ num_recorded = 0
 num_success = 0
 num_failures = 0
 num_attempts = 0
+_prev_grip_sign = [None]
+_current_demo_grip_events = []
 
 
 class PreStepDatagenInfoRecorder(RecorderTerm):
@@ -196,8 +198,9 @@ async def run_teleop_robot(
     env, env_id, env_action_queue, shared_datagen_info_pool, success_term, exported_dataset_path, teleop_interface=None
 ):
     """Run teleop robot."""
-    global num_recorded
+    global num_recorded, _prev_grip_sign, _current_demo_grip_events
     should_reset_teleop_instance = False
+    should_accept_teleop_instance = False
     # create controller if needed
     if teleop_interface is None:
         if args_cli.teleop_device.lower() == "keyboard":
@@ -216,28 +219,55 @@ async def run_teleop_robot(
                 f"Invalid device interface '{args_cli.teleop_device}'. Supported: 'keyboard', 'spacemouse'."
             )
 
-    # add teleoperation key for reset current recording instance
     def reset_teleop_instance():
         nonlocal should_reset_teleop_instance
         should_reset_teleop_instance = True
 
+    def accept_teleop_instance():
+        nonlocal should_accept_teleop_instance
+        should_accept_teleop_instance = True
+
     teleop_interface.add_callback("R", reset_teleop_instance)
+    teleop_interface.add_callback("ENTER", accept_teleop_instance)
 
     teleop_interface.reset()
     print(teleop_interface)
+    print("[collect] ENTER = save demo | R = discard and reset", flush=True)
 
     recorded_episode_dataset_file_handler = HDF5DatasetFileHandler()
     recorded_episode_dataset_file_handler.create(exported_dataset_path, env_name=env.unwrapped.cfg.env_name)
+    _grip_log_path = exported_dataset_path.replace(".hdf5", "_gripper_log.txt")
+    _grip_log = open(_grip_log_path, "w")
 
     env_id_tensor = torch.tensor([env_id], dtype=torch.int64, device=env.unwrapped.device)
-    success_step_count = 0
     num_recorded = 0
     while True:
         if should_reset_teleop_instance:
             env.unwrapped.recorder_manager.reset(env_id_tensor)
             env.unwrapped.reset(env_ids=env_id_tensor)
             should_reset_teleop_instance = False
-            success_step_count = 0
+            _prev_grip_sign[0] = None
+            _current_demo_grip_events.clear()
+
+        if should_accept_teleop_instance:
+            should_accept_teleop_instance = False
+            env.unwrapped.recorder_manager.set_success_to_episodes(
+                env_id_tensor, torch.tensor([[True]], dtype=torch.bool, device=env.unwrapped.device)
+            )
+            teleop_episode = env.unwrapped.recorder_manager.get_episode(env_id)
+            teleop_episode.pre_export()
+            recorded_episode_dataset_file_handler.write_episode(teleop_episode)
+            recorded_episode_dataset_file_handler.flush()
+            env.unwrapped.recorder_manager.reset(env_id_tensor)
+            num_recorded += 1
+            _grip_log.write(f"=== demo {num_recorded} ===\n")
+            for event in _current_demo_grip_events:
+                _grip_log.write(event + "\n")
+            _grip_log.flush()
+            _prev_grip_sign[0] = None
+            _current_demo_grip_events.clear()
+            should_reset_teleop_instance = True
+            print(f"[collect] saved {num_recorded} / {args_cli.num_demos}", flush=True)
 
         # get keyboard command — advance() returns a single (1, action_dim) tensor in IsaacLab 2.3.2
         action_cmd = teleop_interface.advance()
@@ -245,25 +275,6 @@ async def run_teleop_robot(
 
         await env_action_queue.put((env_id, teleop_action))
         await env_action_queue.join()
-
-        if success_term is not None:
-            if bool(success_term.func(env.unwrapped, **success_term.params)[env_id]):
-                success_step_count += 1
-                if success_step_count >= args_cli.num_success_steps:
-                    env.unwrapped.recorder_manager.set_success_to_episodes(
-                        env_id_tensor, torch.tensor([[True]], dtype=torch.bool, device=env.unwrapped.device)
-                    )
-                    teleop_episode = env.unwrapped.recorder_manager.get_episode(env_id)
-                    teleop_episode.pre_export()  # convert lists → tensors before datagen_info_pool reads them
-                    await shared_datagen_info_pool.add_episode(teleop_episode)
-
-                    recorded_episode_dataset_file_handler.write_episode(teleop_episode)
-                    recorded_episode_dataset_file_handler.flush()
-                    env.unwrapped.recorder_manager.reset(env_id_tensor)
-                    num_recorded += 1
-                    should_reset_teleop_instance = True
-            else:
-                success_step_count = 0
 
 
 async def run_data_generator(
@@ -308,6 +319,7 @@ def env_loop(env, env_action_queue, shared_datagen_info_pool, asyncio_event_loop
     # simulate environment -- run everything in inference mode
     is_first_print = True
     _basket_printed = False
+    global _prev_grip_sign, _current_demo_grip_events
     _prev_grip_sign = [None] * env.unwrapped.num_envs
     with contextlib.suppress(KeyboardInterrupt) and torch.inference_mode():
         while True:
@@ -333,14 +345,15 @@ def env_loop(env, env_action_queue, shared_datagen_info_pool, asyncio_event_loop
                             t = UsdGeom.Xformable(prim).ComputeLocalToWorldTransform(
                                 Usd.TimeCode.Default()).ExtractTranslation()
                             local = (t[0] - float(origin[0]), t[1] - float(origin[1]), t[2] - float(origin[2]))
-                            print(f"[basket] world=({t[0]:.4f}, {t[1]:.4f}, {t[2]:.4f})  "
-                                  f"env-local=({local[0]:.4f}, {local[1]:.4f}, {local[2]:.4f})", flush=True)
+                            msg = (f"[basket] world=({t[0]:.4f}, {t[1]:.4f}, {t[2]:.4f})  "
+                                   f"env-local=({local[0]:.4f}, {local[1]:.4f}, {local[2]:.4f})")
+                            print(msg, flush=True)
                             break
                 except Exception as e:
                     print(f"[basket] could not read prim: {e}", flush=True)
                 _basket_printed = True
 
-            # Print EE + object position on gripper open/close transitions (env 0 only)
+            # Accumulate EE + object position on gripper open/close transitions (env 0 only)
             grip = float(actions[0, 6].item())
             grip_sign = 1 if grip >= 0 else -1
             if _prev_grip_sign[0] is not None and grip_sign != _prev_grip_sign[0]:
@@ -350,9 +363,11 @@ def env_loop(env, env_action_queue, shared_datagen_info_pool, asyncio_event_loop
                 ee_local  = (ee_w - origin).tolist()
                 obj_local = (obj_w - origin).tolist()
                 state_str = "CLOSE" if grip_sign < 0 else "OPEN"
-                print(f"[gripper→{state_str}]  "
-                      f"ee=({ee_local[0]:.3f}, {ee_local[1]:.3f}, {ee_local[2]:.3f})  "
-                      f"obj=({obj_local[0]:.3f}, {obj_local[1]:.3f}, {obj_local[2]:.3f})", flush=True)
+                msg = (f"[gripper→{state_str}]  "
+                       f"ee=({ee_local[0]:.3f}, {ee_local[1]:.3f}, {ee_local[2]:.3f})  "
+                       f"obj=({obj_local[0]:.3f}, {obj_local[1]:.3f}, {obj_local[2]:.3f})")
+                print(msg, flush=True)
+                _current_demo_grip_events.append(msg)
             _prev_grip_sign[0] = grip_sign
 
             # mark done so the data generators can continue with the step results

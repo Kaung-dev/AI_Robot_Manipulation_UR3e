@@ -62,10 +62,7 @@ class SubtaskTermsObsCfg(ObsGroup):
     """Subtask term signals for the BRUSH target (legacy class kept for
     backward compatibility with existing checkpoints / logs)."""
 
-    grasp_brush = ObsTerm(
-        func=air2_mdp.grasped,
-        params={"target_key": "object"},
-    )
+    grasp_brush = ObsTerm(func=air2_mdp.gripper_closed)
 
     def __post_init__(self):
         # Subtask term signals are NOT concatenated into a single tensor —

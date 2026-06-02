@@ -1,16 +1,19 @@
-"""Train a state-BC policy from Mimic-generated HDF5 demos.
+"""Train a phase-conditioned state-BC policy from Mimic-generated HDF5 demos.
 
 Obs:  joint_pos(9) + joint_vel(9) + object_position(3) +
-      target_object_position(7) + last_action(7)  = 35-D
+      target_object_position(7) + last_action(7) + eef_pos(3) + eef_quat(4) + phase(1) = 43-D
 Action: 7-D (matches PPO actor layout — checkpoint is load_state_dict compatible)
+
+Phase label is derived per-step from obs/datagen_info/subtask_term_signals/grasp_brush:
+  0 = approach (before grasp_brush fires), 1 = carry (after grasp_brush fires)
 
 No Isaac Sim required — pure PyTorch.
 
 Usage:
     python scripts/train_state_bc_from_hdf5.py \
-        --hdf5 datasets/air2_mimic_generated.hdf5 \
+        --hdf5 datasets/air2_mimic_generated_v2.hdf5 \
         --epochs 300 --lr 3e-4 \
-        --out checkpoints/policy_state_bc_mimic.pth
+        --out checkpoints/policy_state_bc_mimic_v2.pth
 """
 from __future__ import annotations
 
@@ -43,7 +46,7 @@ args = parser.parse_args()
 # Data loading
 # ---------------------------------------------------------------------------
 
-OBS_KEYS = ["joint_pos", "joint_vel", "object_position", "target_object_position", "actions"]
+OBS_KEYS = ["joint_pos", "joint_vel", "object_position", "target_object_position", "actions", "eef_pos", "eef_quat"]
 # "actions" in the obs group = last_action recorded at that timestep
 
 def load_dataset(hdf5_path: str):
@@ -54,8 +57,21 @@ def load_dataset(hdf5_path: str):
         for demo_key in demos:
             d = f["data"][demo_key]
             obs_parts = [d["obs"][k][:] for k in OBS_KEYS]
-            obs = np.concatenate(obs_parts, axis=-1).astype(np.float32)  # (T, 35)
-            act = d["actions"][:].astype(np.float32)                     # (T, 7)
+            obs_42 = np.concatenate(obs_parts, axis=-1).astype(np.float32)  # (T, 42)
+
+            # Phase label from grasp_brush subtask term signal (0=approach, 1=carry)
+            T = obs_42.shape[0]
+            try:
+                signals = d["obs/datagen_info/subtask_term_signals/grasp_brush"][:].flatten()
+                transitions = np.where(np.diff(signals.astype(np.int32)) > 0)[0]
+                boundary = int(transitions[0]) + 1 if len(transitions) > 0 else T
+            except KeyError:
+                boundary = T
+            phase = np.zeros((T, 1), dtype=np.float32)
+            phase[boundary:] = 1.0
+
+            obs = np.concatenate([obs_42, phase], axis=-1)  # (T, 43)
+            act = d["actions"][:].astype(np.float32)        # (T, 7)
             obs_list.append(obs)
             act_list.append(act)
 

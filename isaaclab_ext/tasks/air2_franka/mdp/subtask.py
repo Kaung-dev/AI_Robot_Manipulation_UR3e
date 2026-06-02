@@ -39,10 +39,25 @@ def grasped(
 
     True when EE is within `grasp_radius` m of target AND fingers are
     closer than `finger_threshold` (sum of left+right finger positions).
-    Matches `rewards.target_in_hand` so the signal aligns with what PPO
-    optimises for.
     """
     dist = torch.linalg.norm(_obj_local_pos(env, target_key) - _ee_local_pos(env), dim=-1)
     robot = env.scene["robot"]
     finger_sum = robot.data.joint_pos[:, -2:].sum(dim=-1)
     return (dist < grasp_radius) & (finger_sum < finger_threshold)
+
+
+_gripper_closed_prev: dict[int, torch.Tensor] = {}
+
+def gripper_closed(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """Per-env bool: gripper is commanded closed (last action dim < 0)."""
+    result = env.action_manager.action[:, -1] < 0
+    env_key = id(env)
+    prev = _gripper_closed_prev.get(env_key)
+    if prev is not None:
+        transitions = result & ~prev
+        if transitions.any():
+            for i in transitions.nonzero(as_tuple=False).squeeze(-1).tolist():
+                step = env.episode_length_buf[i].item()
+                print(f"[grasp_brush] env {i} phase change at step {step}", flush=True)
+    _gripper_closed_prev[env_key] = result.clone()
+    return result

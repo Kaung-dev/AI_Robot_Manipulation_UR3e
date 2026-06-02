@@ -134,6 +134,63 @@ Pure PyTorch, no Isaac Sim needed. ~10-20 min.
 ./launch_air2.sh eval-state-bc checkpoints/policy_state_bc_yourobj.pth 20
 ```
 
+---
+
+## 2026-06-02 — Gripper learning problem + eval phase logic flaw
+
+**Problem: BC never learns gripper timing**
+The gripper action is binary (+1/-1) in demos but BC regresses it continuously with MSE.
+The output is some float like 0.1 or -0.3 — ambiguous for `BinaryJointPositionActionCfg`.
+More fundamentally, gripper open/close is a mode switch that depends on task history
+(have I grasped yet?), not just current obs. A feedforward MLP with no memory can't
+reliably learn this from obs alone.
+
+**The eval_state_bc.py workaround masks the problem entirely:**
+The eval script ignores the BC policy's gripper output completely and replaces it with
+hardcoded phase logic:
+- Phase 0 (approach): arm=BC, gripper forced open, waits 250 steps within 0.08m of object
+- Phase 1 (grip): arm frozen, gripper forced closed, holds 50 steps
+- Phase 2 (carry): arm=BC, gripper forced closed
+
+Phase 2 arm control is also broken: BC has no idea it just grasped. It gets the current
+obs and outputs an arm action. The 50-step freeze in phase 1 creates an out-of-distribution
+obs at the start of phase 2 (arm frozen, gripper closed — never seen in training demos which
+are smooth and continuous). Policy is essentially guessing where to go in phase 2.
+
+**Why Mimic should fix this:**
+Mimic-generated demos preserve full trajectory continuity — no artificial phases, no freezes.
+BC trains on data matching what it sees at eval time. Gripper timing is still in the action
+labels but the obs context around transitions is richer and consistent across 1000 demos.
+
+**Decided fix: phase-conditioned BC**
+Add a 1-bit phase label (0=approach, 1=carry) as an extra input to the BC policy (42-D → 43-D obs).
+
+**Training side:**
+- Mimic annotation already finds the exact step where `grasp_brush` fires (subtask boundary)
+- Use that step index to label every obs in the generated HDF5: steps before boundary = phase 0, steps after = phase 1
+- Add phase as a 1-D input to the MLP in `train_state_bc_from_hdf5.py`
+- BC now learns two distinct arm behaviors from one policy: phase 0 → move toward object, phase 1 → move toward basket
+
+**Eval side (NO CHANGES):**
+- `eval_state_bc.py` phase logic stays identical — it already detects phase via proximity + step count and forces the gripper
+- The only difference is the policy now RECEIVES the phase bit as input and was trained with it
+- eval owns phase detection + gripper forcing; BC just learns the arm trajectory conditioned on phase
+- Result: phase 2 arm no longer guesses where to go — it was trained knowing it's in carry phase
+
+**Why this is better than current approach:**
+- Current eval forces phase but policy was trained without it → arm in phase 2 is OOD
+- New approach: eval passes phase=0 → policy moves to object; detects grasp, flips to phase=1 → policy moves to basket
+- No frozen-arm hack needed, no OOD obs at carry start
+- Same `grasp_brush` signal used in annotation AND eval — consistent
+
+**Implementation steps (next session):**
+1. After Mimic annotation, the annotated HDF5 has subtask boundary info per demo — extract step index where subtask 0 ends
+2. When loading HDF5 in `train_state_bc_from_hdf5.py`, compute phase label per step (0 before boundary, 1 after)
+3. Append phase to obs tensor: `obs = torch.cat([obs_42d, phase_1d], dim=-1)` → 43-D
+4. Update `OBS_DIM` from 42 to 43 in training script
+5. In `eval_state_bc.py`: pass `phase[i].float()` as extra dim when building the obs tensor fed to policy
+6. Save new checkpoint as `policy_state_bc_mimic_v2.pth` to distinguish from old 42-D checkpoint
+
 **Gotchas:**
 - Each HDF5 must be single-object only — do not mix objects
 - `grasp_radius` / `finger_threshold` in `mimic_env_cfg.py` may need per-object tuning (brush uses `0.15` / `0.07` due to the ring)

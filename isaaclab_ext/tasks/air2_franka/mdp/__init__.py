@@ -1,5 +1,5 @@
 from .events import reset_objects_on_hooks
-from .subtask import grasped
+from .subtask import grasped, gripper_closed
 from .rewards import (
     ee_to_target,
     target_off_slot,
@@ -20,4 +20,3 @@ from .rewards import (
     progress_stall,
 )
 from .terminations import target_reached_basket, target_dropped_in_basket
-from .subtask import grasped

@@ -73,7 +73,7 @@ def _make_mlp(input_dim, output_dim, hidden_dims, activation="elu"):
 
 
 # Same proxy success metric used by eval_bc.py / eval_ppo.py.
-BASKET_POS_LOCAL = torch.tensor([-3.560, -5.370, 1.040])
+BASKET_POS_LOCAL = torch.tensor([-3.941, -5.785, 1.140])
 BASKET_REACH_RADIUS = 0.40
 
 
@@ -132,10 +132,15 @@ def main():
             ee     = env.unwrapped.scene["ee_frame"]
             brush  = env.unwrapped.scene["object"]
             ee_pos  = ee.data.target_pos_w[..., 0, :]
+            ee_quat = ee.data.target_quat_w[..., 0, :]
             obj_pos = brush.data.root_pos_w
             ee_obj_dist = torch.linalg.norm(ee_pos - obj_pos, dim=-1)
 
-            action = policy(obs_policy)
+            # Build 43-D obs: base(35) + eef_pos(3) + eef_quat(4) + phase(1)
+            phase_bit = (phase >= 2).float().unsqueeze(-1)
+            obs_input = torch.cat([obs_policy, ee_pos, ee_quat, phase_bit], dim=-1)
+
+            action = policy(obs_input)
 
             # Phase 0 — APPROACH: BC arm, gripper open, count time near object
             near_counter = torch.where(

@@ -54,7 +54,7 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 
 
 # Same proxy success metric as eval_bc.py — distance to basket position.
-BASKET_POS_LOCAL = torch.tensor([-3.560, -5.370, 1.040])
+BASKET_POS_LOCAL = torch.tensor([-3.941, -5.785, 1.140])
 BASKET_REACH_RADIUS = 0.40
 
 

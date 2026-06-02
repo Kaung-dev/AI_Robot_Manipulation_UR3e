@@ -121,6 +121,32 @@ Robot: Franka Panda
 
 ---
 
+## 2026-06-02 — 3-basket bug identified; collect_mimic_demos.py reworked
+**Who:** Steph
+**Found:** 3 SM_BoxPortableD prims spawning simultaneously in every env instance.
+**Root cause:** `AIR2.usd` references `./AIR.usd` as a payload — `AIR.usd` has the basket at the
+original position. `AIR2.usd` had basket position adjusted twice (commits `e6753c2`, `c71cb93`),
+each adding a new prim rather than overriding. Results in 3 baskets: inside robot, above correct
+spot, correct spot.
+**Fix needed:** Open `scene/AIR2.usd` in Isaac Sim Stage panel → find 3 `SM_BoxPortableD` prims
+→ delete 2 wrong ones → save. NOT YET DONE.
+**Workaround:** Human operator aims for visually correct basket during teleop — collection
+proceeds despite bug.
+**Changed:** `collect_mimic_demos.py`:
+- Manual ENTER to accept demo / R to discard (replaced auto-save on success_term)
+- `add_episode()` removed (not needed for 1-env source collection)
+- Gripper open/close EE+obj positions logged to `_gripper_log.txt` on accept only
+- `debug_vis=True` on `ee_frame` — revert to False before training
+**Status:** collecting — basket USD fix pending
+**⚠️ IMPORTANT — EE FRAME DEBUG VIS:**
+`debug_vis=True` is currently set in `isaaclab_ext/tasks/air2_franka/joint_pos_env_cfg.py:192`.
+The wrist camera WILL capture these arrows — any CNN or segmentation data collected with this
+enabled will have RGB arrows visible in every frame, corrupting the training data.
+REVERT TO `debug_vis=False` BEFORE: collecting segmentation data, collecting visual BC demos, or committing/pushing.
+Leave enabled only for teleop inspection sessions.
+
+---
+
 ## 2026-05-31 — Per-object PPO runner config
 **Who:** Steph
 **Changed:** `agents/rsl_rl_ppo_cfg.py` added `AIR2RobotisPPORunnerCfg`; all per-object task registrations updated to use it
