@@ -145,25 +145,29 @@ case "$MODE" in
     ;;
 
   annotate-mimic)
-    IN="${2:-$REPO_ROOT/datasets/air2_mimic_demos.hdf5}"
-    OUT="${3:-$REPO_ROOT/datasets/air2_mimic_demos_annotated.hdf5}"
-    echo "[INFO] Annotating Mimic demos: $IN → $OUT"
+    OBJECT="${2:-brush}"
+    IN="${3:-$REPO_ROOT/datasets/air2_mimic_demos.hdf5}"
+    OUT="${4:-$REPO_ROOT/datasets/air2_mimic_demos_annotated.hdf5}"
+    OBJECT_CAP="$(echo "$OBJECT" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')"
+    echo "[INFO] Annotating Mimic demos ($OBJECT): $IN → $OUT"
     PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
       "$REPO_ROOT/scripts/run_mimic_annotate.py" \
-      --task "Isaac-AIR2-Robotis-Franka-Brush-Mimic-v0" \
+      --task "Isaac-AIR2-Robotis-Franka-${OBJECT_CAP}-Mimic-v0" \
       --input_file "$IN" \
       --output_file "$OUT" \
       --auto
     ;;
 
   generate-mimic)
-    IN="${2:-$REPO_ROOT/datasets/air2_mimic_demos_annotated.hdf5}"
-    OUT="${3:-$REPO_ROOT/datasets/air2_mimic_generated.hdf5}"
-    NUM="${4:-1000}"
-    echo "[INFO] Generating $NUM synthetic demos from $IN → $OUT"
+    OBJECT="${2:-brush}"
+    IN="${3:-$REPO_ROOT/datasets/air2_mimic_demos_annotated.hdf5}"
+    OUT="${4:-$REPO_ROOT/datasets/air2_mimic_generated.hdf5}"
+    NUM="${5:-1000}"
+    OBJECT_CAP="$(echo "$OBJECT" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')"
+    echo "[INFO] Generating $NUM synthetic demos ($OBJECT) from $IN → $OUT"
     PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}" "$ISAACLAB_PATH/isaaclab.sh" -p \
       "$REPO_ROOT/scripts/run_mimic_generate.py" \
-      --task "Isaac-AIR2-Robotis-Franka-Brush-Mimic-v0" \
+      --task "Isaac-AIR2-Robotis-Franka-${OBJECT_CAP}-Mimic-v0" \
       --input_file "$IN" \
       --output_file "$OUT" \
       --generation_num_trials "$NUM" \
