@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="AI Robot Manipulation — Franka Panda pick-and-place using behaviour cloning and Mimic data augmentation.">
+  <meta name="keywords" content="41118, robotics, manipulation, behaviour cloning, Isaac Lab">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Robot Manipulation — 41118 Portfolio</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">AI Robot Manipulation — UR3e Pick and Place</h1>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <!-- TODO: Replace with your name -->
+              <a href="#">Your Name</a><sup>1</sup>
+            </span>
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>University of Technology Sydney</span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <!-- Video Link -->
+              <span class="link-block">
+                <a href="#video"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-youtube"></i>
+                  </span>
+                  <span>Video</span>
+                </a>
+              </span>
+              <!-- Code Link -->
+              <span class="link-block">
+                <a href="https://github.com/Kaung-dev/AI_Robot_Manipulation_UR3e"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-github"></i>
+                  </span>
+                  <span>Code</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Teaser image -->
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <!-- TODO: Replace with your own teaser image -->
+      <img src="./static/images/teaser.png"
+            class="teaser-image"
+            alt="Project teaser."/>
+      <h2 class="subtitle has-text-centered">
+        A Franka Panda robot trained in Isaac Lab to pick a commanded tool
+        (brush, pliers, scissors, screwdriver) from a Robotis pegboard and place it in a basket.
+      </h2>
+    </div>
+  </div>
+</section>
+
+
+<!-- Team members carousel -->
+<section class="hero is-light is-small">
+  <div class="hero-body">
+    <div class="container">
+      <h2 class="title is-3">Team members</h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <!-- TODO: Replace with your own team photos -->
+        <div class="item">
+          <img src="./static/images/team/member1.jpg"
+            class="teaser-image"
+            alt="Team member."/>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Abstract + Video -->
+<section class="section">
+  <div class="container is-max-desktop">
+
+    <!-- Abstract -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            This project tackles goal-conditioned robot manipulation — given a spoken command
+            (e.g. "pick the brush"), a Franka Panda robot must identify the correct tool among
+            four similar-looking objects on a pegboard and place it in a basket.
+          </p>
+          <p>
+            We train entirely in simulation using NVIDIA Isaac Lab. A U-Net / ResNet-18 CNN is
+            first trained on segmentation masks to give the robot visual perception. Human
+            demonstrations are then recorded via keyboard teleoperation and expanded using
+            Isaac Lab Mimic to generate a large synthetic dataset. A Behaviour Cloning (BC)
+            policy is trained on this dataset and optionally fine-tuned with PPO reinforcement
+            learning.
+          </p>
+          <p>
+            The video below demonstrates the full pipeline from data collection to policy evaluation.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Video -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full-width">
+        <h2 id="video" class="title is-3">Video</h2>
+        <div class="content has-text-centered">
+          <!-- TODO: Replace with your own video file or a YouTube embed -->
+          <video id="replay-video"
+                  controls
+                  preload
+                  playsinline
+                  width="100%">
+            <source src="./static/videos/demo.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- Pipeline -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">System Overview</h2>
+        <div class="content has-text-justified">
+          <p>
+            The full pipeline runs in six stages: (1) collect segmentation frames automatically,
+            (2) train a CNN to identify objects, (3) record manual teleoperation demonstrations,
+            (4) expand demos with Isaac Lab Mimic, (5) train a BC policy, and (6) evaluate
+            policy rollouts in simulation.
+          </p>
+        </div>
+        <!-- TODO: Replace with your pipeline diagram image -->
+        <img src="./static/images/pipeline.png"
+          class="teaser-image"
+          alt="Pipeline diagram."/>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Results -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+
+      <!-- Training curves -->
+      <div class="column">
+        <div class="content">
+          <h2 class="title is-3">Policy Training</h2>
+          <p>
+            BC training loss across 50 epochs for each of the four tool classes.
+          </p>
+          <!-- TODO: Replace with your training curve plot -->
+          <img src="./static/images/results/training_curves.png"
+            class="teaser-image"
+            alt="Training curves."/>
+        </div>
+      </div>
+
+      <!-- Eval results -->
+      <div class="column">
+        <h2 class="title is-3">Evaluation</h2>
+        <div class="columns is-centered">
+          <div class="column content">
+            <p>
+              Basket reach rate per object across 20 evaluation episodes.
+            </p>
+            <!-- TODO: Replace with your eval results chart -->
+            <img src="./static/images/results/eval_results.png"
+              class="teaser-image"
+              alt="Evaluation results."/>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- Results discussion -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Results Discussion and Reflection</h2>
+        <div class="content has-text-justified">
+          <p>
+            <!-- TODO: Fill in your results discussion -->
+            The behaviour cloning policy successfully learned to approach and grasp the commanded
+            tool in simulation. Mimic data augmentation significantly increased the number of
+            training trajectories available without additional human effort.
+          </p>
+          <p>
+            Key limitations include covariate shift during carry (the robot's gripper behaviour
+            after grasping was unreliable) and the sim-to-real gap — the policy has not yet been
+            tested on a physical UR3e. Future work would apply PPO fine-tuning with improved
+            reward shaping (grasp progress + lift progress) to fix the carry phase.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content has-text-centered">
+          <p>
+            This website is based on the <a href="https://nerfies.github.io">Nerfies</a> template,
+            used with permission under
+            <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
