@@ -40,6 +40,8 @@ parser.add_argument("--task", default="Isaac-AIR2-Franka-Play-v0")
 parser.add_argument("--num_envs", type=int, default=1)
 parser.add_argument("--num_episodes", type=int, default=5)
 parser.add_argument("--max_steps", type=int, default=2000)
+parser.add_argument("--reset_delay", type=int, default=250,
+                    help="Steps to hold at release before resetting (lets you see the result). 250=~5s at 50Hz.")
 parser.add_argument("--episode_length_s", type=float, default=40.0)
 parser.add_argument("--out", default="eval_results/state_bc.json")
 AppLauncher.add_app_launcher_args(parser)
@@ -206,6 +208,9 @@ def main():
 
             done = terminated | truncated | (ep_step >= args_cli.max_steps) | (phase == 3)
             if done.any():
+                # Pause before reset so you can see the result (phase 3 = release/success)
+                if int(phase[0].item()) == 3 and args_cli.reset_delay > 0:
+                    import time; time.sleep(args_cli.reset_delay / 50.0)
                 # Force env reset so next episode always starts clean
                 if (ep_step >= args_cli.max_steps).any():
                     env.reset()
