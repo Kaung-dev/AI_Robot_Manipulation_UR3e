@@ -127,6 +127,18 @@ def train(obs_np: np.ndarray, act_np: np.ndarray, weight_np: np.ndarray):
     obs_t    = torch.from_numpy(obs_np).to(dev)
     act_t    = torch.from_numpy(act_np).to(dev)
     weight_t = torch.from_numpy(weight_np).to(dev)
+    # Observation standardization (per-dim z-score) — computed from the TRAIN split
+    # only, to avoid val leakage. Without this the MLP is dominated by large-scale
+    # dims (target_object_position ~ -5 world coords) and under-uses the small but
+    # informative ones (object_position / eef_pos), causing the slot-dependent
+    # "approach too weak -> freeze" failure. Stats are saved in the checkpoint and
+    # MUST be applied identically at eval time.
+    obs_mean = obs_t[train_idx].mean(dim=0)
+    obs_std  = obs_t[train_idx].std(dim=0)
+    obs_std  = torch.where(obs_std < 1e-6, torch.ones_like(obs_std), obs_std)  # leave constant dims unscaled
+    obs_t = (obs_t - obs_mean) / obs_std
+    print(f"[norm] obs standardized — mean[:3]={obs_mean[:3].cpu().numpy().round(3)} std[:3]={obs_std[:3].cpu().numpy().round(3)}")
+
     obs_train,  act_train,  w_train = obs_t[train_idx],  act_t[train_idx],  weight_t[train_idx]
     obs_val,    act_val              = obs_t[val_idx],    act_t[val_idx]
     n_train = len(train_idx)
@@ -179,7 +191,7 @@ def train(obs_np: np.ndarray, act_np: np.ndarray, weight_np: np.ndarray):
             best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
 
     print(f"Best val loss: {best_val:.5f}")
-    return model, best_state, log, input_dim, action_dim
+    return model, best_state, log, input_dim, action_dim, obs_mean.cpu(), obs_std.cpu()
 
 
 # ---------------------------------------------------------------------------
@@ -202,7 +214,7 @@ if __name__ == "__main__":
     print(f"[diag] data load: {time.time()-t0:.1f}s")
 
     t1 = time.time()
-    model, best_state, log, input_dim, action_dim = train(obs_np, act_np, weight_np)
+    model, best_state, log, input_dim, action_dim, obs_mean, obs_std = train(obs_np, act_np, weight_np)
     print(f"[diag] total train time: {time.time()-t1:.1f}s")
 
     torch.save({
@@ -212,6 +224,8 @@ if __name__ == "__main__":
         "hidden_dims": args.hidden_dims,
         "activation": "elu",
         "obs_keys": OBS_KEYS,
+        "obs_mean": obs_mean.numpy(),   # per-dim z-score stats — eval MUST apply these
+        "obs_std": obs_std.numpy(),
         "num_steps": int(obs_np.shape[0]),
     }, out_path)
 
