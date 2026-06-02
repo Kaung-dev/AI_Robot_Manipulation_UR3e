@@ -218,3 +218,26 @@ Add a 1-bit phase label (0=approach, 1=carry) as an extra input to the BC policy
 - ⬜ Eval: `./launch_air2.sh eval-state-bc checkpoints/policy_state_bc_mimic_v2.pth 20 1600`
 
 **Status:** blocked on generation — waiting for teammate
+
+---
+
+## 2026-06-02 — First full clean run achieved (rightmost brush slot)
+
+**Who:** Steph
+
+**Result:** Phase-conditioned BC (43-D, `policy_state_bc_mimic_v2.pth`) completes a full approach→grip→carry→release run when the brush starts at the rightmost peg slot. Other 2 slot locations not yet generalising — arm barely moves (raw_arm~0.003, covariate shift).
+
+**Root causes found and fixed this session:**
+- `target_object_position = None` in base env cfg (added last session) dropped obs from 42-D → 35-D, breaking the 43-D checkpoint. Reverted.
+- `generated_commands(object_pose)` returns a stale default at eval time (reset event disabled). For non-rightmost slots this is OOD → near-zero policy output. Fixed by patching dims 21-27 of `obs_policy` with live brush world pos at eval time.
+- Eval phase logic: added phase 3 RELEASE triggered by basket XY radius (0.35m) + Z≤1.4 + min 200 carry steps. Episode ends on release.
+- `episode_length_s` bumped to 80s in launch script (was 40s = 1500 steps at this env's control rate, not enough for full run).
+
+**Working eval config (commit 66c1b6c — do not lose):**
+- Checkpoint: `checkpoints/policy_state_bc_mimic_v2.pth` (43-D, 300 epochs, 1000 Mimic-generated demos)
+- Obs: `obs_policy(42-D, env-computed) + phase_bit(1)` = 43-D, with dims 21-27 patched to live brush world pos
+- Phase state machine: APPROACH (near_counter 250 steps @ 0.08m) → GRIP (50 steps frozen) → CARRY (BC arm, gripper closed) → RELEASE (basket XY 0.35m + Z≤1.4 + 200 carry steps)
+- Command: `./launch_air2.sh eval-state-bc checkpoints/policy_state_bc_mimic_v2.pth 20 2000`
+- Training command: `./launch_air2.sh train-state-bc datasets/air2_mimic_generated.hdf5 checkpoints/policy_state_bc_mimic_v2.pth 300`
+
+**Next:** Fix generalisation to all 3 brush slot locations. Likely need more diverse training data or per-slot conditioning.
