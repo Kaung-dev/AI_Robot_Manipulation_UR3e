@@ -225,19 +225,116 @@ Add a 1-bit phase label (0=approach, 1=carry) as an extra input to the BC policy
 
 **Who:** Steph
 
-**Result:** Phase-conditioned BC (43-D, `policy_state_bc_mimic_v2.pth`) completes a full approach→grip→carry→release run when the brush starts at the rightmost peg slot. Other 2 slot locations not yet generalising — arm barely moves (raw_arm~0.003, covariate shift).
+**Result:** Phase-conditioned BC (`policy_state_bc_mimic_v2.pth`, 43-D) completes a full APPROACH→GRIP→CARRY→RELEASE run when the brush starts at the rightmost peg slot. Other 2 slot locations do not generalise — arm barely moves (raw_arm~0.003, covariate shift from stale `target_object_position`).
 
-**Root causes found and fixed this session:**
-- `target_object_position = None` in base env cfg (added last session) dropped obs from 42-D → 35-D, breaking the 43-D checkpoint. Reverted.
-- `generated_commands(object_pose)` returns a stale default at eval time (reset event disabled). For non-rightmost slots this is OOD → near-zero policy output. Fixed by patching dims 21-27 of `obs_policy` with live brush world pos at eval time.
-- Eval phase logic: added phase 3 RELEASE triggered by basket XY radius (0.35m) + Z≤1.4 + min 200 carry steps. Episode ends on release.
-- `episode_length_s` bumped to 80s in launch script (was 40s = 1500 steps at this env's control rate, not enough for full run).
+**Commit:** `09a0e40` on `Main+Experimental_merge`
 
-**Working eval config (commit 66c1b6c — do not lose):**
-- Checkpoint: `checkpoints/policy_state_bc_mimic_v2.pth` (43-D, 300 epochs, 1000 Mimic-generated demos)
-- Obs: `obs_policy(42-D, env-computed) + phase_bit(1)` = 43-D, with dims 21-27 patched to live brush world pos
-- Phase state machine: APPROACH (near_counter 250 steps @ 0.08m) → GRIP (50 steps frozen) → CARRY (BC arm, gripper closed) → RELEASE (basket XY 0.35m + Z≤1.4 + 200 carry steps)
-- Command: `./launch_air2.sh eval-state-bc checkpoints/policy_state_bc_mimic_v2.pth 20 2000`
-- Training command: `./launch_air2.sh train-state-bc datasets/air2_mimic_generated.hdf5 checkpoints/policy_state_bc_mimic_v2.pth 300`
+---
 
-**Next:** Fix generalisation to all 3 brush slot locations. Likely need more diverse training data or per-slot conditioning.
+### Training script — `scripts/train_state_bc_from_hdf5.py`
+
+**Obs layout (43-D, built from HDF5 keys in this exact order):**
+```
+joint_pos(9) + joint_vel(9) + object_position(3) + target_object_position(7)
++ actions/last_action(7) + eef_pos(3) + eef_quat(4) + phase(1) = 43-D
+```
+```python
+OBS_KEYS = ["joint_pos", "joint_vel", "object_position", "target_object_position",
+            "actions", "eef_pos", "eef_quat"]
+```
+`object_position` = robot-root-frame (3-D, small values ~[-0.03, -0.67, 0.57]).
+`target_object_position` = brush world pose from `generated_commands(object_pose)` (7-D: xyz + identity quat [1,0,0,0]).
+`eef_pos` = EE position in env-local frame (world pos minus env_origins, via `ee_frame_pos`).
+`eef_quat` = EE quaternion world frame.
+
+**Phase label derivation:**
+Reads `obs/datagen_info/subtask_term_signals/grasp_brush` from HDF5 if present (annotated). Falls back to `actions[:, -1] < 0` (gripper close) for generated HDF5 which omits datagen_info. First 0→1 transition = boundary step. Steps before boundary: phase=0.0 (approach). Steps from boundary onward: phase=1.0 (carry).
+```python
+try:
+    signals = d["obs"]["datagen_info"]["subtask_term_signals"]["grasp_brush"][:].flatten()
+    transitions = np.where(np.diff(signals.astype(np.int32)) > 0)[0]
+    boundary = int(transitions[0]) + 1 if len(transitions) > 0 else T
+except (KeyError, ValueError):
+    grip = d["actions"][:, -1]
+    trans = np.where(np.diff((grip < 0).astype(np.int32)) > 0)[0]
+    boundary = int(trans[0]) + 1 if len(trans) > 0 else T
+```
+
+**Architecture:** MLP `43 → 256 → 128 → 64 → 7` (ELU activations, no BatchNorm — matches rsl_rl actor layout for PPO warm-start compatibility).
+
+**Training hyperparameters:**
+- Loss: smooth-L1
+- Optimizer: Adam, lr=3e-4
+- LR schedule: CosineAnnealingLR, eta_min=1e-5, T_max=epochs
+- Batch size: 512 (full dataset pinned to GPU)
+- Val split: 10% random shuffle
+- Epochs: 300
+- Dataset: `datasets/air2_mimic_generated.hdf5` — 1000 Mimic-generated demos, 458,641 steps, all 1000 demos have clean gripper-close transition (boundary min=132, max=284, mean=199 steps)
+- Best val loss: 0.00084
+
+**Checkpoint format** (`checkpoints/policy_state_bc_mimic_v2.pth`):
+```python
+{"state_dict": ..., "input_dim": 43, "action_dim": 7,
+ "hidden_dims": [256, 128, 64], "activation": "elu", "obs_keys": OBS_KEYS, "num_steps": 458641}
+```
+
+**Run command:**
+```bash
+./launch_air2.sh train-state-bc datasets/air2_mimic_generated.hdf5 checkpoints/policy_state_bc_mimic_v2.pth 300
+```
+
+---
+
+### Eval script — `scripts/eval_state_bc.py`
+
+**Task:** `Isaac-AIR2-Robotis-Franka-Brush-Play-v0`
+**episode_length_s:** 80.0 (set in launch_air2.sh — 40s = ~1500 steps at env control rate, not enough; 80s gives ~3000)
+**max_steps:** 2000 (per episode hard cap)
+
+**Obs construction (43-D):**
+`obs_policy` from the env is 42-D at runtime:
+```
+joint_pos(9) + joint_vel(9) + object_position(3) + target_object_position(7)
++ last_action(7) + eef_pos(3) + eef_quat(4) = 42-D
+```
+`target_object_position` (dims 21-27) is **patched every step** with live brush world pos + identity quat, because `generated_commands(object_pose)` returns a stale default at eval time (reset event is disabled in Play env). Without this patch, the policy is OOD on those 7 dims for all brush slots except the one that happens to match the default — causing near-zero arm output.
+```python
+obs_policy[:, 21:24] = brush.data.root_pos_w        # live world pos
+obs_policy[:, 24:28] = id_quat                       # [1,0,0,0]
+obs_input = torch.cat([obs_policy, phase_bit], dim=-1)  # (N, 43)
+```
+
+**Phase state machine:**
+
+| Phase | Name | Arm | Gripper | Transition |
+|-------|------|-----|---------|------------|
+| 0 | APPROACH | BC output, clamp ±0.15 | Open (+1) | `near_counter >= 250` steps within 0.08m of brush |
+| 1 | GRIP | Frozen (zeros) | Closed (-1) | `grip_steps >= 50` |
+| 2 | CARRY | BC output, clamp ±0.15 | Closed (-1) | `carry_steps >= 200` AND XY dist to basket < 0.35m AND obj Z ≤ 1.4 |
+| 3 | RELEASE | BC output, clamp ±0.15 | Open (+1) | episode ends immediately |
+
+`phase_bit = (phase >= 2).float()` — fed as the 43rd dim. Phase 0 and 1 both pass phase_bit=0 (approach mode). Phase 2 and 3 pass phase_bit=1 (carry mode).
+
+**Key constants:**
+```python
+NEAR_THRESH      = 250    # steps within 0.08m before grip (5s @ ~50Hz)
+GRIP_HOLD        = 50     # steps arm frozen while closing (1s)
+MIN_CARRY_STEPS  = 200    # cooldown before release check (~5s)
+BASKET_XY_RADIUS = 0.35   # m — XY cylinder around basket [-3.941, -5.785]
+# Z release threshold: obj_local[:, 2] <= 1.4  (basket at Z=1.140)
+BASKET_POS_LOCAL = [-3.941, -5.785, 1.140]
+BASKET_REACH_RADIUS = 0.40  # success metric threshold
+```
+
+**Episode end conditions:** `terminated | truncated | (ep_step >= max_steps) | (phase == 3)`
+
+**Run command:**
+```bash
+./launch_air2.sh eval-state-bc checkpoints/policy_state_bc_mimic_v2.pth 20 2000
+```
+
+---
+
+### Known issue — other 2 brush slot locations
+
+The arm barely moves (raw_arm~0.001-0.005) for non-rightmost slots even with the `target_object_position` patch. Root cause suspected to be covariate shift: training data may be skewed toward the rightmost slot, so the policy hasn't learned to approach from the other starting configurations. Next step: verify training data slot distribution and either collect more diverse demos or add per-slot conditioning.
