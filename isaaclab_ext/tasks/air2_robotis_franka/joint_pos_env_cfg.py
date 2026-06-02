@@ -423,7 +423,10 @@ class AIR2RobotisBrushEnvCfg_PLAY(AIR2RobotisBrushEnvCfg):
 class AIR2RobotisPliersFrankaEnvCfg(AIR2RobotisFrankaEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        _apply_target_rewards(self, "tool_pliers")
+        # Swap scene.object to pliers USD so pliers is the primary pick target
+        # at slot L1 — identical scene layout to brush.
+        self.scene.object.spawn.usd_path = str(_ASSETS / OBJECT_SPECS[1].usd_file)
+        _apply_target_rewards(self, "object")
 
 
 @configclass
@@ -439,7 +442,8 @@ class AIR2RobotisPliersFrankaEnvCfg_PLAY(AIR2RobotisPliersFrankaEnvCfg):
 class AIR2RobotisScissorsFrankaEnvCfg(AIR2RobotisFrankaEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        _apply_target_rewards(self, "tool_scissors")
+        self.scene.object.spawn.usd_path = str(_ASSETS / OBJECT_SPECS[2].usd_file)
+        _apply_target_rewards(self, "object")
 
 
 @configclass
@@ -455,7 +459,8 @@ class AIR2RobotisScissorsFrankaEnvCfg_PLAY(AIR2RobotisScissorsFrankaEnvCfg):
 class AIR2RobotisScrewdriverFrankaEnvCfg(AIR2RobotisFrankaEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        _apply_target_rewards(self, "tool_screwdriver")
+        self.scene.object.spawn.usd_path = str(_ASSETS / OBJECT_SPECS[3].usd_file)
+        _apply_target_rewards(self, "object")
 
 
 @configclass

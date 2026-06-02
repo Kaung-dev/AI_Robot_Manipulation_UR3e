@@ -52,7 +52,7 @@ def _subtask_terms_obs_group(target_key: str, signal_name: str) -> type:
     setattr(
         _PerToolSubtaskCfg,
         signal_name,
-        ObsTerm(func=air2_mdp.grasped, params={"target_key": target_key}),
+        ObsTerm(func=air2_mdp.gripper_closed),
     )
     return _PerToolSubtaskCfg
 
@@ -295,18 +295,18 @@ def _mimic_cfg_common_init(self, target_key: str, tool_name: str) -> None:
 class AIR2RobotisPliersMimicEnvCfg(AIR2RobotisPliersFrankaEnvCfg, MimicEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        _mimic_cfg_common_init(self, target_key="tool_pliers", tool_name="pliers")
+        _mimic_cfg_common_init(self, target_key="object", tool_name="pliers")
 
 
 @configclass
 class AIR2RobotisScissorsMimicEnvCfg(AIR2RobotisScissorsFrankaEnvCfg, MimicEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        _mimic_cfg_common_init(self, target_key="tool_scissors", tool_name="scissors")
+        _mimic_cfg_common_init(self, target_key="object", tool_name="scissors")
 
 
 @configclass
 class AIR2RobotisScrewdriverMimicEnvCfg(AIR2RobotisScrewdriverFrankaEnvCfg, MimicEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        _mimic_cfg_common_init(self, target_key="tool_screwdriver", tool_name="screwdriver")
+        _mimic_cfg_common_init(self, target_key="object", tool_name="screwdriver")
