@@ -457,6 +457,15 @@ def main():
         env_cfg.recorders.dataset_filename = generated_output_file_name
         env_cfg.recorders.dataset_export_mode = DatasetExportMode.EXPORT_SUCCEEDED_ONLY
 
+    # Re-enable slot randomization for collection — the Mimic cfg disables it
+    # to prevent it overwriting reset_to() during annotation/generation, but
+    # collection needs objects to randomize each episode for demo diversity.
+    from isaaclab.managers import EventTermCfg as EventTerm
+    from isaaclab_ext.tasks.air2_robotis_franka.mdp import reset_objects_on_slots
+    env_cfg.events.reset_object_position = EventTerm(
+        func=reset_objects_on_slots, mode="reset"
+    )
+
     # create environment
     env = gym.make(args_cli.task, cfg=env_cfg)
 

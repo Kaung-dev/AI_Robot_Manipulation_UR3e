@@ -124,11 +124,6 @@ class AIR2RobotisBrushMimicEnvCfg(AIR2RobotisBrushEnvCfg, MimicEnvCfg):
         # don't affect state obs but slow Isaac boot and would contaminate
         # any downstream camera-based pretraining.
         _strip_visual_markers(self)
-        # CRITICAL: disable per-reset object randomization. Mimic uses
-        # `reset_to(initial_state, is_relative=True)` to place objects at the
-        # demo's recorded start position. If the randomization event fires
-        # after that, brushes get moved to random peg slots and the demo's
-        # actions miss the target.
         _disable_object_randomization(self)
 
         # Data-gen knobs (defaults are mostly fine; tune later if needed).
