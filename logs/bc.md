@@ -197,3 +197,24 @@ Add a 1-bit phase label (0=approach, 1=carry) as an extra input to the BC policy
 - Always use unique filenames — never overwrite existing HDF5s
 - The annotate/generate task must match the object the demos were collected for
 - `BASKET_POS_LOCAL` in `constants.py` must match the actual USD scene — verify before collecting
+
+---
+
+## 2026-06-02 — Phase-conditioned BC implemented + Mimic pipeline completed to annotation
+
+**Who:** Steph
+
+**Changed:**
+- `subtask.py` — added `gripper_closed()`: phase boundary now fires on gripper action command (`action[:, -1] < 0`), not physics proximity+finger check. Physics check was unreliable for the brush (ring prevents full closure). `gripper_closed` includes transition print: `[grasp_brush] env N phase change at step X`.
+- `mimic_env_cfg.py` — `grasp_brush` ObsTerm now uses `gripper_closed` instead of `grasped`.
+- `train_state_bc_from_hdf5.py` — 43-D obs implemented: `OBS_KEYS` extended with `eef_pos`+`eef_quat`, phase label (0=approach, 1=carry) derived per step from `grasp_brush` 0→1 transition in generated HDF5, appended as 1-D.
+- `eval_state_bc.py` — appends `ee_pos(3) + ee_quat(4) + phase_bit(1)` to obs before policy call. `phase_bit = (phase >= 2).float()`.
+
+**Mimic pipeline status:**
+- ✅ 80 source demos collected → `datasets/air2_mimic_demos_v2.hdf5`
+- ✅ 80/80 annotated → `datasets/air2_mimic_demos_annotated.hdf5` (31MB, on Google Drive)
+- ⬜ Generation → teammate runs on their device: `./launch_air2.sh generate-mimic datasets/air2_mimic_demos_annotated.hdf5 datasets/air2_mimic_generated_v2.hdf5 1000`
+- ⬜ Train: `./launch_air2.sh train-state-bc datasets/air2_mimic_generated_v2.hdf5 checkpoints/policy_state_bc_mimic_v2.pth 300`
+- ⬜ Eval: `./launch_air2.sh eval-state-bc checkpoints/policy_state_bc_mimic_v2.pth 20 1600`
+
+**Status:** blocked on generation — waiting for teammate

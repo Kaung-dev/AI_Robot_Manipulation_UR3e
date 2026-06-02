@@ -147,6 +147,15 @@ Leave enabled only for teleop inspection sessions.
 
 ---
 
+## 2026-06-02 — Basket position fixed + success termination updated
+**Who:** Steph
+**Changed:**
+- `constants.py` + 4 other locations — `BASKET_POS_LOCAL` updated from stale `[-3.560, -5.370, 1.040]` to `[-3.941, -5.785, 1.140]`. Derived from mean obj position at gripper OPEN across 80 source demos (gripper log). XY empirical, Z estimated (floor ~1.04, release ~1.30).
+- `terminations.py` — `target_reached_basket` replaced 3D sphere (radius=0.30) with XY box check (±0.3 in X, ±0.5 in Y) + Z≤1.2. Fires when brush hits the basket footprint and has descended to basket height.
+**Status:** working — annotation confirmed 80/80 demos accepted
+
+---
+
 ## 2026-05-31 — Per-object PPO runner config
 **Who:** Steph
 **Changed:** `agents/rsl_rl_ppo_cfg.py` added `AIR2RobotisPPORunnerCfg`; all per-object task registrations updated to use it
