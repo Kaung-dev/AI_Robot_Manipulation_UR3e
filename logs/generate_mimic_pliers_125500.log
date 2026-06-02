@@ -1,0 +1,953 @@
+[INFO] Generating 1000 synthetic demos (pliers) from datasets/air2_mimic_demos_pliers_annotated.hdf5 → datasets/air2_mimic_generated_pliers_v2.hdf5 (num_envs=8)
+[3gH    H    H    H    H    H    H    H    H    H    H    H    H    H    H    H    H    H    H    H   [INFO] Using python from: /home/user/IsaacLab/_isaac_sim/python.sh
+Loading user config located at: '/home/user/isaacsim/kit/data/Kit/Isaac-Sim/5.1/user.config.json'
+[Info] [carb] Logging to file: /home/user/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260602_125500.log
+2026-06-02T12:55:01Z [487ms] [Warning] [omni.usd_config.extension] Enable omni.materialx.libs extension to use MaterialX
+2026-06-02T12:55:01Z [972ms] [Warning] [carb] Acquiring non optional plugin interface which is not listed as dependency: [omni::physx::IPhysxBenchmarks v1.0] (plugin: <default plugin>), by client: omni.physics.physx.plugin. Add it to CARB_PLUGIN_IMPL_DEPS() macro of a client.
+2026-06-02T12:55:01Z [1,187ms] [Warning] [omni.isaac.dynamic_control] omni.isaac.dynamic_control is deprecated as of Isaac Sim 4.5. No action is needed from end-users.
+2026-06-02T12:55:05Z [5,241ms] [Warning] [carb.cudainterop.plugin] CUDA_VISIBLE_DEVICES environment variable is set.
+2026-06-02T12:55:05Z [5,241ms] [Warning] [carb.cudainterop.plugin] Note CUDA device enumeration and Omniverse device enumeration are different.
+2026-06-02T12:55:05Z [5,241ms] [Warning] [carb.cudainterop.plugin] Setting CUDA_VISIBLE_DEVICES can lead to undesired behavior or crashes.
+2026-06-02T12:55:06Z [5,518ms] [Warning] [gpu.foundation.plugin] Skipping NVIDIA GPU due CUDA being in bad state: NVIDIA GeForce RTX 5090
+2026-06-02T12:55:06Z [5,519ms] [Warning] [gpu.foundation.plugin] Please restart your system if CUDA is known to work in your system.
+2026-06-02T12:55:06Z [5,520ms] [Warning] [gpu.foundation.plugin] Skipping NVIDIA GPU due CUDA being in bad state: NVIDIA GeForce RTX 5090
+2026-06-02T12:55:06Z [5,520ms] [Warning] [gpu.foundation.plugin] Please restart your system if CUDA is known to work in your system.
+2026-06-02T12:55:06Z [5,521ms] [Warning] [gpu.foundation.plugin] Skipping NVIDIA GPU due CUDA being in bad state: NVIDIA GeForce RTX 5090
+2026-06-02T12:55:06Z [5,521ms] [Warning] [gpu.foundation.plugin] Please restart your system if CUDA is known to work in your system.
+2026-06-02T12:55:06Z [5,522ms] [Warning] [gpu.foundation.plugin] Skipping NVIDIA GPU due CUDA being in bad state: NVIDIA GeForce RTX 5090
+2026-06-02T12:55:06Z [5,522ms] [Warning] [gpu.foundation.plugin] Please restart your system if CUDA is known to work in your system.
+2026-06-02T12:55:06Z [5,522ms] [Warning] [gpu.foundation.plugin] Skipping NVIDIA GPU due CUDA being in bad state: NVIDIA GeForce RTX 5090
+2026-06-02T12:55:06Z [5,522ms] [Warning] [gpu.foundation.plugin] Please restart your system if CUDA is known to work in your system.
+2026-06-02T12:55:06Z [5,522ms] [Warning] [gpu.foundation.plugin] Skipping NVIDIA GPU due CUDA being in bad state: NVIDIA GeForce RTX 5090
+2026-06-02T12:55:06Z [5,522ms] [Warning] [gpu.foundation.plugin] Please restart your system if CUDA is known to work in your system.
+
+|---------------------------------------------------------------------------------------------|
+| Driver Version: 580.105.08    | Graphics API: Vulkan
+|=============================================================================================|
+| GPU | Name                             | Active | LDA | GPU Memory | Vendor-ID | LUID       |
+|     |                                  |        |     |            | Device-ID | UUID       |
+|     |                                  |        |     |            | Bus-ID    |            |
+|---------------------------------------------------------------------------------------------|
+| 0   | NVIDIA GeForce RTX 5090          |        |     | 32853   MB | 10de      | 0          |
+|     |                                  |        |     |            | 2b85      | 2ea4d6f6.. |
+|     |                                  |        |     |            | 0         |            |
+|---------------------------------------------------------------------------------------------|
+| 1   | NVIDIA GeForce RTX 5090          |        |     | 32853   MB | 10de      | 0          |
+|     |                                  |        |     |            | 2b85      | 0e707d32.. |
+|     |                                  |        |     |            | 0         |            |
+cat: '/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor': No such file or directory
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Franka-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Franka-Play-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Franka-Segmentation-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Franka-Segmentation-Play-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Play-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Segmentation-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Brush-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Brush-Play-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Pliers-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Pliers-Play-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Scissors-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Scissors-Play-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Screwdriver-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Screwdriver-Play-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Brush-Mimic-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Pliers-Mimic-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Scissors-Mimic-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-AIR2-Robotis-Franka-Screwdriver-Mimic-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-Stack-Cube-Franka-IK-Rel-Skillgen-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+/home/user/IsaacLab/_isaac_sim/kit/python/lib/python3.11/site-packages/gymnasium/envs/registration.py:636: UserWarning: [33mWARN: Overriding environment Isaac-Stack-Cube-Bin-Franka-IK-Rel-Mimic-v0 already in registry.[0m
+  logger.warn(f"Overriding environment {new_spec.id} already in registry.")
+[INFO][AppLauncher]: Using device: cuda:0
+[INFO][AppLauncher]: Loading experience file: /home/user/IsaacLab/apps/isaaclab.python.headless.kit
+[INFO]: Parsing configuration from: isaaclab_ext.tasks.air2_robotis_franka.mimic_env_cfg:AIR2RobotisPliersMimicEnvCfg
+
+[36m==================================================================================================[0m
+[36m[1m[INFO][IsaacLab]: Logging to file: /tmp/claude-1000/isaaclab/logs/isaaclab_2026-06-02_12-55-07.log[0m
+[36m==================================================================================================[0m
+
+[33m12:55:07 [simulation_context.py] WARNING: The `enable_external_forces_every_iteration` parameter in the PhysxCfg is set to False. If you are experiencing noisy velocities, consider enabling this flag. You may need to slightly increase the number of velocity iterations (setting it to 1 or 2 rather than 0), together with this flag, to improve the accuracy of velocity updates.[0m
+[INFO]: Base environment:
+	Environment device    : cuda:0
+	Environment seed      : None
+	Physics step-size     : 0.01
+	Rendering step-size   : 0.02
+	Environment step-size : 0.02
+[33m12:55:08 [prims.py] WARNING: Could not perform 'modify_mass_properties' on any prims under: '/World/envs/env_0/Object'. This might be because of the following reasons:
+	(1) The desired attribute does not exist on any of the prims.
+	(2) The desired attribute exists on an instanced prim.
+		Discovered list of instanced prim paths: [][0m
+[33m12:55:08 [prims.py] WARNING: Could not perform 'modify_mass_properties' on any prims under: '/World/envs/env_0/ToolPliers'. This might be because of the following reasons:
+	(1) The desired attribute does not exist on any of the prims.
+	(2) The desired attribute exists on an instanced prim.
+		Discovered list of instanced prim paths: [][0m
+[33m12:55:09 [prims.py] WARNING: Could not perform 'modify_mass_properties' on any prims under: '/World/envs/env_0/ToolScissors'. This might be because of the following reasons:
+	(1) The desired attribute does not exist on any of the prims.
+	(2) The desired attribute exists on an instanced prim.
+		Discovered list of instanced prim paths: [][0m
+[33m12:55:09 [prims.py] WARNING: Could not perform 'modify_mass_properties' on any prims under: '/World/envs/env_0/ToolScrewdriver'. This might be because of the following reasons:
+	(1) The desired attribute does not exist on any of the prims.
+	(2) The desired attribute exists on an instanced prim.
+		Discovered list of instanced prim paths: [][0m
+[33m12:55:09 [prims.py] WARNING: Could not perform 'modify_rigid_body_properties' on any prims under: '/World/envs/env_0/RobotisTable'. This might be because of the following reasons:
+	(1) The desired attribute does not exist on any of the prims.
+	(2) The desired attribute exists on an instanced prim.
+		Discovered list of instanced prim paths: [][0m
+|---------------------------------------------------------------------------------------------|
+| 2   | NVIDIA GeForce RTX 5090          |        |     | 32853   MB | 10de      | 0          |
+|     |                                  |        |     |            | 2b85      | 85c768d9.. |
+|     |                                  |        |     |            | 0         |            |
+|---------------------------------------------------------------------------------------------|
+| 3   | NVIDIA GeForce RTX 5090          | Yes: 0 |     | 32853   MB | 10de      | 0          |
+|     |                                  |        |     |            | 2b85      | d19e55f8.. |
+|     |                                  |        |     |            | 0         |            |
+|=============================================================================================|
+| OS: 22.04.5 LTS (Jammy Jellyfish) ubuntu, Version: 22.04.5, Kernel: 6.8.0-111-generic
+| XServer Vendor: The X.Org Foundation, XServer Version: 12101004 (1.21.1.4)
+| Processor: AMD EPYC 9B14 96-Core Processor
+| Cores: 184 | Logical Cores: 184
+|---------------------------------------------------------------------------------------------|
+| Total Memory (MB): 303912 | Free Memory: 280816
+| Total Page/Swap (MB): 0 | Free Page/Swap: 0
+|---------------------------------------------------------------------------------------------|
+2026-06-02T12:55:06Z [6,216ms] [Warning] [omni.kvdb.plugin] Disabling key-value database because another kit process is locking it
+2026-06-02T12:55:07Z [7,169ms] [Warning] [isaaclab.envs.manager_based_env] Seed not set for the environment. The environment creation may not be deterministic.
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_25
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_26
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_27
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_28
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_29
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_30
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_31
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_32
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_33
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_34
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_35
+2026-06-02T12:55:09Z [9,049ms] [Error] [omni.physx.plugin] Unable to create convex mesh for:/World/envs/env_0/Environment/robotis_net_table/robotis_net_table_2/base/Geometry/fix_object/Cylinder_24
+2026-06-02T12:55:09Z [9,052ms] [Error] [omni.physx.plugin] Replication of this type is not supported: 262144, prim path: /World/envs/env_0/Environment/PhysicsScene
+2026-06-02T12:55:09Z [9,089ms] [Error] [omni.physx.plugin] Physics scenes stepping is not the same, step subscription will be send with later step, per scene step is not yet supported.
+[INFO]: Time taken for scene creation : 1.590270 seconds
+[INFO]: Scene manager:  <class InteractiveScene>
+	Number of environments: 8
+	Environment spacing   : 2.5
+	Source prim name      : /World/envs/env_0
+	Global prim paths     : []
+	Replicate physics     : True
+[INFO]: Starting the simulation. This may take a few seconds. Please wait...
+[INFO]: Time taken for simulation start : 0.627912 seconds
+[INFO] Command Manager:  <CommandManager> contains 1 active terms.
++------------------------------------------+
+|           Active Command Terms           |
++-------+-------------+--------------------+
+| Index | Name        |        Type        |
++-------+-------------+--------------------+
+|   0   | object_pose | UniformPoseCommand |
++-------+-------------+--------------------+
+
+[INFO] Event Manager:  <EventManager> contains 1 active terms.
++--------------------------------------+
+| Active Event Terms in Mode: 'reset'  |
++---------+----------------------------+
+|  Index  | Name                       |
++---------+----------------------------+
+|    0    | reset_all                  |
+|    1    | reset_object_position      |
++---------+----------------------------+
+
+[INFO] Recorder Manager:  <RecorderManager> contains 5 active terms.
++--------------------------------------------------+
+|              Active Recorder Terms               |
++-------+------------------------------------------+
+| Index | Name                                     |
++-------+------------------------------------------+
+|   0   | record_initial_state                     |
+|   1   | record_post_step_states                  |
+|   2   | record_pre_step_actions                  |
+|   3   | record_pre_step_flat_policy_observations |
+|   4   | record_post_step_processed_actions       |
++-------+------------------------------------------+
+
+[INFO] Action Manager:  <ActionManager> contains 2 active terms.
++------------------------------------+
+|   Active Action Terms (shape: 7)   |
++-------+----------------+-----------+
+| Index | Name           | Dimension |
++-------+----------------+-----------+
+|   0   | arm_action     |         6 |
+|   1   | gripper_action |         1 |
++-------+----------------+-----------+
+
+[INFO] Observation Manager: <ObservationManager> contains 2 groups.
++----------------------------------------------+
+| Active Observation Terms in Group: 'policy'  |
++--------+----------------------------+--------+
+| Index  | Name                       | Shape  |
++--------+----------------------------+--------+
+|   0    | joint_pos                  |  (9,)  |
+|   1    | joint_vel                  |  (9,)  |
+|   2    | object_position            |  (3,)  |
+|   3    | target_object_position     |  (7,)  |
+|   4    | actions                    |  (7,)  |
+|   5    | eef_pos                    |  (3,)  |
+|   6    | eef_quat                   |  (4,)  |
++--------+----------------------------+--------+
++------------------------------------------------+
+| Active Observation Terms in Group: 'subtask_terms' |
++-----------+------------------------+-----------+
+|   Index   | Name                   |   Shape   |
++-----------+------------------------+-----------+
+|     0     | grasp_pliers           |     ()    |
++-----------+------------------------+-----------+
+
+[INFO] Termination Manager:  <TerminationManager> contains 0 active terms.
++----------------------------+
+|  Active Termination Terms  |
++--------+-------+-----------+
+| Index  | Name  |  Time Out |
++--------+-------+-----------+
++--------+-------+-----------+
+
+[INFO] Reward Manager:  <RewardManager> contains 19 active terms.
++---------------------------------------+
+|          Active Reward Terms          |
++-------+----------------------+--------+
+| Index | Name                 | Weight |
++-------+----------------------+--------+
+|   0   | action_rate          | -0.001 |
+|   1   | joint_vel            | -0.001 |
+|   2   | ee_to_target         |    2.0 |
+|   3   | target_off_slot      |    5.0 |
+|   4   | target_in_hand       |   30.0 |
+|   5   | grasp_shaping        |    2.0 |
+|   6   | lift_progress        |   10.0 |
+|   7   | target_to_basket     |    2.0 |
+|   8   | target_in_basket     |   20.0 |
+|   9   | release_above_basket |   10.0 |
+|   10  | wrong_object_moved   |   -3.0 |
+|   11  | tool_fell_to_floor   |  -10.0 |
+|   12  | joint_near_limit     |   -0.5 |
+|   13  | arm_stuck            |   -1.0 |
+|   14  | ee_out_of_workspace  |   -2.0 |
+|   15  | gripper_sky_pointing |   -2.0 |
+|   16  | object_slipped       |   -3.0 |
+|   17  | grasp_lost           |   -3.0 |
+|   18  | progress_stall       |  -0.02 |
++-------+----------------------+--------+
+
+[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.
++----------------------+
+| Active Curriculum Terms |
++-----------+----------+
+|   Index   | Name     |
++-----------+----------+
++-----------+----------+
+
+[INFO]: Completed setting up the environment...
+Loaded 79 to datagen info pool
+[grasp_brush] env 0 phase change at step 126
+[grasp_brush] env 1 phase change at step 131
+[grasp_brush] env 5 phase change at step 131
+[grasp_brush] env 4 phase change at step 140
+[grasp_brush] env 7 phase change at step 140
+[grasp_brush] env 6 phase change at step 209
+[grasp_brush] env 2 phase change at step 233
+[grasp_brush] env 3 phase change at step 254
+
+************************************************** [K
+1/1 (100.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+3/3 (100.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+5/5 (100.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+6/6 (100.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+6/7 (85.7%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 5 phase change at step 126
+
+************************************************** [K
+7/8 (87.5%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 1 phase change at step 214
+[grasp_brush] env 6 phase change at step 236
+[grasp_brush] env 7 phase change at step 214
+[grasp_brush] env 0 phase change at step 214
+[grasp_brush] env 4 phase change at step 237
+[grasp_brush] env 3 phase change at step 209
+[grasp_brush] env 2 phase change at step 233
+
+************************************************** [K
+8/9 (88.9%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+9/10 (90.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+10/11 (90.9%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+11/12 (91.7%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 3 phase change at step 131
+
+************************************************** [K
+12/13 (92.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+13/14 (92.9%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 6 phase change at step 126
+
+************************************************** [K
+14/15 (93.3%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 5 phase change at step 254
+
+************************************************** [K
+14/16 (87.5%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 7 phase change at step 237
+[grasp_brush] env 1 phase change at step 254
+[grasp_brush] env 0 phase change at step 233
+[grasp_brush] env 2 phase change at step 237
+[grasp_brush] env 4 phase change at step 233
+
+************************************************** [K
+15/17 (88.2%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+15/18 (83.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+15/19 (78.9%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+15/20 (75.0%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 3 phase change at step 237
+[grasp_brush] env 5 phase change at step 233
+
+************************************************** [K
+16/21 (76.2%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 6 phase change at step 236
+
+************************************************** [K
+17/22 (77.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+18/23 (78.3%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 1 phase change at step 237
+
+************************************************** [K
+19/24 (79.2%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 4 phase change at step 131
+[grasp_brush] env 0 phase change at step 214
+[grasp_brush] env 7 phase change at step 140
+
+************************************************** [K
+20/25 (80.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+21/26 (80.8%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 2 phase change at step 214
+
+************************************************** [K
+22/27 (81.5%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 6 phase change at step 131
+
+************************************************** [K
+23/28 (82.1%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 5 phase change at step 233
+
+************************************************** [K
+24/29 (82.8%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+25/30 (83.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+25/31 (80.6%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 3 phase change at step 236
+[grasp_brush] env 4 phase change at step 214
+[grasp_brush] env 1 phase change at step 126
+[grasp_brush] env 7 phase change at step 209
+
+************************************************** [K
+26/32 (81.2%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+27/33 (81.8%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 0 phase change at step 237
+
+************************************************** [K
+28/34 (82.4%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 6 phase change at step 140
+
+************************************************** [K
+29/35 (82.9%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+29/36 (80.6%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 2 phase change at step 237
+
+************************************************** [K
+30/37 (81.1%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+31/38 (81.6%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 5 phase change at step 254
+[grasp_brush] env 3 phase change at step 209
+[grasp_brush] env 7 phase change at step 209
+[grasp_brush] env 1 phase change at step 140
+
+************************************************** [K
+32/39 (82.1%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 4 phase change at step 126
+
+************************************************** [K
+33/40 (82.5%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+34/41 (82.9%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+34/42 (81.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+35/43 (81.4%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 6 phase change at step 209
+
+************************************************** [K
+35/44 (79.5%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+36/45 (80.0%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 0 phase change at step 236
+
+************************************************** [K
+37/46 (80.4%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 7 phase change at step 209
+[grasp_brush] env 3 phase change at step 233
+[grasp_brush] env 5 phase change at step 236
+
+************************************************** [K
+38/47 (80.9%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 4 phase change at step 140
+[grasp_brush] env 2 phase change at step 233
+[grasp_brush] env 1 phase change at step 237
+[grasp_brush] env 6 phase change at step 126
+
+************************************************** [K
+38/48 (79.2%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+38/49 (77.6%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+39/50 (78.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+40/51 (78.4%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+41/52 (78.8%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 7 phase change at step 237
+
+************************************************** [K
+41/53 (77.4%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+42/54 (77.8%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 0 phase change at step 237
+[grasp_brush] env 4 phase change at step 126
+[grasp_brush] env 5 phase change at step 236
+[grasp_brush] env 3 phase change at step 237
+[grasp_brush] env 2 phase change at step 140
+
+************************************************** [K
+42/55 (76.4%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 6 phase change at step 236
+[grasp_brush] env 1 phase change at step 254
+
+************************************************** [K
+43/56 (76.8%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+43/57 (75.4%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+44/58 (75.9%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+45/59 (76.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+46/60 (76.7%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 2 phase change at step 126
+[grasp_brush] env 5 phase change at step 140
+
+************************************************** [K
+47/61 (77.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+48/62 (77.4%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 7 phase change at step 140
+[grasp_brush] env 0 phase change at step 140
+[grasp_brush] env 4 phase change at step 254
+
+************************************************** [K
+48/63 (76.2%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 3 phase change at step 233
+[grasp_brush] env 6 phase change at step 236
+
+************************************************** [K
+49/64 (76.6%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 1 phase change at step 233
+
+************************************************** [K
+50/65 (76.9%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+51/66 (77.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+51/67 (76.1%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+52/68 (76.5%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 4 phase change at step 131
+[grasp_brush] env 5 phase change at step 237
+[grasp_brush] env 2 phase change at step 214
+[grasp_brush] env 7 phase change at step 236
+
+************************************************** [K
+52/69 (75.4%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+53/70 (75.7%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 0 phase change at step 233
+
+************************************************** [K
+54/71 (76.1%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 3 phase change at step 140
+
+************************************************** [K
+55/72 (76.4%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 6 phase change at step 254
+[grasp_brush] env 1 phase change at step 209
+
+************************************************** [K
+56/73 (76.7%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 4 phase change at step 126
+
+************************************************** [K
+56/74 (75.7%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+57/75 (76.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+57/76 (75.0%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 7 phase change at step 126
+
+************************************************** [K
+58/77 (75.3%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 2 phase change at step 126
+
+************************************************** [K
+58/78 (74.4%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+59/79 (74.7%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 3 phase change at step 131
+[grasp_brush] env 0 phase change at step 233
+[grasp_brush] env 6 phase change at step 126
+[grasp_brush] env 5 phase change at step 209
+
+************************************************** [K
+60/80 (75.0%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 1 phase change at step 209
+
+************************************************** [K
+61/81 (75.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+62/82 (75.6%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+63/83 (75.9%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 4 phase change at step 209
+
+************************************************** [K
+64/84 (76.2%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+65/85 (76.5%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+66/86 (76.7%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 2 phase change at step 126
+
+************************************************** [K
+67/87 (77.0%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 7 phase change at step 236
+[grasp_brush] env 3 phase change at step 140
+[grasp_brush] env 5 phase change at step 209
+[grasp_brush] env 0 phase change at step 140
+
+************************************************** [K
+68/88 (77.3%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 1 phase change at step 209
+[grasp_brush] env 6 phase change at step 209
+
+************************************************** [K
+69/89 (77.5%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+70/90 (77.8%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+71/91 (78.0%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 4 phase change at step 237
+
+************************************************** [K
+72/92 (78.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+73/93 (78.5%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+74/94 (78.7%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+75/95 (78.9%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 5 phase change at step 140
+[grasp_brush] env 3 phase change at step 126
+[grasp_brush] env 0 phase change at step 131
+[grasp_brush] env 2 phase change at step 209
+[grasp_brush] env 6 phase change at step 140
+[grasp_brush] env 7 phase change at step 209
+[grasp_brush] env 1 phase change at step 237
+
+************************************************** [K
+76/96 (79.2%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+77/97 (79.4%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+78/98 (79.6%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+79/99 (79.8%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+80/100 (80.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+81/101 (80.2%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+82/102 (80.4%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 5 phase change at step 131
+[grasp_brush] env 7 phase change at step 214
+[grasp_brush] env 2 phase change at step 237
+[grasp_brush] env 3 phase change at step 214
+[grasp_brush] env 4 phase change at step 233
+[grasp_brush] env 0 phase change at step 233
+
+************************************************** [K
+83/103 (80.6%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 6 phase change at step 237
+
+************************************************** [K
+84/104 (80.8%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 1 phase change at step 233
+[grasp_brush] env 5 phase change at step 140
+
+************************************************** [K
+85/105 (81.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+86/106 (81.1%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+87/107 (81.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+88/108 (81.5%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+89/109 (81.7%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 7 phase change at step 140
+
+************************************************** [K
+90/110 (81.8%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 2 phase change at step 140
+[grasp_brush] env 4 phase change at step 237
+
+************************************************** [K
+91/111 (82.0%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 0 phase change at step 233
+[grasp_brush] env 3 phase change at step 214
+
+************************************************** [K
+92/112 (82.1%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 6 phase change at step 254
+[grasp_brush] env 1 phase change at step 214
+[grasp_brush] env 5 phase change at step 236
+
+************************************************** [K
+93/113 (82.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+94/114 (82.5%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+94/115 (81.7%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 7 phase change at step 131
+
+************************************************** [K
+95/116 (81.9%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+95/117 (81.2%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+96/118 (81.4%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 2 phase change at step 236
+
+************************************************** [K
+96/119 (80.7%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 0 phase change at step 236
+[grasp_brush] env 4 phase change at step 126
+
+************************************************** [K
+97/120 (80.8%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+98/121 (81.0%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 3 phase change at step 236
+[grasp_brush] env 6 phase change at step 236
+[grasp_brush] env 5 phase change at step 209
+[grasp_brush] env 1 phase change at step 140
+[grasp_brush] env 7 phase change at step 140
+
+************************************************** [K
+98/122 (80.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+99/123 (80.5%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+100/124 (80.6%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+100/125 (80.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+100/126 (79.4%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+101/127 (79.5%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 2 phase change at step 209
+
+************************************************** [K
+102/128 (79.7%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+103/129 (79.8%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 0 phase change at step 236
+[grasp_brush] env 6 phase change at step 126
+[grasp_brush] env 4 phase change at step 236
+[grasp_brush] env 5 phase change at step 209
+[grasp_brush] env 3 phase change at step 209
+[grasp_brush] env 7 phase change at step 126
+[grasp_brush] env 1 phase change at step 140
+
+************************************************** [K
+104/130 (80.0%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+105/131 (80.2%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+106/132 (80.3%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+107/133 (80.5%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+107/134 (79.9%) successful demos generated by mimic[K
+************************************************** [K
+
+************************************************** [K
+107/135 (79.3%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 2 phase change at step 237
+
+************************************************** [K
+108/136 (79.4%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 3 phase change at step 140
+
+************************************************** [K
+109/137 (79.6%) successful demos generated by mimic[K
+************************************************** [K
+[grasp_brush] env 6 phase change at step 140
+[grasp_brush] env 4 phase change at step 131
+[grasp_brush] env 5 phase change at step 214
+[grasp_brush] env 7 phase change at step 131
+[grasp_brush] env 0 phase change at step 254
+[grasp_brush] env 1 phase change at step 214
