@@ -1,12 +1,13 @@
 """Pre-import our tasks then hand off to Isaac Lab's generate_dataset.py."""
 from __future__ import annotations
+import os
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-ISAACLAB_PATH = Path("/home/steph/isaac-sim/isaac-sim-standalone-5.1.0-linux-x86_64/IsaacLab")
+ISAACLAB_PATH = Path(os.environ.get("ISAACLAB_PATH", "/home/user/IsaacLab"))
 SCRIPT = ISAACLAB_PATH / "scripts/imitation_learning/isaaclab_mimic/generate_dataset.py"
 
 src = SCRIPT.read_text()

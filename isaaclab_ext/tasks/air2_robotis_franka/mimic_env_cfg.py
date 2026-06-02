@@ -211,7 +211,17 @@ def _disable_object_randomization(self) -> None:
     random peg-slot placements, and the recorded actions then miss the target.
     Disable both randomization events (AIR2 pegboard + Robotis cylinder slots)
     while in Mimic mode.
+
+    OPT-OUT for generation: set env var MIMIC_KEEP_RANDOMIZATION=1 to KEEP the
+    object-slot randomization ON. Needed at *generation* time so each trial
+    spawns the object at a different slot and Mimic re-solves IK to it, giving a
+    multi-slot dataset. Without this, every generated demo is the single default
+    slot (zero slot diversity) and the BC can only grasp one slot. Leave it
+    UNSET for annotation/replay, where randomization must stay off.
     """
+    import os
+    if os.environ.get("MIMIC_KEEP_RANDOMIZATION") == "1":
+        return
     if hasattr(self.events, "reset_object_position"):
         self.events.reset_object_position = None
     if hasattr(self.events, "randomize_hook_objects"):
