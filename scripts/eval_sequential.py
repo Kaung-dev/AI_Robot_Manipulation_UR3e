@@ -40,7 +40,7 @@ parser.add_argument("--screwdriver_ckpt",
 parser.add_argument("--task",             default="Isaac-AIR2-Robotis-Franka-Brush-Play-v0")
 parser.add_argument("--num_episodes",     type=int,   default=10)
 parser.add_argument("--max_steps_per_tool", type=int, default=2000)
-parser.add_argument("--seg_ckpt",         default="checkpoints/air2_segmentation_unet_newscene.pth")
+parser.add_argument("--seg_ckpt",         default="checkpoints/air2_segmentation_v3.pth")
 parser.add_argument("--detect_every",     type=int,   default=10)
 parser.add_argument("--no_cnn",           action="store_true",
                     help="Skip CNN entirely — use GT physics positions. No board_camera loaded.")
@@ -198,7 +198,8 @@ def load_policy(ckpt_path: str, device: str):
 def load_seg_model(path: str, device: str):
     ckpt = torch.load(path, map_location=device, weights_only=False)
     num_classes = int(ckpt.get("num_classes", 9))
-    if ckpt.get("backbone") == "resnet":
+    # backbone may be "resnet" or "resnet18" etc. — match any resnet variant.
+    if str(ckpt.get("backbone", "")).startswith("resnet"):
         model = build_resnet_model(num_classes=num_classes, pretrained=False).to(device)
     else:
         model = build_model(num_classes=num_classes,
@@ -257,10 +258,11 @@ def run_cnn(seg_model, board_cam, device: str, debug: bool = False) -> dict[str,
     pos_w = board_cam.data.pos_w[0].detach().cpu().numpy()
     quat_w = board_cam.data.quat_w_ros[0].detach().cpu().numpy()
     H, W = rgb.shape[0], rgb.shape[1]
+    seg_dev = next(seg_model.parameters()).device
     with torch.no_grad():
         # Model was trained at 224x224 — resize input to match the training scale
         # (raw 640x360 makes the tools ~3x larger than anything seen in training).
-        rgb_t  = torch.from_numpy(rgb).permute(2, 0, 1).float().unsqueeze(0).to("cpu") / 255.0
+        rgb_t  = torch.from_numpy(rgb).permute(2, 0, 1).float().unsqueeze(0).to(seg_dev) / 255.0
         rgb_224 = torch.nn.functional.interpolate(rgb_t, size=(224, 224),
                                                   mode="bilinear", align_corners=False)
         logits_224 = seg_model(rgb_224)
@@ -474,13 +476,18 @@ def main():
         update_period=0.0,
         height=360, width=640,
         data_types=["rgb", "distance_to_image_plane"],
+        # Camera must MATCH the view the seg model was trained on. The v3 model
+        # (air2_segmentation_v3.pth, resnet18) was trained on the friend's
+        # main_camera view — 18 mm wide lens, right-of-robot, elevated, tilted
+        # toward the pegboard (see _apply_segmentation_cameras in
+        # air2_franka/segmentation_env_cfg.py). Keep these in sync with that cfg.
         spawn=sim_utils.PinholeCameraCfg(
-            focal_length=24.0, focus_distance=400.0,
-            horizontal_aperture=20.955, clipping_range=(0.1, 20.0),
+            focal_length=18.0, focus_distance=400.0,
+            horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5),
         ),
         offset=CameraCfg.OffsetCfg(
-            pos=(-1.0, -3.5, 1.8),
-            rot=(-0.2068, 0.2807, 0.7545, -0.5560),
+            pos=(-4.8, -5.2, 2.2),
+            rot=(0.1598, -0.3477, 0.8395, -0.3857),
             convention="ros",
         ),
     )
@@ -509,7 +516,9 @@ def main():
         seg_model = board_cam = None
         print("[seq] --no_cnn: using GT physics positions.", flush=True)
     else:
-        seg_model = load_seg_model(args_cli.seg_ckpt, "cpu")
+        # Load the seg model on the GPU (the resnet18 v3 is heavy; CPU inference
+        # can stall the sim). run_cnn feeds tensors to the model's own device.
+        seg_model = load_seg_model(args_cli.seg_ckpt, "cuda:0")
         board_cam = env.unwrapped.scene["board_camera"]
         print("[seq] seg model loaded.", flush=True)
     robot     = env.unwrapped.scene["robot"]
