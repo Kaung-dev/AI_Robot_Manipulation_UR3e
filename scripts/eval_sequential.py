@@ -122,9 +122,9 @@ PEG_Z_MIN = 1.10
 # the slots its BC policy can actually grasp. Mirrors mdp/events.py
 # (SLOT_POSITIONS world coords + _TOOL_QUAT) so placement is in-distribution,
 # but applied in this demo only — shared training/PPO code is NOT touched.
-#   brush (object)        -> R1 ONLY       (works anywhere; R1 is what's left)
-#   pliers (tool_pliers)  -> R0 ONLY
-#   screwdriver           -> R2 ONLY       (most reliable slot)
+#   brush (object)        -> R0 / R1 / R2  (works on ANY slot)
+#   pliers (tool_pliers)  -> R0 ONLY, else HIDE (not spawned)
+#   screwdriver           -> R2 ONLY, else HIDE (not spawned)
 #   scissors              -> R3            (parked; no policy, skipped)
 # ---------------------------------------------------------------------------
 SLOT_WORLD = {
@@ -132,13 +132,24 @@ SLOT_WORLD = {
     "R1": [-4.445, -5.960, 1.611],
     "R2": [-4.272, -5.960, 1.326],
     "R3": [-4.445, -5.960, 1.326],
+    # Off-screen stash (3 m below the board, out of view): a tool here is
+    # effectively "not spawned" for the episode.
+    "HIDE": [-4.300, -5.960, -3.000],
 }
 TOOL_QUAT = [0.7071, 0.0, 0.0, -0.7071]
-# Single fixed layout (each tool on its most reliable slot): pliers R0,
-# screwdriver R2, brush R1, scissors R3 (parked/skipped). Same every episode.
-# "slots" = where every tool is placed; "park" = policy-tools not picked ([]).
+# Variable layouts (random per episode) — brush moves across R0/R1/R2, and
+# pliers/screwdriver are sometimes NOT spawned (HIDE + park=skip). "slots" = where
+# each tool goes; "park" = policy-tools hidden/skipped this episode. scissors is
+# always on R3 and skipped (no policy). pliers only ever on R0, screwdriver only R2.
 VALID_ASSIGNMENTS = [
+    # all three tools (brush R1)
     {"slots": {"object": "R1", "tool_pliers": "R0", "tool_screwdriver": "R2", "tool_scissors": "R3"}, "park": []},
+    # no pliers -> brush takes R0
+    {"slots": {"object": "R0", "tool_pliers": "HIDE", "tool_screwdriver": "R2", "tool_scissors": "R3"}, "park": ["pliers"]},
+    # no screwdriver -> brush takes R2
+    {"slots": {"object": "R2", "tool_pliers": "R0", "tool_screwdriver": "HIDE", "tool_scissors": "R3"}, "park": ["screwdriver"]},
+    # brush only (R1), pliers + screwdriver both hidden
+    {"slots": {"object": "R1", "tool_pliers": "HIDE", "tool_screwdriver": "HIDE", "tool_scissors": "R3"}, "park": ["pliers", "screwdriver"]},
 ]
 
 
