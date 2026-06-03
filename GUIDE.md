@@ -254,3 +254,34 @@ Three decoupled pieces, **no PPO** — perception is supervised, control is imit
 | `eval-sequential [episodes] [extra args]` | the full multi-tool demo |
 
 Objects: `brush` · `pliers` · `scissors` · `screwdriver`.
+
+---
+
+## 8. Generate CNN evaluation plots
+
+Produces a confusion matrix and training loss/accuracy/IoU curves from the metrics JSON.
+
+```bash
+python3 scripts/plot_cnn_training.py \
+    --metrics checkpoints/air2_segmentation_unet_newcam.metrics.json \
+    --seg_ckpt checkpoints/air2_segmentation_unet_newcam.pth \
+    --data datasets/air2_segmentation_newcam \
+    --out_dir eval_results/cnn_plots_unet_newcam
+```
+
+The training script saves `<checkpoint>.metrics.json` automatically alongside the `.pth` file.
+
+---
+
+## 9. Common issues
+
+| Problem | Fix |
+|---------|-----|
+| `FileNotFoundError: checkpoints/...` | Ensure all `.pth` files are present. Check `ls checkpoints/` |
+| `KeyError: 'main_camera'` | Old scene USD still references `board_camera`. Pull latest `scene/scene_isaaclab.usd` |
+| `cv2.error: The function is not implemented` | Isaac Sim's Python lacks GTK GUI. Scripts save PNGs to disk instead of `cv2.imshow()` |
+| Isaac Sim freezes on `env.reset()` | Known issue when cameras are active between rounds. Scripts use `go_home()` between picks instead |
+| Isaac Sim freezes on launch | Ensure `--enable_cameras` is passed when running CNN-based eval scripts |
+| Controller not detected | Plug in gamepad **before** launching. Verify with `ls /dev/input/js0` |
+| 3rd pick drifts / fails | IK controller accumulates joint drift after 2 go_home cycles. Use `--max_picks 2` (default) to reset between rounds |
+| Checkpoint name not found | The multi-object script searches multiple naming patterns (`policy_state_bc_<tool>.pth`, `policy_state_bc_mimic_<tool>_v2.pth`, etc.). Ensure your checkpoint matches one of these conventions |
