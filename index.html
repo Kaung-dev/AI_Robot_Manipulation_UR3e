@@ -114,11 +114,11 @@
             perception with imitation learning. The pipeline has six stages:
           </p>
           <ol>
-            <li>Collect RGB + mask frames in simulation.</li>
-            <li>Train a CNN (U-Net / ResNet-18) to segment and localise each tool.</li>
-            <li>Record expert grasps via keyboard and VR teleoperation.</li>
-            <li>Amplify ≈160 demos into 3,000+ trajectories with <strong>Isaac Lab Mimic</strong>.</li>
-            <li>Train a per-tool <strong>Behavioural Cloning</strong> policy (state → joint actions).</li>
+            <li>Collect 160 labeled RGB + mask frames in simulation (40 per object &times; 4 objects).</li>
+            <li>Train a <strong>U-Net</strong> CNN for 9-class semantic segmentation to localise each tool.</li>
+            <li>Record 80 expert demonstrations per object (brush, pliers, screwdriver) via keyboard and VR teleoperation.</li>
+            <li>Amplify 240 source demos into 3,000+ synthetic trajectories with <strong>Isaac Lab Mimic</strong>.</li>
+            <li>Train a per-tool <strong>Behavioural Cloning</strong> policy (robot state &rarr; joint actions).</li>
             <li>Evaluate the policies in closed-loop rollouts in simulation.</li>
           </ol>
         </div>
@@ -176,12 +176,13 @@
             control policy.
           </p>
           <p>
-            We work entirely in simulation using NVIDIA Isaac Sim and Isaac Lab. A U-Net (with a
-            ResNet-18 variant) semantic-segmentation network is first trained to localise each tool
-            from camera images. Expert grasps are then recorded through keyboard and VR
-            teleoperation and amplified with Isaac Lab Mimic — roughly 160 human demonstrations are
-            expanded into over 3,000 synthetic trajectories. A per-tool Behavioural Cloning (BC)
-            policy is finally trained on this data, mapping the robot's state to joint-space actions.
+            We work entirely in simulation using NVIDIA Isaac Sim and Isaac Lab. A U-Net
+            semantic-segmentation network is first trained to localise each tool from camera images
+            (160 labeled frames, 40 per object). Expert grasps are then recorded through keyboard
+            and VR teleoperation and amplified with Isaac Lab Mimic — roughly 240 human
+            demonstrations (80 per object, 3 objects) are expanded into over 3,000 synthetic
+            trajectories. A per-tool Behavioural Cloning (BC) policy is finally trained on this
+            data, mapping the robot&rsquo;s state to joint-space actions.
           </p>
           <p>
             The video below demonstrates the full pipeline from data collection to policy evaluation.
@@ -268,8 +269,9 @@
           <p>
             The behavioural-cloning policies complete the task end-to-end, with success rates of
             about 53% (brush), 61% (screwdriver) and 33% (pliers); training and validation loss
-            converge without over-fitting. Isaac Lab Mimic was central — roughly 160 human demos
-            became over 3,000 synthetic trajectories (~13×), without extra human effort.
+            converge without over-fitting. Isaac Lab Mimic was central — roughly 240 human demos
+            (80 per object, 3 objects) became over 3,000 synthetic trajectories (~13&times;),
+            without extra human effort.
           </p>
           <p>
             <strong>Limitations.</strong> The main weakness is the <em>carry phase</em>: action
