@@ -132,22 +132,30 @@ TOOL_QUAT = [0.7071, 0.0, 0.0, -0.7071]
 # Distinct assignments of brush/pliers/screwdriver to R0/R1/R2 that satisfy
 # every tool's working-slot constraint (scissors always -> R3). One is chosen
 # at random per reset.
+# Each layout: "slots" = where every tool is placed (so nothing collides), and
+# "park" = policy-tools NOT picked this episode (left hanging, skipped). scissors
+# is always skipped (no policy). For variety, pliers is sometimes parked so brush
+# takes R0 instead (brush grasps any slot; pliers only works at R0).
 VALID_ASSIGNMENTS = [
-    # pliers ALWAYS R0; screwdriver R1/R2; brush takes the other of R1/R2; scissors R3.
-    {"object": "R2", "tool_pliers": "R0", "tool_screwdriver": "R1", "tool_scissors": "R3"},
-    {"object": "R1", "tool_pliers": "R0", "tool_screwdriver": "R2", "tool_scissors": "R3"},
+    # --- pliers IN PLAY (on R0): pick brush + pliers + screwdriver ---
+    {"slots": {"object": "R2", "tool_pliers": "R0", "tool_screwdriver": "R1", "tool_scissors": "R3"}, "park": []},
+    {"slots": {"object": "R1", "tool_pliers": "R0", "tool_screwdriver": "R2", "tool_scissors": "R3"}, "park": []},
+    # --- pliers PARKED (brush takes R0): pick brush + screwdriver ---
+    {"slots": {"object": "R0", "tool_pliers": "R2", "tool_screwdriver": "R1", "tool_scissors": "R3"}, "park": ["pliers"]},
+    {"slots": {"object": "R0", "tool_pliers": "R1", "tool_screwdriver": "R2", "tool_scissors": "R3"}, "park": ["pliers"]},
 ]
 
 
-def place_tools(env, device, assignment, placed, settle_steps: int = 30) -> None:
+def place_tools(env, device, slots, placed, settle_steps: int = 30) -> None:
     """Write the tool poses WITHOUT env.reset() (a mid-episode env.reset() with
     cameras active deadlocks the omni.syntheticdata render pipeline). Keeps the
     SAME board arrangement: tools not yet handled go on their assigned pegs
-    (restoring any that were knocked off); already-LANDED tools go to the basket."""
+    (restoring any that were knocked off); already-LANDED tools go to the basket.
+    `slots` maps scene_key -> slot name (R0..R3)."""
     env_ids = torch.tensor([0], device=device)
     quat = torch.tensor(TOOL_QUAT, device=device).unsqueeze(0)
     basket = BASKET_POS_LOCAL.to(device).unsqueeze(0)
-    for scene_key, slot in assignment.items():
+    for scene_key, slot in slots.items():
         asset = env.unwrapped.scene[scene_key]
         if scene_key in placed:
             pos = env.unwrapped.scene.env_origins[env_ids] + basket
@@ -523,16 +531,24 @@ def main():
         # One constrained-random arrangement for the whole episode (re-randomized
         # only between EPISODES, not between tools).
         assignment = random.choice(VALID_ASSIGNMENTS)
+        slots = assignment["slots"]
+        park = set(assignment["park"])      # policy-tools NOT picked this episode
         placed = set()  # scene_keys of tools that LANDED (go to the basket)
         env.reset()  # episode-start reset is safe; mid-episode resets deadlock w/ cameras
-        place_tools(env, device, assignment, placed)
+        place_tools(env, device, slots, placed)
         print(f"\n[seq] ===== EPISODE {ep_idx + 1}/{args_cli.num_episodes} =====", flush=True)
-        print(f"[seq] constrained spawn: brush={assignment['object']} "
-              f"pliers={assignment['tool_pliers']} screwdriver={assignment['tool_screwdriver']} "
-              f"scissors={assignment['tool_scissors']}(parked)", flush=True)
+        print(f"[seq] spawn: brush={slots['object']} pliers={slots['tool_pliers']} "
+              f"screwdriver={slots['tool_screwdriver']} scissors={slots['tool_scissors']} "
+              f"| parked(skipped): {sorted(park) + ['scissors']}", flush=True)
         ep_results = []
 
         attempted = set()
+        # Parked policy-tools (e.g. pliers when brush takes R0) are not picked this
+        # episode — mark them done up front so the loop ignores them.
+        for t in park:
+            attempted.add(t)
+            ep_results.append({"tool": t, "steps": 0, "landed": False,
+                               "released": False, "final_dist": -1.0, "skipped": True})
         while len(attempted) < len(TOOL_ORDER):
             detections = {} if args_cli.no_cnn else run_cnn(seg_model, board_cam, device, debug=True)
             remaining = [t for t in TOOL_ORDER if t not in attempted]
@@ -634,7 +650,7 @@ def main():
             # pegs). Skip if this was the last tool.
             if len(attempted) < len(TOOL_ORDER):
                 go_home(env, robot, device)
-                place_tools(env, device, assignment, placed)
+                place_tools(env, device, slots, placed)
                 print(f"[seq] ready for next tool (arrangement preserved, "
                       f"{len(placed)} in basket)", flush=True)
 
