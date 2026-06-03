@@ -279,8 +279,11 @@ def main() -> None:
                 output_path,
             )
 
-    (output_path.parent / "air2_segmentation_metrics.json").write_text(json.dumps(history, indent=2))
+    metrics_path = output_path.with_suffix(".metrics.json")
+    metrics_path.write_text(json.dumps(history, indent=2))
+    print(f"Saved training metrics to {metrics_path}")
     print(f"\nSaved best checkpoint to {output_path}")
+
 
 
 if __name__ == "__main__":
