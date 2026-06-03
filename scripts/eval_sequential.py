@@ -30,23 +30,23 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--brush_ckpt",
-    default="checkpoints/working/R0_R1_R2_ALL_WORKS_FOR_BRUSH/policy_state_bc_mimic_v2.pth")
+    default=str(REPO_ROOT / "checkpoints/policy_state_bc_mimic_v2.pth"))
 parser.add_argument("--pliers_ckpt",
-    default="checkpoints/working/PLIERS_R0_R2_WORKS/PLIERS_R0_R2_WORKS/policy_state_bc_mimic_pliers_v2.pth")
+    default=str(REPO_ROOT / "checkpoints/policy_state_bc_mimic_pliers_v2.pth"))
 parser.add_argument("--scissors_ckpt",
-    default="checkpoints/policy_state_bc_scissors.pth")
+    default=str(REPO_ROOT / "checkpoints/policy_state_bc_scissors.pth"))
 parser.add_argument("--screwdriver_ckpt",
-    default="checkpoints/policy_state_bc_screwdriver.pth")
+    default=str(REPO_ROOT / "checkpoints/policy_state_bc_mimic_screwdriver_v2.pth"))
 parser.add_argument("--task",             default="Isaac-AIR2-Robotis-Franka-Brush-Play-v0")
 parser.add_argument("--num_episodes",     type=int,   default=10)
 parser.add_argument("--max_steps_per_tool", type=int, default=2000)
-parser.add_argument("--seg_ckpt",         default="checkpoints/air2_segmentation_unet_newcam.pth")
+parser.add_argument("--seg_ckpt",         default=str(REPO_ROOT / "checkpoints/air2_segmentation_unet_newcam.pth"))
 parser.add_argument("--detect_every",     type=int,   default=10)
 parser.add_argument("--no_cnn",           action="store_true",
-                    help="Skip CNN entirely — use GT physics positions. No board_camera loaded.")
+                    help="Skip CNN entirely — use GT physics positions. No main_camera loaded.")
 parser.add_argument("--servo_dist",       type=float, default=0.18)
 parser.add_argument("--episode_length_s", type=float, default=300.0)
-parser.add_argument("--out",              default="eval_results/sequential.json")
+parser.add_argument("--out",              default=str(REPO_ROOT / "eval_results/sequential.json"))
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 args_cli.enable_cameras = not args_cli.no_cnn
@@ -471,8 +471,8 @@ def main():
             setattr(env_cfg.terminations, name, None)
 
     if not args_cli.no_cnn:
-        env_cfg.scene.board_camera = CameraCfg(
-        prim_path="{ENV_REGEX_NS}/board_camera",
+        env_cfg.scene.main_camera = CameraCfg(
+        prim_path="{ENV_REGEX_NS}/main_camera",
         update_period=0.0,
         height=360, width=640,
         data_types=["rgb", "distance_to_image_plane"],
@@ -519,7 +519,7 @@ def main():
         # Load the seg model on the GPU (the resnet18 v3 is heavy; CPU inference
         # can stall the sim). run_cnn feeds tensors to the model's own device.
         seg_model = load_seg_model(args_cli.seg_ckpt, "cuda:0")
-        board_cam = env.unwrapped.scene["board_camera"]
+        board_cam = env.unwrapped.scene["main_camera"]
         print("[seq] seg model loaded.", flush=True)
     robot     = env.unwrapped.scene["robot"]
     _hj = robot.data.default_joint_pos[0].tolist()

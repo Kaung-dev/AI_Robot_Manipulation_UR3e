@@ -54,7 +54,7 @@ parser.add_argument("--detect_every", type=int, default=10,
                     help="Run CNN detection every N steps (default 10 to keep sim smooth).")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
-args_cli.enable_cameras = True  # board_camera requires camera rendering
+args_cli.enable_cameras = True  # main_camera requires camera rendering
 
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
@@ -157,23 +157,22 @@ def main():
     env_cfg = parse_env_cfg(args_cli.task, device="cuda:0", num_envs=args_cli.num_envs)
     env_cfg.episode_length_s = args_cli.episode_length_s
 
-    # Add board_camera with RGB + depth — same position as segmentation_env_cfg.py.
-    # Camera pose may need tuning if the new scene layout differs from the old env.
-    env_cfg.scene.board_camera = CameraCfg(
-        prim_path="{ENV_REGEX_NS}/board_camera",
+    # Add main_camera with RGB + depth — same position as segmentation_env_cfg.py.
+    env_cfg.scene.main_camera = CameraCfg(
+        prim_path="{ENV_REGEX_NS}/main_camera",
         update_period=0.0,
         height=360,
         width=640,
         data_types=["rgb", "distance_to_image_plane"],
         spawn=sim_utils.PinholeCameraCfg(
-            focal_length=24.0,
+            focal_length=18.0,
             focus_distance=400.0,
             horizontal_aperture=20.955,
-            clipping_range=(0.1, 20.0),
+            clipping_range=(0.1, 1.0e5),
         ),
         offset=CameraCfg.OffsetCfg(
-            pos=(-1.0, -3.5, 1.8),
-            rot=(-0.2068, 0.2807, 0.7545, -0.5560),
+            pos=(-4.8, -5.2, 2.2),
+            rot=(0.1598, -0.3477, 0.8395, -0.3857),
             convention="ros",
         ),
     )
@@ -197,7 +196,7 @@ def main():
     policy, obs_mean, obs_std, obs_aligned = load_state_bc_policy(args_cli.state_bc_ckpt, device=device)
 
     seg_model = _load_seg_model(args_cli.seg_ckpt, device)
-    board_cam = env.unwrapped.scene["board_camera"]
+    board_cam = env.unwrapped.scene["main_camera"]
     print(f"[eval-state-bc-cnn] segmentation model loaded from {args_cli.seg_ckpt}", flush=True)
     print(f"[eval-state-bc] task={args_cli.task} envs={num_envs} target_episodes={args_cli.num_episodes} episode_length_s={env_cfg.episode_length_s}",
           flush=True)

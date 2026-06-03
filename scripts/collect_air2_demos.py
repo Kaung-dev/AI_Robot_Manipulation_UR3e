@@ -45,7 +45,7 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Collect AIR2 demos via scripted controller.")
 parser.add_argument("--task", default="Isaac-AIR2-Robotis-Franka-Segmentation-Play-v0",
-                    help="Segmentation variants have both wrist_camera + board_camera; non-segmentation only have wrist_camera.")
+                    help="Segmentation variants have both wrist_camera + main_camera; non-segmentation only have wrist_camera.")
 parser.add_argument("--num_envs", type=int, default=4)
 parser.add_argument("--num_episodes", type=int, default=20, help="Total episodes to collect across all envs.")
 parser.add_argument("--max_episode_steps", type=int, default=1500, help="Hard cap on steps per episode.")
@@ -219,7 +219,7 @@ def main():
             # Capture cameras + state per env every N steps
             do_save = ((episode_step_count % args_cli.save_every_n_steps) == 0).cpu()
             wrist_buf = env.unwrapped.scene["wrist_camera"].data.output["rgb"].cpu().numpy()
-            board_buf = env.unwrapped.scene["board_camera"].data.output["rgb"].cpu().numpy()
+            board_buf = env.unwrapped.scene["main_camera"].data.output["rgb"].cpu().numpy()
             jp_buf = env.unwrapped.scene["robot"].data.joint_pos.cpu().numpy()
             jv_buf = env.unwrapped.scene["robot"].data.joint_vel.cpu().numpy()
             act_np = action.cpu().numpy()
