@@ -155,9 +155,9 @@
             We train entirely in simulation using NVIDIA Isaac Lab. A U-Net / ResNet-18 CNN is
             first trained on segmentation masks to give the robot visual perception. Human
             demonstrations are then recorded via keyboard teleoperation and expanded using
-            Isaac Lab Mimic to generate a large synthetic dataset. A Behaviour Cloning (BC)
-            policy is trained on this dataset and optionally fine-tuned with PPO reinforcement
-            learning.
+            Isaac Lab Mimic to generate a large synthetic dataset (≈160 human demonstrations
+            amplified to over 3,000). A Behaviour Cloning (BC) policy is then trained on this
+            dataset.
           </p>
           <p>
             The video below demonstrates the full pipeline from data collection to policy evaluation.
@@ -205,9 +205,9 @@
       <!-- Basket Reach Rate -->
       <div class="column">
         <div class="content">
-          <h2 class="title is-3">Basket Reach Rate</h2>
-          <p>Success rate per object across evaluation episodes.</p>
-          <img src="./static/images/results/basket_reach_rate.png" class="teaser-image" alt="Basket reach rate."/>
+          <h2 class="title is-3">Success Rate</h2>
+          <p>Task success rate per tool (object landed in basket), with Wilson 95% confidence intervals.</p>
+          <img src="./static/images/results/basket_reach_rate.png" class="teaser-image" alt="Success rate per tool."/>
         </div>
       </div>
 
