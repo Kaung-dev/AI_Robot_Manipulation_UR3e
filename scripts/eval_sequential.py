@@ -651,12 +651,18 @@ def main():
             print(f"[seq] {tool_name}: LANDED={result['landed']}  "
                   f"dist={result['final_dist']:.3f}m  steps={result['steps']}", flush=True)
 
-            # Clean transition before the next tool (NO env.reset — it deadlocks
-            # with cameras): home the arm + flush buffers (go_home), then restore
-            # the arrangement (landed tools -> basket, the rest back on their
-            # pegs). Skip if this was the last tool.
+            # Clean transition before the next tool. Camera-free (this branch):
+            # a real env.reset() gives each tool a PRISTINE robot + buffer state,
+            # which fixes the "policy stops working after 2 tools" drift (go_home
+            # alone doesn't fully restore the env). env.reset() is safe here only
+            # because there's no camera (it deadlocks omni.syntheticdata when a
+            # camera is active). Then restore the arrangement (landed -> basket,
+            # rest -> pegs). go_home is the fallback for the camera path.
             if len(attempted) < len(TOOL_ORDER):
-                go_home(env, robot, device)
+                if args_cli.no_cnn:
+                    env.reset()
+                else:
+                    go_home(env, robot, device)
                 place_tools(env, device, slots, placed)
                 print(f"[seq] ready for next tool (arrangement preserved, "
                       f"{len(placed)} in basket)", flush=True)
