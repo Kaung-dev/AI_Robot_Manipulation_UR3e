@@ -40,7 +40,7 @@ parser.add_argument("--screwdriver_ckpt",
 parser.add_argument("--task",             default="Isaac-AIR2-Robotis-Franka-Brush-Play-v0")
 parser.add_argument("--num_episodes",     type=int,   default=10)
 parser.add_argument("--max_steps_per_tool", type=int, default=2000)
-parser.add_argument("--seg_ckpt",         default="checkpoints/air2_segmentation_unet_newcam.pth")
+parser.add_argument("--seg_ckpt",         default="checkpoints/air2_segmentation_unet_newscene.pth")
 parser.add_argument("--detect_every",     type=int,   default=10)
 parser.add_argument("--no_cnn",           action="store_true",
                     help="Skip CNN entirely — use GT physics positions. No board_camera loaded.")
@@ -117,9 +117,8 @@ PEG_Z_MIN = 1.10
 # the slots its BC policy can actually grasp. Mirrors mdp/events.py
 # (SLOT_POSITIONS world coords + _TOOL_QUAT) so placement is in-distribution,
 # but applied in this demo only — shared training/PPO code is NOT touched.
-#   brush (object)        -> R0 / R1 / R2  (all)
-#   pliers (tool_pliers)  -> R0            (R1 always bad; R2 carry is unreliable
-#                                           in the unified demo, so R0 only)
+#   brush (object)        -> R0 / R1 / R2  (works on all; takes R1/R2 since pliers holds R0)
+#   pliers (tool_pliers)  -> R0 ONLY       (R1 + R2 unreliable)
 #   screwdriver           -> R1 / R2       (never R0)
 #   scissors              -> R3            (parked; no policy, skipped)
 # ---------------------------------------------------------------------------
@@ -134,9 +133,9 @@ TOOL_QUAT = [0.7071, 0.0, 0.0, -0.7071]
 # every tool's working-slot constraint (scissors always -> R3). One is chosen
 # at random per reset.
 VALID_ASSIGNMENTS = [
+    # pliers ALWAYS R0; screwdriver R1/R2; brush takes the other of R1/R2; scissors R3.
     {"object": "R2", "tool_pliers": "R0", "tool_screwdriver": "R1", "tool_scissors": "R3"},
     {"object": "R1", "tool_pliers": "R0", "tool_screwdriver": "R2", "tool_scissors": "R3"},
-    # (dropped the pliers=R2 layout — pliers R2 carry is unreliable; pliers stays on R0)
 ]
 
 
@@ -198,8 +197,7 @@ def load_policy(ckpt_path: str, device: str):
 def load_seg_model(path: str, device: str):
     ckpt = torch.load(path, map_location=device, weights_only=False)
     num_classes = int(ckpt.get("num_classes", 9))
-    # backbone may be "resnet" or "resnet18" etc. — match any resnet variant.
-    if str(ckpt.get("backbone", "")).startswith("resnet"):
+    if ckpt.get("backbone") == "resnet":
         model = build_resnet_model(num_classes=num_classes, pretrained=False).to(device)
     else:
         model = build_model(num_classes=num_classes,
@@ -258,11 +256,10 @@ def run_cnn(seg_model, board_cam, device: str, debug: bool = False) -> dict[str,
     pos_w = board_cam.data.pos_w[0].detach().cpu().numpy()
     quat_w = board_cam.data.quat_w_ros[0].detach().cpu().numpy()
     H, W = rgb.shape[0], rgb.shape[1]
-    seg_dev = next(seg_model.parameters()).device
     with torch.no_grad():
         # Model was trained at 224x224 — resize input to match the training scale
         # (raw 640x360 makes the tools ~3x larger than anything seen in training).
-        rgb_t  = torch.from_numpy(rgb).permute(2, 0, 1).float().unsqueeze(0).to(seg_dev) / 255.0
+        rgb_t  = torch.from_numpy(rgb).permute(2, 0, 1).float().unsqueeze(0).to("cpu") / 255.0
         rgb_224 = torch.nn.functional.interpolate(rgb_t, size=(224, 224),
                                                   mode="bilinear", align_corners=False)
         logits_224 = seg_model(rgb_224)
@@ -476,18 +473,13 @@ def main():
         update_period=0.0,
         height=360, width=640,
         data_types=["rgb", "distance_to_image_plane"],
-        # Camera must MATCH the view the seg model was trained on. The v3 model
-        # (air2_segmentation_v3.pth, resnet18) was trained on the friend's
-        # main_camera view — 18 mm wide lens, right-of-robot, elevated, tilted
-        # toward the pegboard (see _apply_segmentation_cameras in
-        # air2_franka/segmentation_env_cfg.py). Keep these in sync with that cfg.
         spawn=sim_utils.PinholeCameraCfg(
-            focal_length=18.0, focus_distance=400.0,
-            horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5),
+            focal_length=24.0, focus_distance=400.0,
+            horizontal_aperture=20.955, clipping_range=(0.1, 20.0),
         ),
         offset=CameraCfg.OffsetCfg(
-            pos=(-4.8, -5.2, 2.2),
-            rot=(0.1598, -0.3477, 0.8395, -0.3857),
+            pos=(-1.0, -3.5, 1.8),
+            rot=(-0.2068, 0.2807, 0.7545, -0.5560),
             convention="ros",
         ),
     )
@@ -516,9 +508,7 @@ def main():
         seg_model = board_cam = None
         print("[seq] --no_cnn: using GT physics positions.", flush=True)
     else:
-        # Load the seg model on the GPU (the resnet18 v3 is heavy; CPU inference
-        # can stall the sim). run_cnn feeds tensors to the model's own device.
-        seg_model = load_seg_model(args_cli.seg_ckpt, "cuda:0")
+        seg_model = load_seg_model(args_cli.seg_ckpt, "cpu")
         board_cam = env.unwrapped.scene["board_camera"]
         print("[seq] seg model loaded.", flush=True)
     robot     = env.unwrapped.scene["robot"]
@@ -550,7 +540,7 @@ def main():
 
             print(f"\n[seq] CNN detected on peg: {on_peg if on_peg else 'none'}", flush=True)
             print(f"[seq] Remaining: {remaining}", flush=True)
-            print(f"[seq] Commands: {on_peg} | 'auto' (closest to basket) | 'skip <tool>' | 'done'",
+            print(f"[seq] Commands: {on_peg} | 'auto' (next in order) | 'skip <tool>' | 'done'",
                   flush=True)
 
             try:
@@ -562,8 +552,8 @@ def main():
                 break
             elif user_input == "auto":
                 # Mark any detected tools we have NO policy for (e.g. scissors) as
-                # attempted so they don't block the loop, then pick the detected,
-                # policy-backed tool CLOSEST to the basket.
+                # attempted so they don't block the loop, then pick the next in
+                # priority order that is BOTH on a peg AND has a loaded policy.
                 for t in remaining:
                     if t in detections and t not in policies:
                         print(f"[seq] {t} detected but no policy loaded — skipping", flush=True)
@@ -571,22 +561,8 @@ def main():
                         ep_results.append({"tool": t, "steps": 0, "landed": False,
                                            "released": False, "final_dist": -1.0,
                                            "skipped": True})
-                # Pick the detected, policy-backed tool CLOSEST to the basket
-                # (re-evaluated each scan). Distance uses the CNN-detected world
-                # position vs the basket world position — cm-level is plenty for
-                # ordering. Mirrors the friend's eval_multi closest-first order.
-                basket_w = (env_origins[0] + basket_dev).tolist()
-                cands = [t for t in remaining if t in detections and t in policies]
-                def _basket_dist(t):
-                    p = detections[t]
-                    return ((p[0]-basket_w[0])**2 + (p[1]-basket_w[1])**2 + (p[2]-basket_w[2])**2) ** 0.5
-                if cands:
-                    order = sorted(cands, key=_basket_dist)
-                    print("[seq] pick order (closest to basket first): "
-                          + ", ".join(f"{t}({_basket_dist(t):.2f}m)" for t in order), flush=True)
-                    tool_name = order[0]
-                else:
-                    tool_name = None
+                tool_name = next((t for t in remaining
+                                  if t in detections and t in policies), None)
                 if tool_name is None:
                     print("[seq] No detected tool has a policy — ending episode", flush=True)
                     break
