@@ -564,7 +564,22 @@ def main():
                 tool_name = next((t for t in remaining
                                   if t in detections and t in policies), None)
                 if tool_name is None:
-                    print("[seq] No detected tool has a policy — ending episode", flush=True)
+                    # GT FALLBACK so EVERY tool gets collected: the CNN sometimes
+                    # misses a tool (e.g. the thin screwdriver), but if a
+                    # policy-tool is still physically on its peg, grasp it anyway
+                    # (we drive to the true pose regardless of CNN).
+                    for t in remaining:
+                        if t not in policies:
+                            continue
+                        obj_z = env.unwrapped.scene[TOOL_SCENE_KEY[t]].data.root_pos_w[0, 2].item()
+                        if obj_z > PEG_Z_MIN:
+                            tool_name = t
+                            print(f"[seq] {t} not detected by CNN but still on peg "
+                                  f"(z={obj_z:.2f}) — grasping via true pose (GT fallback)",
+                                  flush=True)
+                            break
+                if tool_name is None:
+                    print("[seq] No tool left on a peg — ending episode", flush=True)
                     break
             elif user_input.startswith("skip "):
                 skip_tool = user_input.split()[1]
