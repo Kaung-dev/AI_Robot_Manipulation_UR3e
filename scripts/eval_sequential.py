@@ -40,7 +40,7 @@ parser.add_argument("--screwdriver_ckpt",
 parser.add_argument("--task",             default="Isaac-AIR2-Robotis-Franka-Brush-Play-v0")
 parser.add_argument("--num_episodes",     type=int,   default=10)
 parser.add_argument("--max_steps_per_tool", type=int, default=2000)
-parser.add_argument("--seg_ckpt",         default="checkpoints/air2_segmentation_v3.pth")
+parser.add_argument("--seg_ckpt",         default="checkpoints/air2_segmentation_unet_newcam.pth")
 parser.add_argument("--detect_every",     type=int,   default=10)
 parser.add_argument("--no_cnn",           action="store_true",
                     help="Skip CNN entirely — use GT physics positions. No board_camera loaded.")
