@@ -11,6 +11,14 @@ The repo is an Isaac Lab project for the AIR2 / Robotis pegboard Franka manipula
 
 For the end-to-end data and model workflow, refer to [`GUIDE.md`](GUIDE.md). It covers collecting data, training, Mimic generation, and executing/evaluating the trained policies.
 
+## Data & trained models
+
+The datasets and trained models are too large for git and are hosted on Google Drive:
+
+📦 **[Download the data + models bundle](https://drive.google.com/drive/folders/1Hfsbq8CI39m-sjytxXRaltL-iFscZLF4?usp=drive_link)**
+
+The download contains the BC policies, the CNN segmentation models, all datasets (human demos, Mimic-generated demos, segmentation frames), and a copy of `GUIDE.md`. See [`GUIDE.md`](GUIDE.md) for where to place each file and how to run or reproduce the pipeline.
+
 Unless a command explicitly says otherwise, run it from the repository root:
 
 ```text

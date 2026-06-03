@@ -6,6 +6,9 @@ images), and this guide. It is meant for someone who downloaded the zip and want
 to either **(A) just run our stuff**, or **(B) reproduce the whole pipeline from
 scratch** (record human demos → annotate → Mimic-generate → train BC → run).
 
+> **Download the bundle** from Google Drive:
+> https://drive.google.com/drive/folders/1Hfsbq8CI39m-sjytxXRaltL-iFscZLF4?usp=drive_link
+
 ---
 
 ## 0. What's in this folder
