@@ -1,65 +1,91 @@
-<svg width="100%" viewBox="0 0 680 230" role="img" style="" xmlns="http://www.w3.org/2000/svg">
-  <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">AI training pipeline flowchart</title>
-  <desc style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Six sequential steps: Collect seg data, Train CNN, Record demos, Mimic augmentation, Train BC, Eval</desc>
+<svg width="100%" viewBox="0 0 780 100" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>AI training pipeline — six sequential stages</title>
+  <desc>Collect seg data → Train U-Net → Record demos → Mimic augmentation → Train BC → Evaluate</desc>
   <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M2 1 L9 5 L2 9" fill="none" stroke="#9c9a92"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
 
-  <!-- Title -->
-  <text x="340" y="28" text-anchor="middle" dominant-baseline="central" style="font-size:18px;fill:rgb(250, 249, 245);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:18px;font-weight:500;text-anchor:middle;dominant-baseline:central">AI training</text>
+  <!-- Phase labels -->
+  <text x="130" y="13" text-anchor="middle" font-size="10" fill="#aaaaaa"
+        font-family="'Google Sans','Noto Sans',sans-serif" letter-spacing="1.5">PERCEPTION</text>
+  <text x="390" y="13" text-anchor="middle" font-size="10" fill="#aaaaaa"
+        font-family="'Google Sans','Noto Sans',sans-serif" letter-spacing="1.5">DEMONSTRATIONS</text>
+  <text x="650" y="13" text-anchor="middle" font-size="10" fill="#aaaaaa"
+        font-family="'Google Sans','Noto Sans',sans-serif" letter-spacing="1.5">POLICY</text>
 
-  <!-- Layout: 3 boxes per row, total width = 3×130 + 2×20 = 430, centered in 680 → startX = (680-430)/2 = 125 -->
-  <!-- Box positions: x=125, x=275, x=425. Arrow gaps between boxes at x=255 and x=405 -->
+  <!-- Phase divider lines -->
+  <line x1="10"  y1="20" x2="250" y2="20" stroke="#85b3eb" stroke-width="1.5" stroke-opacity="0.45"/>
+  <line x1="270" y1="20" x2="510" y2="20" stroke="#5dcaa5" stroke-width="1.5" stroke-opacity="0.45"/>
+  <line x1="530" y1="20" x2="770" y2="20" stroke="#afa9ec" stroke-width="1.5" stroke-opacity="0.45"/>
 
-  <!-- Row 1 -->
-  <g onclick="sendPrompt('Tell me more about collecting segmentation data')" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-    <rect x="125" y="50" width="130" height="52" rx="8" stroke-width="0.5" style="fill:rgb(12, 68, 124);stroke:rgb(133, 183, 235);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-    <text x="190" y="72" text-anchor="middle" dominant-baseline="central" style="fill:rgb(181, 212, 244);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Collect seg data</text>
-    <text x="190" y="90" text-anchor="middle" dominant-baseline="central" style="fill:rgb(133, 183, 235);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Camera + labels</text>
-  </g>
+  <!-- Boxes: width=110, height=62, y=26 — centers x: 65 195 325 455 585 715, mid-y=57 -->
 
-  <line x1="255" y1="76" x2="275" y2="76" marker-end="url(#arrow)" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <!-- 1. Collect seg data (blue) -->
+  <rect x="10"  y="26" width="110" height="62" rx="9" fill="#0c447c" stroke="#85b3eb" stroke-width="0.75"/>
+  <text x="65"  y="49" text-anchor="middle" dominant-baseline="central"
+        font-size="12.5" font-weight="600" fill="#b5d4f4"
+        font-family="'Google Sans','Noto Sans',sans-serif">Collect seg data</text>
+  <text x="65"  y="68" text-anchor="middle" dominant-baseline="central"
+        font-size="10" fill="#85b3eb"
+        font-family="'Google Sans','Noto Sans',sans-serif">160 frames · 40/object</text>
 
-  <g onclick="sendPrompt('Tell me more about training the CNN segmentation model')" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-    <rect x="275" y="50" width="130" height="52" rx="8" stroke-width="0.5" style="fill:rgb(12, 68, 124);stroke:rgb(133, 183, 235);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-    <text x="340" y="72" text-anchor="middle" dominant-baseline="central" style="fill:rgb(181, 212, 244);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Train CNN</text>
-    <text x="340" y="90" text-anchor="middle" dominant-baseline="central" style="fill:rgb(133, 183, 235);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">9-class segmentation</text>
-  </g>
+  <line x1="121" y1="57" x2="138" y2="57" stroke="#9c9a92" stroke-width="1.5" marker-end="url(#arr)"/>
 
-  <line x1="405" y1="76" x2="425" y2="76" marker-end="url(#arrow)" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <!-- 2. Train U-Net (blue) -->
+  <rect x="140" y="26" width="110" height="62" rx="9" fill="#0c447c" stroke="#85b3eb" stroke-width="0.75"/>
+  <text x="195" y="49" text-anchor="middle" dominant-baseline="central"
+        font-size="12.5" font-weight="600" fill="#b5d4f4"
+        font-family="'Google Sans','Noto Sans',sans-serif">Train U-Net</text>
+  <text x="195" y="68" text-anchor="middle" dominant-baseline="central"
+        font-size="10" fill="#85b3eb"
+        font-family="'Google Sans','Noto Sans',sans-serif">9-class segmentation</text>
 
-  <g onclick="sendPrompt('Tell me more about recording demonstrations')" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-    <rect x="425" y="50" width="130" height="52" rx="8" stroke-width="0.5" style="fill:rgb(8, 80, 65);stroke:rgb(93, 202, 165);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-    <text x="490" y="72" text-anchor="middle" dominant-baseline="central" style="fill:rgb(159, 225, 203);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Record demos</text>
-    <text x="490" y="90" text-anchor="middle" dominant-baseline="central" style="fill:rgb(93, 202, 165);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Human teleoperation</text>
-  </g>
+  <line x1="251" y1="57" x2="268" y2="57" stroke="#9c9a92" stroke-width="1.5" marker-end="url(#arr)"/>
 
-  <!-- Down arrow from box 3 -->
-  <line x1="490" y1="102" x2="490" y2="128" marker-end="url(#arrow)" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <!-- 3. Record demos (teal) -->
+  <rect x="270" y="26" width="110" height="62" rx="9" fill="#085041" stroke="#5dcaa5" stroke-width="0.75"/>
+  <text x="325" y="49" text-anchor="middle" dominant-baseline="central"
+        font-size="12.5" font-weight="600" fill="#9fe1cb"
+        font-family="'Google Sans','Noto Sans',sans-serif">Record demos</text>
+  <text x="325" y="68" text-anchor="middle" dominant-baseline="central"
+        font-size="10" fill="#5dcaa5"
+        font-family="'Google Sans','Noto Sans',sans-serif">80 demos × 3 objects</text>
 
-  <!-- Row 2 (right to left) -->
-  <g onclick="sendPrompt('Tell me more about mimic augmentation')" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-    <rect x="425" y="128" width="130" height="52" rx="8" stroke-width="0.5" style="fill:rgb(8, 80, 65);stroke:rgb(93, 202, 165);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-    <text x="490" y="150" text-anchor="middle" dominant-baseline="central" style="fill:rgb(159, 225, 203);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Mimic aug.</text>
-    <text x="490" y="168" text-anchor="middle" dominant-baseline="central" style="fill:rgb(93, 202, 165);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Data augmentation</text>
-  </g>
+  <line x1="381" y1="57" x2="398" y2="57" stroke="#9c9a92" stroke-width="1.5" marker-end="url(#arr)"/>
 
-  <line x1="425" y1="154" x2="405" y2="154" marker-end="url(#arrow)" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <!-- 4. Mimic aug. (teal) -->
+  <rect x="400" y="26" width="110" height="62" rx="9" fill="#085041" stroke="#5dcaa5" stroke-width="0.75"/>
+  <text x="455" y="49" text-anchor="middle" dominant-baseline="central"
+        font-size="12.5" font-weight="600" fill="#9fe1cb"
+        font-family="'Google Sans','Noto Sans',sans-serif">Mimic aug.</text>
+  <text x="455" y="68" text-anchor="middle" dominant-baseline="central"
+        font-size="10" fill="#5dcaa5"
+        font-family="'Google Sans','Noto Sans',sans-serif">240 → 3,000+ demos</text>
 
-  <g onclick="sendPrompt('Tell me more about training the behaviour cloning policy')" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-    <rect x="275" y="128" width="130" height="52" rx="8" stroke-width="0.5" style="fill:rgb(60, 52, 137);stroke:rgb(175, 169, 236);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-    <text x="340" y="150" text-anchor="middle" dominant-baseline="central" style="fill:rgb(206, 203, 246);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Train BC</text>
-    <text x="340" y="168" text-anchor="middle" dominant-baseline="central" style="fill:rgb(175, 169, 236);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Behaviour cloning</text>
-  </g>
+  <line x1="511" y1="57" x2="528" y2="57" stroke="#9c9a92" stroke-width="1.5" marker-end="url(#arr)"/>
 
-  <line x1="275" y1="154" x2="255" y2="154" marker-end="url(#arrow)" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <!-- 5. Train BC (purple) -->
+  <rect x="530" y="26" width="110" height="62" rx="9" fill="#3c3489" stroke="#afa9ec" stroke-width="0.75"/>
+  <text x="585" y="49" text-anchor="middle" dominant-baseline="central"
+        font-size="12.5" font-weight="600" fill="#cecbf6"
+        font-family="'Google Sans','Noto Sans',sans-serif">Train BC</text>
+  <text x="585" y="68" text-anchor="middle" dominant-baseline="central"
+        font-size="10" fill="#afa9ec"
+        font-family="'Google Sans','Noto Sans',sans-serif">State → joint actions</text>
 
-  <g onclick="sendPrompt('Tell me more about evaluating the BC policy')" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-    <rect x="125" y="128" width="130" height="52" rx="8" stroke-width="0.5" style="fill:rgb(60, 52, 137);stroke:rgb(175, 169, 236);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-    <text x="190" y="150" text-anchor="middle" dominant-baseline="central" style="fill:rgb(206, 203, 246);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Eval</text>
-    <text x="190" y="168" text-anchor="middle" dominant-baseline="central" style="fill:rgb(175, 169, 236);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Reach rate + reward</text>
-  </g>
+  <line x1="641" y1="57" x2="658" y2="57" stroke="#9c9a92" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- 6. Evaluate (purple) -->
+  <rect x="660" y="26" width="110" height="62" rx="9" fill="#3c3489" stroke="#afa9ec" stroke-width="0.75"/>
+  <text x="715" y="49" text-anchor="middle" dominant-baseline="central"
+        font-size="12.5" font-weight="600" fill="#cecbf6"
+        font-family="'Google Sans','Noto Sans',sans-serif">Evaluate</text>
+  <text x="715" y="68" text-anchor="middle" dominant-baseline="central"
+        font-size="10" fill="#afa9ec"
+        font-family="'Google Sans','Noto Sans',sans-serif">Closed-loop rollouts</text>
 
 </svg>
