@@ -540,7 +540,7 @@ def main():
 
             print(f"\n[seq] CNN detected on peg: {on_peg if on_peg else 'none'}", flush=True)
             print(f"[seq] Remaining: {remaining}", flush=True)
-            print(f"[seq] Commands: {on_peg} | 'auto' (next in order) | 'skip <tool>' | 'done'",
+            print(f"[seq] Commands: {on_peg} | 'auto' (closest to basket) | 'skip <tool>' | 'done'",
                   flush=True)
 
             try:
@@ -552,8 +552,8 @@ def main():
                 break
             elif user_input == "auto":
                 # Mark any detected tools we have NO policy for (e.g. scissors) as
-                # attempted so they don't block the loop, then pick the next in
-                # priority order that is BOTH on a peg AND has a loaded policy.
+                # attempted so they don't block the loop, then pick the detected,
+                # policy-backed tool CLOSEST to the basket.
                 for t in remaining:
                     if t in detections and t not in policies:
                         print(f"[seq] {t} detected but no policy loaded — skipping", flush=True)
@@ -561,8 +561,22 @@ def main():
                         ep_results.append({"tool": t, "steps": 0, "landed": False,
                                            "released": False, "final_dist": -1.0,
                                            "skipped": True})
-                tool_name = next((t for t in remaining
-                                  if t in detections and t in policies), None)
+                # Pick the detected, policy-backed tool CLOSEST to the basket
+                # (re-evaluated each scan). Distance uses the CNN-detected world
+                # position vs the basket world position — cm-level is plenty for
+                # ordering. Mirrors the friend's eval_multi closest-first order.
+                basket_w = (env_origins[0] + basket_dev).tolist()
+                cands = [t for t in remaining if t in detections and t in policies]
+                def _basket_dist(t):
+                    p = detections[t]
+                    return ((p[0]-basket_w[0])**2 + (p[1]-basket_w[1])**2 + (p[2]-basket_w[2])**2) ** 0.5
+                if cands:
+                    order = sorted(cands, key=_basket_dist)
+                    print("[seq] pick order (closest to basket first): "
+                          + ", ".join(f"{t}({_basket_dist(t):.2f}m)" for t in order), flush=True)
+                    tool_name = order[0]
+                else:
+                    tool_name = None
                 if tool_name is None:
                     print("[seq] No detected tool has a policy — ending episode", flush=True)
                     break
