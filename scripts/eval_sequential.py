@@ -118,7 +118,8 @@ PEG_Z_MIN = 1.10
 # (SLOT_POSITIONS world coords + _TOOL_QUAT) so placement is in-distribution,
 # but applied in this demo only — shared training/PPO code is NOT touched.
 #   brush (object)        -> R0 / R1 / R2  (all)
-#   pliers (tool_pliers)  -> R0 / R2       (never R1)
+#   pliers (tool_pliers)  -> R0            (R1 always bad; R2 carry is unreliable
+#                                           in the unified demo, so R0 only)
 #   screwdriver           -> R1 / R2       (never R0)
 #   scissors              -> R3            (parked; no policy, skipped)
 # ---------------------------------------------------------------------------
@@ -135,7 +136,7 @@ TOOL_QUAT = [0.7071, 0.0, 0.0, -0.7071]
 VALID_ASSIGNMENTS = [
     {"object": "R2", "tool_pliers": "R0", "tool_screwdriver": "R1", "tool_scissors": "R3"},
     {"object": "R1", "tool_pliers": "R0", "tool_screwdriver": "R2", "tool_scissors": "R3"},
-    {"object": "R0", "tool_pliers": "R2", "tool_screwdriver": "R1", "tool_scissors": "R3"},
+    # (dropped the pliers=R2 layout — pliers R2 carry is unreliable; pliers stays on R0)
 ]
 
 
