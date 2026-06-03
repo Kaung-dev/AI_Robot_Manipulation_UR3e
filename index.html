@@ -27,21 +27,32 @@
 </head>
 <body>
 
-<section class="hero">
+<section class="hero" style="background-color: #f5f5f5;">
   <div class="hero-body">
     <div class="container is-max-desktop">
       <div class="columns is-centered">
         <div class="column has-text-centered">
-          <h1 class="title is-1 publication-title">AI Robot Manipulation — UR3e Pick and Place</h1>
+          <h1 class="title is-1 publication-title">AI Robot Manipulation — Panda Robot Pick and Place</h1>
           <div class="is-size-5 publication-authors">
             <span class="author-block">
-              <!-- TODO: Replace with your name -->
-              <a href="#">Your Name</a><sup>1</sup>
+              <a href="#">Kaung Myat Thu (14442899)</a>,
+            </span>
+            <span class="author-block">
+              <a href="#">Stephen Suiwinata (14466243)</a>,
+            </span>
+            <span class="author-block">
+              <a href="#">Dang Tran (14492666)</a>,
+            </span>
+            <span class="author-block">
+              <a href="#">Declan Wijaya (14500211)</a>,
+            </span>
+            <span class="author-block">
+              <a href="#">Hayden Choo (24685125)</a>
             </span>
           </div>
 
           <div class="is-size-5 publication-authors">
-            <span class="author-block"><sup>1</sup>University of Technology Sydney</span>
+            <span class="author-block"><sup></sup>University of Technology Sydney</span>
           </div>
 
           <div class="column has-text-centered">
@@ -75,18 +86,25 @@
 </section>
 
 
-<!-- Teaser image -->
-<section class="hero teaser">
+
+<!-- Pipeline -->
+<section class="section">
   <div class="container is-max-desktop">
-    <div class="hero-body">
-      <!-- TODO: Replace with your own teaser image -->
-      <img src="./static/images/teaser.png"
-            class="teaser-image"
-            alt="Project teaser."/>
-      <h2 class="subtitle has-text-centered">
-        A Franka Panda robot trained in Isaac Lab to pick a commanded tool
-        (brush, pliers, scissors, screwdriver) from a Robotis pegboard and place it in a basket.
-      </h2>
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">System Overview</h2>
+        <div class="content has-text-justified">
+          <p>
+            The full pipeline runs in six stages: (1) collect segmentation frames automatically,
+            (2) train a CNN to identify objects, (3) record manual teleoperation demonstrations,
+            (4) expand demos with Isaac Lab Mimic, (5) train a BC policy, and (6) evaluate
+            policy rollouts in simulation.
+          </p>
+        </div>
+        <img src="./static/images/Pipeline.svg"
+          class="teaser-image"
+          alt="Pipeline diagram."/>
+      </div>
     </div>
   </div>
 </section>
@@ -98,11 +116,20 @@
     <div class="container">
       <h2 class="title is-3">Team members</h2>
       <div id="results-carousel" class="carousel results-carousel">
-        <!-- TODO: Replace with your own team photos -->
         <div class="item">
-          <img src="./static/images/team/member1.jpg"
-            class="teaser-image"
-            alt="Team member."/>
+          <img src="./static/images/team/Declan.jpg" class="teaser-image" style="object-position: center 50%;" alt="Declan."/>
+        </div>
+        <div class="item">
+          <img src="./static/images/team/Kaung.jpg" class="teaser-image" style="object-position: center 20%;" alt="Kaung."/>
+        </div>
+        <div class="item">
+          <img src="./static/images/team/Dang.jpg" class="teaser-image" style="object-position: center 20%;" alt="Dang."/>
+        </div>
+        <div class="item">
+          <img src="./static/images/team/Stephen.jpg" class="teaser-image" style="object-position: center 20%;" alt="Stephen."/>
+        </div>
+        <div class="item">
+          <img src="./static/images/team/Hayden.jpg" class="teaser-image" style="object-position: center 20%;" alt="Hayden."/>
         </div>
       </div>
     </div>
@@ -161,62 +188,48 @@
 </section>
 
 
-<!-- Pipeline -->
-<section class="section">
-  <div class="container is-max-desktop">
-    <div class="columns is-centered has-text-centered">
-      <div class="column is-full-width">
-        <h2 class="title is-3">System Overview</h2>
-        <div class="content has-text-justified">
-          <p>
-            The full pipeline runs in six stages: (1) collect segmentation frames automatically,
-            (2) train a CNN to identify objects, (3) record manual teleoperation demonstrations,
-            (4) expand demos with Isaac Lab Mimic, (5) train a BC policy, and (6) evaluate
-            policy rollouts in simulation.
-          </p>
-        </div>
-        <!-- TODO: Replace with your pipeline diagram image -->
-        <img src="./static/images/pipeline.png"
-          class="teaser-image"
-          alt="Pipeline diagram."/>
-      </div>
-    </div>
-  </div>
-</section>
-
-
 <!-- Results -->
 <section class="section">
   <div class="container is-max-desktop">
     <div class="columns is-centered">
 
-      <!-- Training curves -->
+      <!-- Training Loss -->
       <div class="column">
         <div class="content">
-          <h2 class="title is-3">Policy Training</h2>
-          <p>
-            BC training loss across 50 epochs for each of the four tool classes.
-          </p>
-          <!-- TODO: Replace with your training curve plot -->
-          <img src="./static/images/results/training_curves.png"
-            class="teaser-image"
-            alt="Training curves."/>
+          <h2 class="title is-3">Training Loss</h2>
+          <p>BC policy training and validation loss over epochs.</p>
+          <img src="./static/images/results/training_loss.png" class="teaser-image" alt="Training loss."/>
         </div>
       </div>
 
-      <!-- Eval results -->
+      <!-- Basket Reach Rate -->
       <div class="column">
-        <h2 class="title is-3">Evaluation</h2>
-        <div class="columns is-centered">
-          <div class="column content">
-            <p>
-              Basket reach rate per object across 20 evaluation episodes.
-            </p>
-            <!-- TODO: Replace with your eval results chart -->
-            <img src="./static/images/results/eval_results.png"
-              class="teaser-image"
-              alt="Evaluation results."/>
-          </div>
+        <div class="content">
+          <h2 class="title is-3">Basket Reach Rate</h2>
+          <p>Success rate per object across evaluation episodes.</p>
+          <img src="./static/images/results/basket_reach_rate.png" class="teaser-image" alt="Basket reach rate."/>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="columns is-centered">
+
+      <!-- CNN Confusion Matrix -->
+      <div class="column">
+        <div class="content">
+          <h2 class="title is-3">CNN Confusion Matrix</h2>
+          <p>Segmentation model accuracy across all object classes.</p>
+          <img src="./static/images/results/confusion_matrix.png" class="teaser-image" alt="Confusion matrix."/>
+        </div>
+      </div>
+
+      <!-- Mimic Similarity -->
+      <div class="column">
+        <div class="content">
+          <h2 class="title is-3">Human Replication</h2>
+          <p>How closely the BC policy replicates human demonstrations per object.</p>
+          <img src="./static/images/results/mimic_similarity.png" class="teaser-image" alt="Mimic similarity."/>
         </div>
       </div>
 
