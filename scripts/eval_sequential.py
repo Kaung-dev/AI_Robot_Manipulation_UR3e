@@ -49,6 +49,11 @@ parser.add_argument("--episode_length_s", type=float, default=300.0)
 parser.add_argument("--out",              default="eval_results/sequential.json")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
+# THIS BRANCH (kb-unified-eval) runs CAMERA-FREE for clean video recording:
+# no board_camera, no CNN, no omni.syntheticdata render pipeline -> no freeze.
+# Tool positions come from ground truth; the per-tool BC policies still do the
+# grasp/carry/place. (Delete this line to re-enable the CNN path.)
+args_cli.no_cnn = True
 args_cli.enable_cameras = not args_cli.no_cnn
 
 app_launcher = AppLauncher(args_cli)
