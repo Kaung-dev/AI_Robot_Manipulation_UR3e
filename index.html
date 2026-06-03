@@ -306,15 +306,54 @@
         <h2 class="title is-3">Results Discussion and Reflection</h2>
         <div class="content has-text-justified">
           <p>
-            The behaviour cloning policy successfully learned to approach and grasp the commanded
-            tool in simulation. Mimic data augmentation significantly increased the number of
-            training trajectories available without additional human effort.
+            Overall, the pipeline succeeds end-to-end: the behavioural-cloning policies learn to
+            perceive, approach and grasp the commanded tool, and to deposit it in the basket. The
+            training curves show validation loss tracking the training loss and plateauing, which
+            indicates the policies converge without over-fitting to the demonstrations. Measured
+            over closed-loop rollouts, task success (the object landing in the basket) reaches
+            roughly 53% for the brush, 61% for the screwdriver and 33% for the pliers. The Isaac Lab
+            Mimic stage was central to this: approximately 160 human teleoperation demonstrations
+            were amplified into more than 3,000 synthetic trajectories — about a thirteen-fold
+            increase — giving the policies sufficient data to train on without additional human
+            effort.
           </p>
           <p>
-            Key limitations include covariate shift during carry (the robot's gripper behaviour
-            after grasping was unreliable) and the sim-to-real gap — the policy has not yet been
-            tested on a physical Franka Panda. Future work would apply PPO fine-tuning with improved
-            reward shaping (grasp progress + lift progress) to fix the carry phase.
+            Reading the evaluation metrics together is more informative than any single number. The
+            imitation-fidelity analysis shows that, for every tool, the policy reproduces the
+            demonstrated actions more closely during the <em>approach</em> phase than during the
+            <em>carry</em> phase, and the screwdriver — the most geometrically awkward object — is
+            the hardest to imitate overall. This is consistent with the failures we observe in
+            simulation: errors accumulate after the grasp rather than before it. The pliers, which
+            achieves both the lowest success rate and the weakest segmentation of any tool, further
+            illustrates how a perception weakness propagates downstream into control performance.
+          </p>
+          <p>
+            <strong>Limitations.</strong> The dominant failure mode is <em>covariate shift during
+            the carry phase</em>: once the policy grasps the object it can enter states under-
+            represented in the demonstrations, and the gripper behaviour becomes unreliable. The
+            evaluation is also based on a modest number of rollouts per tool (roughly 9–15), so the
+            reported success rates carry wide Wilson 95% confidence intervals and should be read as
+            indicative rather than definitive. Finally, the entire study is conducted in simulation
+            — the policies have not been deployed on a physical Franka Panda, leaving an open
+            sim-to-real gap — and the segmentation model is camera- and scene-specific, so it must
+            be retrained when the viewpoint changes.
+          </p>
+          <p>
+            <strong>Future work.</strong> The most direct next step is to repair the carry phase by
+            fine-tuning the behavioural-cloning policies with reinforcement learning (PPO) under a
+            shaped reward that explicitly rewards grasp and lift progress, mitigating the covariate
+            shift that pure imitation cannot. Beyond this, running substantially more evaluation
+            episodes would tighten the confidence intervals, domain randomisation and retraining
+            would make the perception model robust across cameras and scenes, and sim-to-real
+            transfer onto physical hardware remains the longer-term goal.
+          </p>
+          <p>
+            <strong>Reflection.</strong> The project demonstrates that computer-vision perception
+            and imitation learning can be combined into a single, working manipulation system in
+            simulation, and that demonstration-efficient learning is feasible when a small set of
+            human demonstrations is amplified through Isaac Lab Mimic. Just as importantly, the
+            evaluation pinpoints precisely where the system breaks down, giving a clear and
+            well-motivated direction for the next iteration.
           </p>
         </div>
       </div>
