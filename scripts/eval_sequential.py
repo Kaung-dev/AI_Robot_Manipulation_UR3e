@@ -46,6 +46,9 @@ parser.add_argument("--no_cnn",           action="store_true",
                     help="Skip CNN entirely — use GT physics positions. No board_camera loaded.")
 parser.add_argument("--servo_dist",       type=float, default=0.18)
 parser.add_argument("--episode_length_s", type=float, default=300.0)
+parser.add_argument("--max_picks_per_episode", type=int, default=2,
+                    help="Pick at most N tools per episode, then end+reset for a fresh "
+                         "start (avoids the post-2-tools state drift). Default 2.")
 parser.add_argument("--out",              default="eval_results/sequential.json")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -550,6 +553,7 @@ def main():
         ep_results = []
 
         attempted = set()
+        picks = 0  # tools actually grasped this episode (cap below avoids the 3rd-tool drift)
         # Parked policy-tools (e.g. pliers when brush takes R0) are not picked this
         # episode — mark them done up front so the loop ignores them.
         for t in park:
@@ -651,18 +655,21 @@ def main():
             print(f"[seq] {tool_name}: LANDED={result['landed']}  "
                   f"dist={result['final_dist']:.3f}m  steps={result['steps']}", flush=True)
 
-            # Clean transition before the next tool. Camera-free (this branch):
-            # a real env.reset() gives each tool a PRISTINE robot + buffer state,
-            # which fixes the "policy stops working after 2 tools" drift (go_home
-            # alone doesn't fully restore the env). env.reset() is safe here only
-            # because there's no camera (it deadlocks omni.syntheticdata when a
-            # camera is active). Then restore the arrangement (landed -> basket,
-            # rest -> pegs). go_home is the fallback for the camera path.
+            picks += 1
+            # Cap picks per episode: the BC policies drift out-of-distribution
+            # after ~2 sequential picks (each was trained as a single pick from a
+            # fresh reset). So grab N (default 2), then END the episode — the next
+            # episode's env.reset() gives a clean start. Reliable for recording.
+            if picks >= args_cli.max_picks_per_episode:
+                print(f"[seq] reached {args_cli.max_picks_per_episode}-pick cap — "
+                      f"ending episode (next episode resets fresh)", flush=True)
+                break
+
+            # Clean transition before the next tool: home the arm + flush buffers
+            # (go_home), then restore the arrangement (landed -> basket, rest ->
+            # pegs). Skip if this was the last tool.
             if len(attempted) < len(TOOL_ORDER):
-                if args_cli.no_cnn:
-                    env.reset()
-                else:
-                    go_home(env, robot, device)
+                go_home(env, robot, device)
                 place_tools(env, device, slots, placed)
                 print(f"[seq] ready for next tool (arrangement preserved, "
                       f"{len(placed)} in basket)", flush=True)
