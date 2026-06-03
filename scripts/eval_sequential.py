@@ -127,23 +127,29 @@ SLOT_WORLD = {
     "R1": [-4.445, -5.960, 1.611],
     "R2": [-4.272, -5.960, 1.326],
     "R3": [-4.445, -5.960, 1.326],
+    # Off-screen stash (3 m below the board, out of camera view): a tool placed
+    # here is effectively "not spawned" for the demo.
+    "HIDE": [-4.300, -5.960, -3.000],
 }
 TOOL_QUAT = [0.7071, 0.0, 0.0, -0.7071]
 # Distinct assignments of brush/pliers/screwdriver to R0/R1/R2 that satisfy
 # every tool's working-slot constraint (scissors always -> R3). One is chosen
 # at random per reset.
 # Each layout: "slots" = where every tool is placed (so nothing collides), and
-# "park" = policy-tools NOT picked this episode (left hanging, skipped). scissors
-# is always skipped (no policy). For variety, pliers is sometimes parked so brush
-# takes R0 instead (brush grasps any slot; pliers only works at R0).
+# "park" = policy-tools NOT picked this episode. scissors is always skipped (no
+# policy). For variety, pliers is sometimes NOT spawned at all (moved to HIDE,
+# off-screen) so brush takes R0 instead (brush grasps any slot; pliers only R0).
 VALID_ASSIGNMENTS = [
     # --- pliers IN PLAY (on R0): pick brush + pliers + screwdriver ---
     {"slots": {"object": "R2", "tool_pliers": "R0", "tool_screwdriver": "R1", "tool_scissors": "R3"}, "park": []},
     {"slots": {"object": "R1", "tool_pliers": "R0", "tool_screwdriver": "R2", "tool_scissors": "R3"}, "park": []},
-    # --- pliers PARKED (brush takes R0): pick brush + screwdriver ---
-    {"slots": {"object": "R0", "tool_pliers": "R2", "tool_screwdriver": "R1", "tool_scissors": "R3"}, "park": ["pliers"]},
-    {"slots": {"object": "R0", "tool_pliers": "R1", "tool_screwdriver": "R2", "tool_scissors": "R3"}, "park": ["pliers"]},
+    # --- pliers NOT SPAWNED (hidden off-screen), brush takes R0: pick brush + screwdriver ---
+    {"slots": {"object": "R0", "tool_pliers": "HIDE", "tool_screwdriver": "R1", "tool_scissors": "R3"}, "park": ["pliers"]},
+    {"slots": {"object": "R0", "tool_pliers": "HIDE", "tool_screwdriver": "R2", "tool_scissors": "R3"}, "park": ["pliers"]},
 ]
+# Weighted random per episode — FAVOR pliers-on-R0 (layouts 1-2) over the
+# pliers-hidden layouts (3-4): 3+3 vs 1+1 => pliers is in play ~75% of episodes.
+ASSIGNMENT_WEIGHTS = [3, 3, 1, 1]
 
 
 def place_tools(env, device, slots, placed, settle_steps: int = 30) -> None:
@@ -530,7 +536,7 @@ def main():
     for ep_idx in range(args_cli.num_episodes):
         # One constrained-random arrangement for the whole episode (re-randomized
         # only between EPISODES, not between tools).
-        assignment = random.choice(VALID_ASSIGNMENTS)
+        assignment = random.choices(VALID_ASSIGNMENTS, weights=ASSIGNMENT_WEIGHTS, k=1)[0]
         slots = assignment["slots"]
         park = set(assignment["park"])      # policy-tools NOT picked this episode
         placed = set()  # scene_keys of tools that LANDED (go to the basket)
