@@ -122,9 +122,9 @@ PEG_Z_MIN = 1.10
 # the slots its BC policy can actually grasp. Mirrors mdp/events.py
 # (SLOT_POSITIONS world coords + _TOOL_QUAT) so placement is in-distribution,
 # but applied in this demo only — shared training/PPO code is NOT touched.
-#   brush (object)        -> R0 / R1 / R2  (works on all; takes R1/R2 since pliers holds R0)
-#   pliers (tool_pliers)  -> R0 ONLY       (R1 + R2 unreliable)
-#   screwdriver           -> R1 / R2       (never R0)
+#   brush (object)        -> R1 ONLY       (works anywhere; R1 is what's left)
+#   pliers (tool_pliers)  -> R0 ONLY
+#   screwdriver           -> R2 ONLY       (most reliable slot)
 #   scissors              -> R3            (parked; no policy, skipped)
 # ---------------------------------------------------------------------------
 SLOT_WORLD = {
@@ -134,16 +134,10 @@ SLOT_WORLD = {
     "R3": [-4.445, -5.960, 1.326],
 }
 TOOL_QUAT = [0.7071, 0.0, 0.0, -0.7071]
-# Distinct assignments of brush/pliers/screwdriver to R0/R1/R2 that satisfy
-# every tool's working-slot constraint (scissors always -> R3). One is chosen
-# at random per reset.
-# Each layout: "slots" = where every tool is placed, "park" = policy-tools not
-# picked (always [] here; scissors has no policy so it's skipped regardless).
-# pliers is ALWAYS on R0 (its only reliable slot — never R1/R2/R3). brush takes
-# R1 or R2 (works anywhere), screwdriver takes the other, scissors parks on R3.
-# Two layouts, chosen at random per episode (brush <-> screwdriver swap R1/R2).
+# Single fixed layout (each tool on its most reliable slot): pliers R0,
+# screwdriver R2, brush R1, scissors R3 (parked/skipped). Same every episode.
+# "slots" = where every tool is placed; "park" = policy-tools not picked ([]).
 VALID_ASSIGNMENTS = [
-    {"slots": {"object": "R2", "tool_pliers": "R0", "tool_screwdriver": "R1", "tool_scissors": "R3"}, "park": []},
     {"slots": {"object": "R1", "tool_pliers": "R0", "tool_screwdriver": "R2", "tool_scissors": "R3"}, "park": []},
 ]
 
