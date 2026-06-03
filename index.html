@@ -108,10 +108,61 @@
         <h2 class="title is-3">System Overview</h2>
         <div class="content has-text-justified">
           <p>
-            The full pipeline runs in six stages: (1) collect segmentation frames automatically,
-            (2) train a CNN to identify objects, (3) record manual teleoperation demonstrations,
-            (4) expand demos with Isaac Lab Mimic, (5) train a BC policy, and (6) evaluate
-            policy rollouts in simulation.
+            This project investigates goal-conditioned robotic manipulation entirely in
+            simulation, built on <strong>NVIDIA Isaac Sim 5.1</strong> and the
+            <strong>Isaac Lab 2.3.2</strong> framework. A <strong>Franka Emika Panda</strong>
+            manipulator must clear a set of tools (brush, pliers, scissors and screwdriver) from a
+            <strong>Robotis pegboard</strong> and place each one into a basket. This is a
+            contact-rich pick-and-place task that couples two challenges: visually identifying and
+            localising the correct tool, and learning a control policy precise enough to grasp,
+            carry and release it without dropping it.
+          </p>
+          <p>
+            Our approach deliberately <em>decouples perception from control</em> and is realised as
+            a six-stage pipeline:
+          </p>
+          <ol>
+            <li>
+              <strong>Segmentation data collection.</strong> RGB frames with per-pixel class masks
+              are captured automatically inside the simulator across randomised scenes and camera
+              views.
+            </li>
+            <li>
+              <strong>Perception (CNN).</strong> A convolutional semantic-segmentation network — a
+              U-Net, alongside a pre-trained ResNet-18 variant — is trained on these frames to label
+              each pixel by object class. Combined with depth and camera intrinsics, this localises
+              every tool in 3-D, answering <em>which</em> tools are present and <em>where</em>.
+            </li>
+            <li>
+              <strong>Expert demonstrations.</strong> A small set of successful grasps is recorded
+              by a human operator through keyboard and VR teleoperation of the Franka arm.
+            </li>
+            <li>
+              <strong>Demonstration augmentation.</strong> Because imitation learning is
+              data-hungry, these ≈160 human demonstrations are amplified into over 3,000 synthetic
+              trajectories using <strong>Isaac Lab Mimic</strong>, which re-targets each annotated
+              grasp across hundreds of randomised object poses; the generated demonstrations are
+              then filtered for quality.
+            </li>
+            <li>
+              <strong>Policy learning (Behavioural Cloning).</strong> A per-tool
+              <strong>behavioural-cloning</strong> policy — a multilayer perceptron mapping a
+              43-dimensional state observation to joint-space actions — is trained in a supervised
+              manner to imitate the augmented demonstrations, with a phase variable distinguishing
+              the approach and carry stages of each pick.
+            </li>
+            <li>
+              <strong>Evaluation.</strong> The learned policies are run in closed-loop rollouts in
+              Isaac Sim and assessed with task-level metrics — success rate (with Wilson confidence
+              intervals), segmentation accuracy, and how faithfully the policy reproduces the
+              demonstrated actions.
+            </li>
+          </ol>
+          <p>
+            By integrating CNN-based <strong>computer-vision perception</strong> with
+            <strong>imitation learning</strong> inside a single simulated robot, the system brings
+            together two core topics of the subject and demonstrates an end-to-end,
+            learning-driven manipulation pipeline.
           </p>
         </div>
         <img src="./static/images/Pipeline.svg"
