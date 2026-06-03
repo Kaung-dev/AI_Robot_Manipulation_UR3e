@@ -117,8 +117,9 @@ PEG_Z_MIN = 1.10
 # the slots its BC policy can actually grasp. Mirrors mdp/events.py
 # (SLOT_POSITIONS world coords + _TOOL_QUAT) so placement is in-distribution,
 # but applied in this demo only — shared training/PPO code is NOT touched.
-#   brush (object)        -> R0 / R1 / R2  (works on all; takes R1/R2 since pliers holds R0)
-#   pliers (tool_pliers)  -> R0 ONLY       (R1 + R2 unreliable)
+#   brush (object)        -> R0 / R1 / R2  (all)
+#   pliers (tool_pliers)  -> R0            (R1 always bad; R2 carry is unreliable
+#                                           in the unified demo, so R0 only)
 #   screwdriver           -> R1 / R2       (never R0)
 #   scissors              -> R3            (parked; no policy, skipped)
 # ---------------------------------------------------------------------------
@@ -132,27 +133,22 @@ TOOL_QUAT = [0.7071, 0.0, 0.0, -0.7071]
 # Distinct assignments of brush/pliers/screwdriver to R0/R1/R2 that satisfy
 # every tool's working-slot constraint (scissors always -> R3). One is chosen
 # at random per reset.
-# Each layout: "slots" = where every tool is placed, "park" = policy-tools not
-# picked (always [] here; scissors has no policy so it's skipped regardless).
-# pliers is ALWAYS on R0 (its only reliable slot — never R1/R2/R3). brush takes
-# R1 or R2 (works anywhere), screwdriver takes the other, scissors parks on R3.
-# Two layouts, chosen at random per episode (brush <-> screwdriver swap R1/R2).
 VALID_ASSIGNMENTS = [
-    {"slots": {"object": "R2", "tool_pliers": "R0", "tool_screwdriver": "R1", "tool_scissors": "R3"}, "park": []},
-    {"slots": {"object": "R1", "tool_pliers": "R0", "tool_screwdriver": "R2", "tool_scissors": "R3"}, "park": []},
+    {"object": "R2", "tool_pliers": "R0", "tool_screwdriver": "R1", "tool_scissors": "R3"},
+    {"object": "R1", "tool_pliers": "R0", "tool_screwdriver": "R2", "tool_scissors": "R3"},
+    # (dropped the pliers=R2 layout — pliers R2 carry is unreliable; pliers stays on R0)
 ]
 
 
-def place_tools(env, device, slots, placed, settle_steps: int = 30) -> None:
+def place_tools(env, device, assignment, placed, settle_steps: int = 30) -> None:
     """Write the tool poses WITHOUT env.reset() (a mid-episode env.reset() with
     cameras active deadlocks the omni.syntheticdata render pipeline). Keeps the
     SAME board arrangement: tools not yet handled go on their assigned pegs
-    (restoring any that were knocked off); already-LANDED tools go to the basket.
-    `slots` maps scene_key -> slot name (R0..R3)."""
+    (restoring any that were knocked off); already-LANDED tools go to the basket."""
     env_ids = torch.tensor([0], device=device)
     quat = torch.tensor(TOOL_QUAT, device=device).unsqueeze(0)
     basket = BASKET_POS_LOCAL.to(device).unsqueeze(0)
-    for scene_key, slot in slots.items():
+    for scene_key, slot in assignment.items():
         asset = env.unwrapped.scene[scene_key]
         if scene_key in placed:
             pos = env.unwrapped.scene.env_origins[env_ids] + basket
@@ -528,24 +524,16 @@ def main():
         # One constrained-random arrangement for the whole episode (re-randomized
         # only between EPISODES, not between tools).
         assignment = random.choice(VALID_ASSIGNMENTS)
-        slots = assignment["slots"]
-        park = set(assignment["park"])      # policy-tools NOT picked this episode
         placed = set()  # scene_keys of tools that LANDED (go to the basket)
         env.reset()  # episode-start reset is safe; mid-episode resets deadlock w/ cameras
-        place_tools(env, device, slots, placed)
+        place_tools(env, device, assignment, placed)
         print(f"\n[seq] ===== EPISODE {ep_idx + 1}/{args_cli.num_episodes} =====", flush=True)
-        print(f"[seq] spawn: brush={slots['object']} pliers={slots['tool_pliers']} "
-              f"screwdriver={slots['tool_screwdriver']} scissors={slots['tool_scissors']} "
-              f"| parked(skipped): {sorted(park) + ['scissors']}", flush=True)
+        print(f"[seq] constrained spawn: brush={assignment['object']} "
+              f"pliers={assignment['tool_pliers']} screwdriver={assignment['tool_screwdriver']} "
+              f"scissors={assignment['tool_scissors']}(parked)", flush=True)
         ep_results = []
 
         attempted = set()
-        # Parked policy-tools (e.g. pliers when brush takes R0) are not picked this
-        # episode — mark them done up front so the loop ignores them.
-        for t in park:
-            attempted.add(t)
-            ep_results.append({"tool": t, "steps": 0, "landed": False,
-                               "released": False, "final_dist": -1.0, "skipped": True})
         while len(attempted) < len(TOOL_ORDER):
             detections = {} if args_cli.no_cnn else run_cnn(seg_model, board_cam, device, debug=True)
             remaining = [t for t in TOOL_ORDER if t not in attempted]
@@ -553,7 +541,7 @@ def main():
 
             print(f"\n[seq] CNN detected on peg: {on_peg if on_peg else 'none'}", flush=True)
             print(f"[seq] Remaining: {remaining}", flush=True)
-            print(f"[seq] Commands: {on_peg} | 'auto' (next in order) | 'skip <tool>' | 'done'",
+            print(f"[seq] Commands: {on_peg} | 'auto' (closest to basket) | 'skip <tool>' | 'done'",
                   flush=True)
 
             try:
@@ -565,8 +553,8 @@ def main():
                 break
             elif user_input == "auto":
                 # Mark any detected tools we have NO policy for (e.g. scissors) as
-                # attempted so they don't block the loop, then pick the next in
-                # priority order that is BOTH on a peg AND has a loaded policy.
+                # attempted so they don't block the loop, then pick the detected,
+                # policy-backed tool CLOSEST to the basket.
                 for t in remaining:
                     if t in detections and t not in policies:
                         print(f"[seq] {t} detected but no policy loaded — skipping", flush=True)
@@ -574,25 +562,24 @@ def main():
                         ep_results.append({"tool": t, "steps": 0, "landed": False,
                                            "released": False, "final_dist": -1.0,
                                            "skipped": True})
-                tool_name = next((t for t in remaining
-                                  if t in detections and t in policies), None)
+                # Pick the detected, policy-backed tool CLOSEST to the basket
+                # (re-evaluated each scan). Distance uses the CNN-detected world
+                # position vs the basket world position — cm-level is plenty for
+                # ordering. Mirrors the friend's eval_multi closest-first order.
+                basket_w = (env_origins[0] + basket_dev).tolist()
+                cands = [t for t in remaining if t in detections and t in policies]
+                def _basket_dist(t):
+                    p = detections[t]
+                    return ((p[0]-basket_w[0])**2 + (p[1]-basket_w[1])**2 + (p[2]-basket_w[2])**2) ** 0.5
+                if cands:
+                    order = sorted(cands, key=_basket_dist)
+                    print("[seq] pick order (closest to basket first): "
+                          + ", ".join(f"{t}({_basket_dist(t):.2f}m)" for t in order), flush=True)
+                    tool_name = order[0]
+                else:
+                    tool_name = None
                 if tool_name is None:
-                    # GT FALLBACK so EVERY tool gets collected: the CNN sometimes
-                    # misses a tool (e.g. the thin screwdriver), but if a
-                    # policy-tool is still physically on its peg, grasp it anyway
-                    # (we drive to the true pose regardless of CNN).
-                    for t in remaining:
-                        if t not in policies:
-                            continue
-                        obj_z = env.unwrapped.scene[TOOL_SCENE_KEY[t]].data.root_pos_w[0, 2].item()
-                        if obj_z > PEG_Z_MIN:
-                            tool_name = t
-                            print(f"[seq] {t} not detected by CNN but still on peg "
-                                  f"(z={obj_z:.2f}) — grasping via true pose (GT fallback)",
-                                  flush=True)
-                            break
-                if tool_name is None:
-                    print("[seq] No tool left on a peg — ending episode", flush=True)
+                    print("[seq] No detected tool has a policy — ending episode", flush=True)
                     break
             elif user_input.startswith("skip "):
                 skip_tool = user_input.split()[1]
@@ -647,7 +634,7 @@ def main():
             # pegs). Skip if this was the last tool.
             if len(attempted) < len(TOOL_ORDER):
                 go_home(env, robot, device)
-                place_tools(env, device, slots, placed)
+                place_tools(env, device, assignment, placed)
                 print(f"[seq] ready for next tool (arrangement preserved, "
                       f"{len(placed)} in basket)", flush=True)
 
