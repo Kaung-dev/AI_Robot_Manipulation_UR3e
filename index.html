@@ -54,6 +54,9 @@
           <div class="is-size-5 publication-authors">
             <span class="author-block"><sup></sup>University of Technology Sydney</span>
           </div>
+          <div class="is-size-6 publication-authors">
+            <span class="author-block">41118 Artificial Intelligence in Robotics &mdash; Group&nbsp;<!-- TODO: replace XX with your group number -->XX</span>
+          </div>
 
           <div class="column has-text-centered">
             <div class="publication-links">
@@ -267,6 +270,63 @@
       </div>
     </div>
 
+  </div>
+</section>
+
+
+<!-- Installation & Running -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Installation &amp; Running</h2>
+        <div class="content has-text-justified">
+          <p>
+            <strong>Requirements:</strong> NVIDIA Isaac Sim 5.1.0 and Isaac Lab 2.3.2
+            (Python 3.11), a CUDA GPU (≥16&nbsp;GB VRAM recommended), Ubuntu 22.04 or Windows 11.
+          </p>
+          <p><strong>Setup:</strong></p>
+          <pre><code>git clone https://github.com/Kaung-dev/AI_Robot_Manipulation_UR3e.git
+cd AI_Robot_Manipulation_UR3e
+cp .env.example .env          # set ISAACLAB_PATH to your Isaac Lab install
+source .env
+./setup_isaaclab.sh           # links the custom tasks into Isaac Lab</code></pre>
+          <p>
+            <strong>Run the trained demo</strong> — first download the models + datasets from the
+            <a href="https://drive.google.com/drive/folders/1Hfsbq8CI39m-sjytxXRaltL-iFscZLF4?usp=drive_link">Data</a>
+            bundle into <code>checkpoints/</code> and <code>datasets/</code>:
+          </p>
+          <pre><code>./launch_air2.sh eval-sequential 10 --no_cnn</code></pre>
+          <p>
+            <strong>Expected result:</strong> in the Isaac Sim viewer, the Franka Panda detects
+            the tools on the pegboard, picks them in order, and drops each into the basket.
+          </p>
+          <p>
+            Full step-by-step instructions — including reproducing the whole pipeline
+            (teleop&nbsp;&rarr; annotate&nbsp;&rarr; Mimic&nbsp;&rarr; train BC&nbsp;&rarr; evaluate) — are in
+            <a href="https://github.com/Kaung-dev/AI_Robot_Manipulation_UR3e/blob/main/GUIDE.md">GUIDE.md</a>
+            and the <a href="https://github.com/Kaung-dev/AI_Robot_Manipulation_UR3e/blob/main/README.md">README</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- BibTeX -->
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>@misc{air2franka2026,
+  title        = {AI Robot Manipulation: Franka Pick-and-Place with Behaviour
+                  Cloning and Isaac Lab Mimic},
+  author       = {Thu, Kaung Myat and Suiwinata, Stephen and Tran, Dang and
+                  Wijaya, Declan and Choo, Hayden},
+  year         = {2026},
+  note         = {41118 Artificial Intelligence in Robotics, University of Technology Sydney},
+  howpublished = {\url{https://github.com/Kaung-dev/AI_Robot_Manipulation_UR3e}}
+}</code></pre>
   </div>
 </section>
 
